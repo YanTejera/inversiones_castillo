@@ -16,17 +16,16 @@ services:
         value: "*"
       - key: FRONTEND_URL
         fromService:
-          type: static
+          type: static-site
           name: concesionario-frontend-free
           property: url
       - key: USE_SQLITE
         value: true  # Usar SQLite en lugar de PostgreSQL
 
-  - type: static
+  - type: static-site
     name: concesionario-frontend-free
     buildCommand: "npm install && npm run build"
-    staticPublishPath: ./dist
-    plan: free  # GRATIS siempre
+    publishPath: ./dist
     branch: main
     rootDir: frontend
     envVars:
