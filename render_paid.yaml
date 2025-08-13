@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: concesionario-backend
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn concesionario_app.wsgi:application"
+    plan: starter
+    branch: main
+    rootDir: backend
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: concesionario-db
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: FRONTEND_URL
+        fromService:
+          type: static
+          name: concesionario-frontend
+          property: url
+
+  - type: static
+    name: concesionario-frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: ./dist
+    plan: starter
+    branch: main
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: concesionario-backend
+          envVarKey: RENDER_EXTERNAL_URL
+
+databases:
+  - name: concesionario-db
+    databaseName: concesionario_prod
+    user: concesionario_user
+    plan: starter

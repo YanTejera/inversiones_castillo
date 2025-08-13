@@ -1,0 +1,2 @@
+web: gunicorn concesionario_app.wsgi:application
+release: python manage.py migrate && python create_initial_data.py

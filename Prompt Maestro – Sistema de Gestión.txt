@@ -1,0 +1,353 @@
+Prompt Maestro – Sistema de Gestión de Ventas de Motocicletas
+🎯 Objetivo
+Desarrollar una aplicación web de escritorio para un concesionario de motocicletas, enfocada en:
+
+Gestión de ventas
+
+Control de cobros
+
+Facturación
+
+Estadísticas y reportes
+
+Control de stock en tiempo real
+
+Seguridad con sistema de login y roles de usuario
+
+Posteriormente, crear una versión móvil enfocada en monitoreo.
+
+📌 Fases del Proyecto
+Fase 1 – Definición y estructura base
+Definir stack tecnológico (sugerencia: Frontend: React o Vue.js, Backend: Laravel o Django, DB: MySQL/PostgreSQL).
+
+Crear estructura inicial de proyecto (frontend y backend conectados).
+
+Configurar sistema de login y roles (administrador, vendedor, cobrador, etc.).
+
+Preparar base de datos inicial:
+
+Tabla de usuarios con roles y credenciales.
+
+Tabla de motos con stock, precio de compra, precio de venta, ganancias, etc.
+
+Tabla de clientes.
+
+Tabla de ventas y pagos.
+
+Tabla de reportes.
+
+Fase 2 – Módulo de gestión de motos
+CRUD completo de motos:
+
+Crear, ver, editar, eliminar.
+
+Campos: marca, modelo, año, chasis, precio compra, precio venta, ganancia, cantidad stock, imágenes.
+
+Actualización de stock en tiempo real.
+
+Búsqueda y filtrado por chasis, marca o modelo.
+
+Fase 3 – Módulo de clientes y ventas
+Registro y edición de clientes.
+
+Datos: nombre, dirección, cédula, teléfono, correo, fiador, referencias.
+
+Registro de ventas:
+
+Selección de cliente.
+
+Selección de moto.
+
+Tipo de venta: contado o financiado.
+
+Monto inicial, cuotas, fecha de inicio, fecha de pago, estado.
+
+Emisión de factura en PDF.
+
+Control de documentos como en la imagen (efectos dejados, referencias, conductor, etc.).
+
+Fase 4 – Módulo de pagos y cobros
+Registro de pagos mensuales.
+
+Cálculo automático de saldo pendiente.
+
+Historial de pagos.
+
+Integración de reportes de cobro por cliente, por fecha o por cobrador.
+
+Botones rápidos: "Aplicar pagos regulares", "Abono a capital".
+
+Fase 5 – Panel administrativo y estadísticas
+Vista general con:
+
+Ventas del día, semana, mes.
+
+Cobros pendientes.
+
+Stock crítico.
+
+Rentabilidad.
+
+Gráficos estadísticos.
+
+Descarga de reportes en Excel y PDF.
+
+Fase 6 – Optimización y versión móvil
+Crear app Android (React Native o Flutter) para monitoreo:
+
+Ver ventas, cobros y perfiles.
+
+No incluir edición masiva (solo lectura).
+
+Sincronización con la base de datos principal.
+
+Fase 7 – Seguridad y despliegue
+Copias de seguridad automáticas.
+
+Control de acceso y logs de actividad.
+
+Deploy en servidor seguro (ej: VPS o AWS).
+
+Optimización de rendimiento.
+
+Funciones claves copiadas de la imagen
+Botones de acceso rápido en panel lateral.
+
+Gestión de fiadores y documentos asociados.
+
+Registro de datos detallados de vehículo.
+
+Seguimiento de cuotas y pagos con estado activo/inactivo.
+
+Generación automática de reportes y facturas.
+
+Si quieres, el siguiente paso sería pasar a un diagrama de base de datos para que desde ya tengamos la estructura y luego empezamos la Fase 1 creando el proyecto base con login y roles.
+¿Quieres que preparemos primero ese diagrama de base de datos?
+
+
+
+
+
+
+
+
+Tú dijiste:
+Si crea el diagrama 
+
+
+ChatGPT Plus
+Perfecto ✅
+Vamos a crear un diagrama de base de datos pensado para cubrir todas las funciones que mencionaste y también las que vemos en la imagen que quieres replicar.
+
+Te lo haré en forma de modelo entidad-relación (ERD) con sus tablas y relaciones.
+
+🗄 Diagrama de Base de Datos – Sistema de Gestión de Motocicletas
+1. Usuarios y Roles
+usuarios
+
+id_usuario (PK)
+
+nombre
+
+apellido
+
+usuario (único)
+
+contraseña (hash)
+
+rol_id (FK → roles.id_rol)
+
+teléfono
+
+email
+
+estado (activo/inactivo)
+
+fecha_creacion
+
+roles
+
+id_rol (PK)
+
+nombre_rol (Administrador, Vendedor, Cobrador)
+
+descripcion
+
+2. Clientes y Fiadores
+clientes
+
+id_cliente (PK)
+
+nombre
+
+apellido
+
+direccion
+
+ciudad
+
+pais
+
+cedula
+
+telefono
+
+celular
+
+email
+
+estado_civil
+
+fecha_registro
+
+fiadores
+
+id_fiador (PK)
+
+nombre
+
+apellido
+
+cedula
+
+direccion
+
+telefono
+
+cliente_id (FK → clientes.id_cliente)
+
+3. Inventario de Motos
+motos
+
+id_moto (PK)
+
+marca
+
+modelo
+
+año
+
+chasis (único)
+
+precio_compra
+
+precio_venta
+
+ganancia
+
+cantidad_stock
+
+descripcion
+
+imagen_url
+
+fecha_ingreso
+
+4. Ventas y Detalles
+ventas
+
+id_venta (PK)
+
+cliente_id (FK → clientes.id_cliente)
+
+usuario_id (FK → usuarios.id_usuario)
+
+fecha_venta
+
+tipo_venta (contado, financiado)
+
+monto_total
+
+monto_inicial
+
+cuotas
+
+pago_mensual
+
+estado (activa, cancelada, finalizada)
+
+venta_detalle
+
+id_detalle (PK)
+
+venta_id (FK → ventas.id_venta)
+
+moto_id (FK → motos.id_moto)
+
+cantidad
+
+precio_unitario
+
+subtotal
+
+5. Pagos y Cobros
+pagos
+
+id_pago (PK)
+
+venta_id (FK → ventas.id_venta)
+
+fecha_pago
+
+monto_pagado
+
+tipo_pago (efectivo, transferencia, tarjeta)
+
+observaciones
+
+6. Documentos Asociados
+documentos
+
+id_documento (PK)
+
+cliente_id (FK → clientes.id_cliente)
+
+tipo_documento (Efectos dejados, Referencias, Conductor del vehículo)
+
+descripcion
+
+archivo_url
+
+fecha_creacion
+
+7. Reportes y Auditoría
+reportes
+
+id_reporte (PK)
+
+usuario_id (FK → usuarios.id_usuario)
+
+tipo_reporte (ventas, pagos, stock)
+
+parametros
+
+fecha_generacion
+
+archivo_url
+
+auditoria
+
+id_auditoria (PK)
+
+usuario_id (FK → usuarios.id_usuario)
+
+accion
+
+tabla_afectada
+
+id_registro
+
+fecha_accion
+
+📌 Relaciones clave:
+
+Un cliente puede tener múltiples ventas.
+
+Una venta puede tener múltiples motos (relación ventas ↔ venta_detalle).
+
+Una venta puede tener múltiples pagos.
+
+Un cliente puede tener un fiador.
+
+Los usuarios (empleados) están vinculados a las ventas y reportes.
+

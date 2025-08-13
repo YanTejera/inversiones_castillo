@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: concesionario-backend-free
+    runtime: python
+    buildCommand: "./build_free.sh"
+    startCommand: "gunicorn concesionario_app.wsgi:application"
+    plan: free  # Plan GRATUITO
+    branch: main
+    rootDir: backend
+    envVars:
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: FRONTEND_URL
+        fromService:
+          type: static
+          name: concesionario-frontend-free
+          property: url
+      - key: USE_SQLITE
+        value: true  # Usar SQLite en lugar de PostgreSQL
+
+  - type: static
+    name: concesionario-frontend-free
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: ./dist
+    plan: free  # GRATIS siempre
+    branch: main
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: concesionario-backend-free
+          envVarKey: RENDER_EXTERNAL_URL
+
+# NO incluir base de datos = 100% GRATIS
