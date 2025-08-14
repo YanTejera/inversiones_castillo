@@ -130,7 +130,16 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
         
         if (error.response.data) {
           if (typeof error.response.data === 'string') {
-            errorMessage = error.response.data;
+            // Si es HTML, probablemente es un error 404 o 500
+            if (error.response.data.includes('<html>')) {
+              if (error.response.status === 404) {
+                errorMessage = 'API endpoint no encontrado. Verifica que el backend esté funcionando correctamente.';
+              } else {
+                errorMessage = `Error del servidor (${error.response.status}). Verifica la conexión con el backend.`;
+              }
+            } else {
+              errorMessage = error.response.data;
+            }
           } else if (error.response.data.detail) {
             errorMessage = error.response.data.detail;
           } else if (error.response.data.message) {
