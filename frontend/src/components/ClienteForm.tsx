@@ -1,0 +1,406 @@
+import React, { useState, useEffect } from 'react';
+import { X, Save, User, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign } from 'lucide-react';
+import { clienteService } from '../services/clienteService';
+import type { Cliente } from '../types';
+
+interface ClienteFormProps {
+  cliente?: Cliente | null;
+  mode: 'create' | 'edit' | 'view';
+  onClose: () => void;
+  onSave: () => void;
+}
+
+interface FormData {
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  fecha_nacimiento: string;
+  estado_civil: string;
+  ocupacion: string;
+  ingresos: string;
+  referencias_personales: string;
+}
+
+const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSave }) => {
+  const [formData, setFormData] = useState<FormData>({
+    nombre: '',
+    apellido: '',
+    cedula: '',
+    telefono: '',
+    email: '',
+    direccion: '',
+    fecha_nacimiento: '',
+    estado_civil: '',
+    ocupacion: '',
+    ingresos: '',
+    referencias_personales: ''
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (cliente) {
+      setFormData({
+        nombre: cliente.nombre || '',
+        apellido: cliente.apellido || '',
+        cedula: cliente.cedula || '',
+        telefono: cliente.telefono || '',
+        email: cliente.email || '',
+        direccion: cliente.direccion || '',
+        fecha_nacimiento: cliente.fecha_nacimiento || '',
+        estado_civil: cliente.estado_civil || '',
+        ocupacion: cliente.ocupacion || '',
+        ingresos: cliente.ingresos?.toString() || '',
+        referencias_personales: cliente.referencias_personales || ''
+      });
+    }
+  }, [cliente]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.nombre.trim()) {
+      newErrors.nombre = 'El nombre es requerido';
+    }
+    if (!formData.apellido.trim()) {
+      newErrors.apellido = 'El apellido es requerido';
+    }
+    if (!formData.cedula.trim()) {
+      newErrors.cedula = 'La cédula es requerida';
+    }
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+    if (formData.ingresos && isNaN(Number(formData.ingresos))) {
+      newErrors.ingresos = 'Los ingresos deben ser un número válido';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const submitData = {
+        ...formData,
+        ingresos: formData.ingresos ? Number(formData.ingresos) : undefined
+      };
+
+      if (mode === 'create') {
+        await clienteService.createCliente(submitData);
+      } else if (mode === 'edit' && cliente) {
+        await clienteService.updateCliente(cliente.id, submitData);
+      }
+      
+      onSave();
+      onClose();
+    } catch (error) {
+      console.error('Error saving cliente:', error);
+      alert('Error al guardar cliente');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isReadOnly = mode === 'view';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {mode === 'create' && 'Crear Nuevo Cliente'}
+            {mode === 'edit' && 'Editar Cliente'}
+            {mode === 'view' && 'Detalles del Cliente'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Información Personal */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <User className="h-5 w-5 mr-2" />
+                Información Personal
+              </h3>
+              
+              <div>
+                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.nombre ? 'border-red-500' : 'border-gray-300'
+                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                />
+                {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="apellido" className="block text-sm font-medium text-gray-700 mb-1">
+                  Apellido *
+                </label>
+                <input
+                  type="text"
+                  id="apellido"
+                  name="apellido"
+                  value={formData.apellido}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.apellido ? 'border-red-500' : 'border-gray-300'
+                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                />
+                {errors.apellido && <p className="text-red-500 text-sm mt-1">{errors.apellido}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="cedula" className="block text-sm font-medium text-gray-700 mb-1">
+                  Cédula *
+                </label>
+                <input
+                  type="text"
+                  id="cedula"
+                  name="cedula"
+                  value={formData.cedula}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.cedula ? 'border-red-500' : 'border-gray-300'
+                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                />
+                {errors.cedula && <p className="text-red-500 text-sm mt-1">{errors.cedula}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="fecha_nacimiento" className="block text-sm font-medium text-gray-700 mb-1">
+                  <Calendar className="h-4 w-4 inline mr-1" />
+                  Fecha de Nacimiento
+                </label>
+                <input
+                  type="date"
+                  id="fecha_nacimiento"
+                  name="fecha_nacimiento"
+                  value={formData.fecha_nacimiento}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isReadOnly ? 'bg-gray-50' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="estado_civil" className="block text-sm font-medium text-gray-700 mb-1">
+                  Estado Civil
+                </label>
+                <select
+                  id="estado_civil"
+                  name="estado_civil"
+                  value={formData.estado_civil}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isReadOnly ? 'bg-gray-50' : ''
+                  }`}
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="soltero">Soltero(a)</option>
+                  <option value="casado">Casado(a)</option>
+                  <option value="divorciado">Divorciado(a)</option>
+                  <option value="viudo">Viudo(a)</option>
+                  <option value="union_libre">Unión Libre</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Información de Contacto */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <Phone className="h-5 w-5 mr-2" />
+                Contacto y Ubicación
+              </h3>
+
+              <div>
+                <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
+                  <Phone className="h-4 w-4 inline mr-1" />
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  id="telefono"
+                  name="telefono"
+                  value={formData.telefono}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isReadOnly ? 'bg-gray-50' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <Mail className="h-4 w-4 inline mr-1" />
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                />
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1">
+                  <MapPin className="h-4 w-4 inline mr-1" />
+                  Dirección
+                </label>
+                <textarea
+                  id="direccion"
+                  name="direccion"
+                  value={formData.direccion}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  rows={2}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isReadOnly ? 'bg-gray-50' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="ocupacion" className="block text-sm font-medium text-gray-700 mb-1">
+                  <Briefcase className="h-4 w-4 inline mr-1" />
+                  Ocupación
+                </label>
+                <input
+                  type="text"
+                  id="ocupacion"
+                  name="ocupacion"
+                  value={formData.ocupacion}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isReadOnly ? 'bg-gray-50' : ''
+                  }`}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="ingresos" className="block text-sm font-medium text-gray-700 mb-1">
+                  <DollarSign className="h-4 w-4 inline mr-1" />
+                  Ingresos Mensuales
+                </label>
+                <input
+                  type="number"
+                  id="ingresos"
+                  name="ingresos"
+                  value={formData.ingresos}
+                  onChange={handleChange}
+                  readOnly={isReadOnly}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.ingresos ? 'border-red-500' : 'border-gray-300'
+                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                />
+                {errors.ingresos && <p className="text-red-500 text-sm mt-1">{errors.ingresos}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Referencias */}
+          <div className="mt-6">
+            <label htmlFor="referencias_personales" className="block text-sm font-medium text-gray-700 mb-1">
+              Referencias Personales
+            </label>
+            <textarea
+              id="referencias_personales"
+              name="referencias_personales"
+              value={formData.referencias_personales}
+              onChange={handleChange}
+              readOnly={isReadOnly}
+              rows={3}
+              placeholder="Nombres, teléfonos y relación con el cliente..."
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isReadOnly ? 'bg-gray-50' : ''
+              }`}
+            />
+          </div>
+
+          {/* Buttons */}
+          <div className="flex justify-end space-x-3 mt-8 pt-6 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              {isReadOnly ? 'Cerrar' : 'Cancelar'}
+            </button>
+            {!isReadOnly && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    {mode === 'create' ? 'Crear Cliente' : 'Guardar Cambios'}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ClienteForm;

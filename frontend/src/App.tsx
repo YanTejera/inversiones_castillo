@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Clientes from './pages/Clientes';
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="motos" element={<div className="p-4">Módulo de Motocicletas en desarrollo</div>} />
-            <Route path="clientes" element={<div className="p-4">Módulo de Clientes en desarrollo</div>} />
+            <Route path="clientes" element={<Clientes />} />
             <Route path="ventas" element={<div className="p-4">Módulo de Ventas en desarrollo</div>} />
             <Route path="pagos" element={<div className="p-4">Módulo de Pagos en desarrollo</div>} />
             <Route path="reportes" element={<div className="p-4">Módulo de Reportes en desarrollo</div>} />
