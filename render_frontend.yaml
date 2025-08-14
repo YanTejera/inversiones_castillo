@@ -1,0 +1,10 @@
+services:
+  - type: static
+    name: concesionario-frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    branch: main
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_URL
+        value: https://inversiones-castillo.onrender.com/api
