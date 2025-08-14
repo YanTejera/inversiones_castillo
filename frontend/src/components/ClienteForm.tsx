@@ -41,6 +41,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
   
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState<string>('');
 
   useEffect(() => {
     if (cliente) {
@@ -100,11 +101,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
     }
 
     setLoading(true);
+    setServerError('');
+    
     try {
       const submitData = {
         ...formData,
         ingresos: formData.ingresos ? Number(formData.ingresos) : undefined
       };
+
+      console.log('Enviando datos del cliente:', submitData);
 
       if (mode === 'create') {
         await clienteService.createCliente(submitData);
@@ -114,9 +119,42 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
       
       onSave();
       onClose();
-    } catch (error) {
-      console.error('Error saving cliente:', error);
-      alert('Error al guardar cliente');
+    } catch (error: any) {
+      console.error('Error completo al guardar cliente:', error);
+      
+      let errorMessage = 'Error al guardar cliente';
+      
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        console.error('Error status:', error.response.status);
+        
+        if (error.response.data) {
+          if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          } else if (error.response.data.detail) {
+            errorMessage = error.response.data.detail;
+          } else if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          } else {
+            // Si hay errores de campo específicos
+            const fieldErrors = [];
+            for (const field in error.response.data) {
+              if (Array.isArray(error.response.data[field])) {
+                fieldErrors.push(`${field}: ${error.response.data[field].join(', ')}`);
+              } else if (typeof error.response.data[field] === 'string') {
+                fieldErrors.push(`${field}: ${error.response.data[field]}`);
+              }
+            }
+            if (fieldErrors.length > 0) {
+              errorMessage = fieldErrors.join('\n');
+            }
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setServerError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -144,6 +182,17 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
+          {/* Server Error */}
+          {serverError && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              <div className="flex">
+                <div>
+                  <p className="text-sm font-medium">Error al guardar:</p>
+                  <pre className="text-xs mt-1 whitespace-pre-wrap">{serverError}</pre>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información Personal */}
             <div className="space-y-4">

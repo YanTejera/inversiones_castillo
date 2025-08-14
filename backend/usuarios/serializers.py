@@ -62,14 +62,11 @@ class DocumentoSerializer(serializers.ModelSerializer):
 class ClienteSerializer(serializers.ModelSerializer):
     fiador = FiadorSerializer(read_only=True)
     documentos = DocumentoSerializer(many=True, read_only=True)
+    nombre_completo = serializers.CharField(read_only=True)
     
     class Meta:
         model = Cliente
         fields = ['id', 'nombre', 'apellido', 'direccion', 'ciudad', 'pais', 
                  'cedula', 'telefono', 'celular', 'email', 'estado_civil', 
-                 'fecha_registro', 'fiador', 'documentos']
-        
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['nombre_completo'] = f"{instance.nombre} {instance.apellido}"
-        return representation
+                 'fecha_nacimiento', 'ocupacion', 'ingresos', 'referencias_personales',
+                 'fecha_registro', 'nombre_completo', 'fiador', 'documentos']

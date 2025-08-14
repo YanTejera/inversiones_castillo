@@ -25,20 +25,28 @@ class Usuario(AbstractUser):
 class Cliente(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
-    direccion = models.TextField()
-    ciudad = models.CharField(max_length=100)
+    direccion = models.TextField(blank=True, null=True)
+    ciudad = models.CharField(max_length=100, blank=True, null=True)
     pais = models.CharField(max_length=100, default='Colombia')
     cedula = models.CharField(max_length=20, unique=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     celular = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     estado_civil = models.CharField(max_length=20, blank=True, null=True)
+    fecha_nacimiento = models.DateField(blank=True, null=True)
+    ocupacion = models.CharField(max_length=100, blank=True, null=True)
+    ingresos = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
+    referencias_personales = models.TextField(blank=True, null=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         verbose_name = 'Cliente'
         verbose_name_plural = 'Clientes'
         ordering = ['-fecha_registro']
+    
+    @property
+    def nombre_completo(self):
+        return f"{self.nombre} {self.apellido}"
     
     def __str__(self):
         return f"{self.nombre} {self.apellido} - {self.cedula}"
