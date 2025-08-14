@@ -1,5 +1,5 @@
 import api from './api';
-import { User } from '../types';
+import type { User } from '../types';
 
 interface LoginResponse {
   token: string;
@@ -14,7 +14,8 @@ interface LoginCredentials {
 export const authService = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     const response = await api.post('/auth/login/', credentials);
-    const { token, user } = response.data;
+    const data = response.data as LoginResponse;
+    const { token, user } = data;
     
     // Store token and user data
     localStorage.setItem('token', token);

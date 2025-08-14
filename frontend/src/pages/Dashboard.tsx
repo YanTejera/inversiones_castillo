@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  DollarSign, 
   ShoppingCart, 
   CreditCard, 
   AlertTriangle,
@@ -8,7 +7,7 @@ import {
   TrendingUp 
 } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
-import { DashboardData } from '../types';
+import type { DashboardData } from '../types';
 
 const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
