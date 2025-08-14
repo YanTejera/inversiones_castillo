@@ -55,6 +55,7 @@ export const clienteService = {
 
   async searchClientes(query: string): Promise<Cliente[]> {
     const response = await api.get(`/usuarios/clientes/?search=${encodeURIComponent(query)}`);
-    return response.data.results as Cliente[];
+    const data = response.data as ClienteListResponse;
+    return data.results;
   }
 };
