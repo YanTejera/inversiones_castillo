@@ -5,6 +5,7 @@ interface MotoCreateData {
   marca: string;
   modelo: string;
   ano: number;
+  color?: string;
   chasis?: string;
   precio_compra: number;
   precio_venta: number;
@@ -50,6 +51,7 @@ export const motoService = {
     formData.append('cantidad_stock', data.cantidad_stock.toString());
     
     // Agregar campos opcionales
+    if (data.color) formData.append('color', data.color);
     if (data.chasis) formData.append('chasis', data.chasis);
     if (data.descripcion) formData.append('descripcion', data.descripcion);
     if (data.activa !== undefined) formData.append('activa', data.activa.toString());

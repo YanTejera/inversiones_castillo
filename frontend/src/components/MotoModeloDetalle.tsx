@@ -35,7 +35,9 @@ const MotoModeloDetalle: React.FC<MotoModeloDetalleProps> = ({
   const [nuevoInventario, setNuevoInventario] = useState({
     color: '',
     chasis: '',
-    cantidad_stock: 1
+    cantidad_stock: 1,
+    descuento_porcentaje: 0,
+    precio_con_descuento: modelo.precio_venta
   });
 
   const formatCurrency = (amount: number) => {
@@ -77,7 +79,13 @@ const MotoModeloDetalle: React.FC<MotoModeloDetalleProps> = ({
 
     try {
       await motoModeloService.createInventario(modelo.id, nuevoInventario);
-      setNuevoInventario({ color: '', chasis: '', cantidad_stock: 1 });
+      setNuevoInventario({ 
+        color: '', 
+        chasis: '', 
+        cantidad_stock: 1,
+        descuento_porcentaje: 0,
+        precio_con_descuento: modelo.precio_venta
+      });
       setShowAddInventario(false);
       onUpdate();
     } catch (err) {
