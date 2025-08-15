@@ -20,7 +20,7 @@ class MotoSerializer(serializers.ModelSerializer):
             from django.conf import settings
             from decouple import config
             if not settings.DEBUG and not representation['imagen'].startswith('http'):
-                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
+                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo1.onrender.com')
                 representation['imagen'] = f"{backend_url}{representation['imagen']}"
         
         return representation
@@ -41,7 +41,7 @@ class MotoDisponibleSerializer(serializers.ModelSerializer):
         if hasattr(instance, 'imagen') and instance.imagen:
             from django.conf import settings
             if not settings.DEBUG and not representation.get('imagen', '').startswith('http'):
-                representation['imagen'] = f"https://inversiones-castillo.onrender.com{representation.get('imagen', '')}"
+                representation['imagen'] = f"https://inversiones-castillo1.onrender.com{representation.get('imagen', '')}"
         
         return representation
 
@@ -74,7 +74,7 @@ class MotoModeloSerializer(serializers.ModelSerializer):
             from django.conf import settings
             from decouple import config
             if not settings.DEBUG and not representation['imagen'].startswith('http'):
-                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
+                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo1.onrender.com')
                 representation['imagen'] = f"{backend_url}{representation['imagen']}"
         
         # Agregar resumen de colores disponibles
