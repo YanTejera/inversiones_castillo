@@ -37,7 +37,8 @@ def api_root(request):
 urlpatterns = [
     path('', api_root, name='api_root'),
     path('admin/', admin.site.urls),
-    path('api/auth/', include('usuarios.urls')),
+    path('api/auth/', include(('usuarios.urls', 'usuarios'), namespace='auth')),
+    path('api/usuarios/', include(('usuarios.urls', 'usuarios'), namespace='usuarios')),
     path('api/motos/', include('motos.urls')),
     path('api/ventas/', include('ventas.urls')),
     path('api/pagos/', include('pagos.urls')),
