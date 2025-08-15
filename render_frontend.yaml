@@ -7,4 +7,4 @@ services:
     rootDir: frontend
     envVars:
       - key: VITE_API_URL
-        value: https://inversiones-castillo1.onrender.com/api
+        value: https://inversiones-castillo.onrender.com/api

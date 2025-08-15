@@ -208,7 +208,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Para producción, asegurar que las URLs de media sean correctas
 if not DEBUG:
     # En producción, usar la URL completa del backend
-    backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo1.onrender.com')
+    backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
     MEDIA_URL = f'{backend_url}/media/'
     # También agregar configuración para servir archivos estáticos
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
