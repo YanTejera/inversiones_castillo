@@ -10,7 +10,6 @@ import {
   Filter,
   Eye,
   Check,
-  X,
   RefreshCw
 } from 'lucide-react';
 import { cuotaService } from '../services/cuotaService';

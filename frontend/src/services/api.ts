@@ -16,6 +16,7 @@ api.interceptors.request.use((config) => {
   
   // Set Content-Type for non-FormData requests
   if (config.data && !(config.data instanceof FormData)) {
+    config.headers = config.headers || {};
     config.headers['Content-Type'] = 'application/json';
   }
   

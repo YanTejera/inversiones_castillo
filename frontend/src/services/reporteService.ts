@@ -106,7 +106,7 @@ export const reporteService = {
     });
     
     // Crear URL para descarga
-    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const blob = new Blob([response.data as BlobPart], { type: 'application/pdf' });
     const url = window.URL.createObjectURL(blob);
     
     // Crear enlace de descarga automática

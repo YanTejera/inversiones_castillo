@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  FileText,
   Calendar,
   DollarSign,
   Package,
   TrendingUp,
   Download,
-  Filter,
   BarChart3,
-  PieChart,
-  LineChart,
-  Users,
   ShoppingCart,
   CreditCard,
   Loader,
@@ -80,10 +75,10 @@ const Reportes: React.FC = () => {
       ]);
 
       setQuickStats({
-        ventasMes: ventasData.estadisticas_generales?.total_ingresos || 0,
-        valorInventario: inventarioData.valoracion_total?.valor_total_compra || 0,
-        cuentasPorCobrar: cobranzaData.analisis_morosidad?.total_por_cobrar || 0,
-        gananciaMensual: financieroData.pagos_estadisticas?.total_recaudado || 0
+        ventasMes: (ventasData as any)?.estadisticas_generales?.total_ingresos || 0,
+        valorInventario: (inventarioData as any)?.valoracion_total?.valor_total_compra || 0,
+        cuentasPorCobrar: (cobranzaData as any)?.analisis_morosidad?.total_por_cobrar || 0,
+        gananciaMensual: (financieroData as any)?.pagos_estadisticas?.total_recaudado || 0
       });
     } catch (error) {
       console.error('Error loading quick stats:', error);
@@ -140,7 +135,7 @@ const Reportes: React.FC = () => {
       let exportParams = { ...params };
       
       if (reportId === 'ventas-periodo') {
-        exportParams = { ...exportParams, periodo: 'mensual' };
+        exportParams = { ...exportParams, periodo: 'mensual' as const };
       }
 
       await reporteService.exportToPDF(reportId, exportParams);
