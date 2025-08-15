@@ -183,6 +183,10 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",  # Vite dev server default
+    "http://localhost:5174",  # Vite dev server alternative
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
     "https://inversiones-castillo1.onrender.com",  # Frontend production URL
 ]
 
