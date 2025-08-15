@@ -15,23 +15,31 @@ env | grep VITE || echo "No VITE variables found"
 echo "🏗️ Building React application..."
 npm run build
 
-# Copy _redirects file for SPA routing
+# Copy _redirects file for SPA routing (multiple methods)
 echo "🔗 Copying _redirects file for SPA routing..."
+
+# Method 1: Copy from public/ (Vite should handle this automatically)
 if [ -f "public/_redirects" ]; then
     cp public/_redirects dist/_redirects
     echo "✅ _redirects file copied from public/ directory"
-elif [ -f "_redirects" ]; then
+fi
+
+# Method 2: Copy from root as backup
+if [ -f "_redirects" ]; then
     cp _redirects dist/_redirects
-    echo "✅ _redirects file copied from root directory"
-else
-    echo "⚠️ _redirects file not found in public/ or root directory"
-    echo "📂 Current directory: $(pwd)"
-    echo "📂 Contents: $(ls -la . 2>/dev/null)"
-    echo "📂 Contents of public/: $(ls -la public/ 2>/dev/null || echo 'public/ not found')"
-    # Create a basic _redirects file as fallback
+    echo "✅ _redirects file copied from root directory as backup"
+fi
+
+# Method 3: Force create if neither exists
+if [ ! -f "dist/_redirects" ]; then
     echo "/* /index.html 200" > dist/_redirects
     echo "✅ Created fallback _redirects file"
 fi
+
+# Method 4: Also create _redirects in multiple locations for Render
+echo "/* /index.html 200" > dist/_redirects
+echo "/* /index.html 200" > ./_redirects
+echo "✅ Force created _redirects in dist/ and root"
 
 # Verify _redirects file was created
 echo "🔍 Verifying _redirects file:"
