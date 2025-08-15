@@ -1,7 +1,7 @@
 services:
   - type: static
     name: concesionario-frontend
-    buildCommand: npm install && npm run build
+    buildCommand: "./build.sh"
     staticPublishPath: ./dist
     branch: main
     rootDir: frontend

@@ -24,7 +24,7 @@ services:
 
   - type: static
     name: concesionario-frontend-free
-    buildCommand: "npm install && npm run build"
+    buildCommand: "./build.sh"
     staticPublishPath: ./dist
     plan: free  # GRATIS siempre
     branch: main
