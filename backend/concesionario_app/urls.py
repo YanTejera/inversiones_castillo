@@ -38,29 +38,27 @@ def api_root(request):
 def frontend_view(request):
     """
     Vista catch-all para servir el frontend SPA.
-    Maneja rutas como /login, /motos, /clientes, etc.
+    Esta función maneja rutas que no son de API y las redirige al frontend.
     """
     import logging
-    from django.http import HttpResponseRedirect, HttpResponse
+    from django.http import HttpResponseRedirect
     from decouple import config
     
     logger = logging.getLogger(__name__)
-    logger.error(f"🎯 CATCH-ALL ACTIVATED: {request.path} | DEBUG: {settings.DEBUG}")
+    logger.info(f"Frontend route accessed: {request.path}")
     
     # En producción, redirigir al frontend deployado con la ruta preservada
     if not settings.DEBUG:
         frontend_url = config('FRONTEND_URL', default='https://inversiones-castillo1.onrender.com')
         full_url = f"{frontend_url}{request.path}"
-        logger.error(f"🔄 REDIRECTING TO: {full_url}")
         return HttpResponseRedirect(full_url)
     
     # En desarrollo, mostrar mensaje informativo
     return JsonResponse({
         'message': f'Frontend route: {request.path}',
-        'info': 'CATCH-ALL IS WORKING!',
+        'info': 'Access this route via React app',
         'frontend_url': f'http://localhost:5174{request.path}',
-        'debug': True,
-        'success': True
+        'debug': True
     })
 
 urlpatterns = [
