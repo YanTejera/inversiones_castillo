@@ -183,6 +183,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://inversiones-castillo1.onrender.com",  # Frontend production URL
 ]
 
 # Add frontend domain for production
@@ -203,6 +204,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 if not DEBUG:
     # En producción, usar la URL completa del backend
     MEDIA_URL = 'https://inversiones-castillo.onrender.com/media/'
+    # También agregar configuración para servir archivos estáticos
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Static files for production
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
