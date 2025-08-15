@@ -41,25 +41,26 @@ def frontend_view(request):
     Maneja rutas como /login, /motos, /clientes, etc.
     """
     import logging
-    from django.http import HttpResponseRedirect
+    from django.http import HttpResponseRedirect, HttpResponse
     from decouple import config
     
     logger = logging.getLogger(__name__)
-    logger.info(f"Frontend catch-all route accessed: {request.path}")
+    logger.error(f"🎯 CATCH-ALL ACTIVATED: {request.path} | DEBUG: {settings.DEBUG}")
     
     # En producción, redirigir al frontend deployado con la ruta preservada
     if not settings.DEBUG:
         frontend_url = config('FRONTEND_URL', default='https://inversiones-castillo1.onrender.com')
         full_url = f"{frontend_url}{request.path}"
-        logger.info(f"Redirecting to: {full_url}")
+        logger.error(f"🔄 REDIRECTING TO: {full_url}")
         return HttpResponseRedirect(full_url)
     
     # En desarrollo, mostrar mensaje informativo
     return JsonResponse({
         'message': f'Frontend route: {request.path}',
-        'info': 'This route should be handled by React app',
+        'info': 'CATCH-ALL IS WORKING!',
         'frontend_url': f'http://localhost:5174{request.path}',
-        'debug': True
+        'debug': True,
+        'success': True
     })
 
 urlpatterns = [
