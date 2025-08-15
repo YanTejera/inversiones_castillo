@@ -14,11 +14,18 @@ npm run build
 echo "🔗 Copying _redirects file for SPA routing..."
 if [ -f "public/_redirects" ]; then
     cp public/_redirects dist/_redirects
-    echo "✅ _redirects file copied successfully"
+    echo "✅ _redirects file copied from public/ directory"
+elif [ -f "_redirects" ]; then
+    cp _redirects dist/_redirects
+    echo "✅ _redirects file copied from root directory"
 else
-    echo "⚠️ _redirects file not found in public/ directory"
+    echo "⚠️ _redirects file not found in public/ or root directory"
     echo "📂 Current directory: $(pwd)"
+    echo "📂 Contents: $(ls -la . 2>/dev/null)"
     echo "📂 Contents of public/: $(ls -la public/ 2>/dev/null || echo 'public/ not found')"
+    # Create a basic _redirects file as fallback
+    echo "/* /index.html 200" > dist/_redirects
+    echo "✅ Created fallback _redirects file"
 fi
 
 echo "✅ Frontend build completed successfully!"
