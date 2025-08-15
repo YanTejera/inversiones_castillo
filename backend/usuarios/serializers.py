@@ -47,17 +47,20 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 class FiadorSerializer(serializers.ModelSerializer):
+    nombre_completo = serializers.CharField(read_only=True)
+    
     class Meta:
         model = Fiador
         fields = '__all__'
 
 class DocumentoSerializer(serializers.ModelSerializer):
     tipo_documento_display = serializers.CharField(source='get_tipo_documento_display', read_only=True)
+    propietario_display = serializers.CharField(source='get_propietario_display', read_only=True)
     
     class Meta:
         model = Documento
-        fields = ['id', 'tipo_documento', 'tipo_documento_display', 'descripcion', 
-                 'archivo', 'fecha_creacion', 'cliente']
+        fields = ['id', 'propietario', 'propietario_display', 'tipo_documento', 'tipo_documento_display', 
+                 'descripcion', 'archivo', 'fecha_creacion', 'cliente']
 
 class ClienteSerializer(serializers.ModelSerializer):
     fiador = FiadorSerializer(read_only=True)

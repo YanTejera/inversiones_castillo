@@ -23,16 +23,41 @@ class VentaSerializer(serializers.ModelSerializer):
         model = Venta
         fields = ['id', 'cliente', 'cliente_info', 'usuario', 'usuario_info', 
                  'fecha_venta', 'tipo_venta', 'tipo_venta_display', 'monto_total', 
-                 'monto_inicial', 'cuotas', 'pago_mensual', 'estado', 'estado_display',
+                 'monto_inicial', 'cuotas', 'tasa_interes', 'pago_mensual', 
+                 'monto_total_con_intereses', 'estado', 'estado_display',
                  'detalles', 'saldo_pendiente']
 
+class VentaDetalleCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VentaDetalle
+        fields = ['moto', 'cantidad', 'precio_unitario']
+
 class VentaCreateSerializer(serializers.ModelSerializer):
-    detalles = VentaDetalleSerializer(many=True)
+    detalles = VentaDetalleCreateSerializer(many=True)
     
     class Meta:
         model = Venta
         fields = ['cliente', 'tipo_venta', 'monto_total', 'monto_inicial', 
-                 'cuotas', 'pago_mensual', 'detalles']
+                 'cuotas', 'tasa_interes', 'pago_mensual', 'monto_total_con_intereses', 'detalles']
+    
+    def validate_detalles(self, value):
+        """Validate that there's enough stock for all motorcycles in the sale"""
+        for detalle_data in value:
+            moto = detalle_data['moto']
+            cantidad = detalle_data['cantidad']
+            
+            if moto.cantidad_stock < cantidad:
+                raise serializers.ValidationError(
+                    f"Stock insuficiente para {moto.marca} {moto.modelo}. "
+                    f"Stock disponible: {moto.cantidad_stock}, solicitado: {cantidad}"
+                )
+            
+            if not moto.activa:
+                raise serializers.ValidationError(
+                    f"La moto {moto.marca} {moto.modelo} no está disponible para venta"
+                )
+        
+        return value
     
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles')

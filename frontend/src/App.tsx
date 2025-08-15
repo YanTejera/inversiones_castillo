@@ -5,6 +5,10 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
+import Motocicletas from './pages/Motocicletas';
+import Ventas from './pages/Ventas';
+import Pagos from './pages/Pagos';
+import Reportes from './pages/Reportes';
 
 function App() {
   return (
@@ -22,11 +26,11 @@ function App() {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="motos" element={<div className="p-4">Módulo de Motocicletas en desarrollo</div>} />
+            <Route path="motos" element={<Motocicletas />} />
             <Route path="clientes" element={<Clientes />} />
-            <Route path="ventas" element={<div className="p-4">Módulo de Ventas en desarrollo</div>} />
-            <Route path="pagos" element={<div className="p-4">Módulo de Pagos en desarrollo</div>} />
-            <Route path="reportes" element={<div className="p-4">Módulo de Reportes en desarrollo</div>} />
+            <Route path="ventas" element={<Ventas />} />
+            <Route path="pagos" element={<Pagos />} />
+            <Route path="reportes" element={<Reportes />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

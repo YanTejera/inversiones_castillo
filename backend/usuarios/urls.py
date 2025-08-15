@@ -26,4 +26,8 @@ urlpatterns = [
     # Documentos
     path('documentos/', views.DocumentoListCreateView.as_view(), name='documento-list-create'),
     path('documentos/<int:pk>/', views.DocumentoDetailView.as_view(), name='documento-detail'),
+    
+    # Vistas específicas por cliente
+    path('clientes/<int:cliente_id>/fiador/', views.ClienteFiadorView.as_view(), name='cliente-fiador'),
+    path('clientes/<int:cliente_id>/documentos/', views.ClienteDocumentosView.as_view(), name='cliente-documentos'),
 ]

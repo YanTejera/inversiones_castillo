@@ -1,9 +1,11 @@
 from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import login
 from django.db import models
+from django.shortcuts import get_object_or_404
 from .models import Usuario, Rol, Cliente, Fiador, Documento
 from .serializers import (
     UsuarioSerializer, RolSerializer, LoginSerializer, 
@@ -96,3 +98,27 @@ class DocumentoListCreateView(generics.ListCreateAPIView):
 class DocumentoDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Documento.objects.all()
     serializer_class = DocumentoSerializer
+
+# Vistas específicas para manejo por cliente
+class ClienteFiadorView(APIView):
+    """
+    Vista para obtener el fiador de un cliente específico
+    """
+    def get(self, request, cliente_id):
+        try:
+            cliente = get_object_or_404(Cliente, id=cliente_id)
+            fiador = cliente.fiador
+            serializer = FiadorSerializer(fiador)
+            return Response(serializer.data)
+        except Fiador.DoesNotExist:
+            return Response({'error': 'Cliente no tiene fiador'}, status=status.HTTP_404_NOT_FOUND)
+
+class ClienteDocumentosView(APIView):
+    """
+    Vista para obtener todos los documentos de un cliente específico
+    """
+    def get(self, request, cliente_id):
+        cliente = get_object_or_404(Cliente, id=cliente_id)
+        documentos = cliente.documentos.all()
+        serializer = DocumentoSerializer(documentos, many=True)
+        return Response(serializer.data)

@@ -46,12 +46,25 @@ export interface Fiador {
   cedula: string;
   direccion: string;
   telefono?: string;
+  celular?: string;
+  email?: string;
+  fecha_nacimiento?: string;
+  estado_civil?: string;
+  ocupacion?: string;
+  ingresos?: number;
+  lugar_trabajo?: string;
+  telefono_trabajo?: string;
+  referencias_personales?: string;
+  parentesco_cliente?: string;
   cliente: number;
+  nombre_completo?: string;
 }
 
 export interface Documento {
   id: number;
   cliente: number;
+  propietario: string;
+  propietario_display: string;
   tipo_documento: string;
   tipo_documento_display: string;
   descripcion: string;
@@ -64,6 +77,7 @@ export interface Moto {
   marca: string;
   modelo: string;
   ano: number;
+  color?: string;
   chasis: string;
   precio_compra: number;
   precio_venta: number;
@@ -75,6 +89,35 @@ export interface Moto {
   activa: boolean;
   disponible: boolean;
   nombre_completo: string;
+}
+
+export interface MotoInventario {
+  id: number;
+  color: string;
+  chasis?: string;
+  cantidad_stock: number;
+  descuento_porcentaje: number;
+  precio_con_descuento: number;
+  fecha_ingreso: string;
+}
+
+export interface MotoModelo {
+  id: number;
+  marca: string;
+  modelo: string;
+  ano: number;
+  descripcion?: string;
+  imagen?: string;
+  precio_compra: number;
+  precio_venta: number;
+  ganancia: number;
+  activa: boolean;
+  fecha_creacion: string;
+  total_stock: number;
+  disponible: boolean;
+  nombre_completo: string;
+  inventario: MotoInventario[];
+  colores_disponibles: { [color: string]: number };
 }
 
 export interface Venta {
@@ -89,7 +132,9 @@ export interface Venta {
   monto_total: number;
   monto_inicial: number;
   cuotas: number;
+  tasa_interes: number;
   pago_mensual: number;
+  monto_total_con_intereses: number;
   estado: string;
   estado_display: string;
   detalles: VentaDetalle[];
@@ -109,14 +154,14 @@ export interface VentaDetalle {
 export interface Pago {
   id: number;
   venta: number;
-  venta_info: Venta;
+  venta_info?: Venta;
   fecha_pago: string;
   monto_pagado: number;
   tipo_pago: string;
   tipo_pago_display: string;
   observaciones?: string;
   usuario_cobrador: number;
-  usuario_cobrador_info: User;
+  usuario_cobrador_info?: User;
 }
 
 export interface DashboardData {
@@ -139,4 +184,73 @@ export interface DashboardData {
     cliente: string;
     saldo: number;
   }>;
+}
+
+export interface CuotaVencimiento {
+  id: number;
+  venta: number;
+  venta_info?: Venta;
+  numero_cuota: number;
+  fecha_vencimiento: string;
+  monto_cuota: number;
+  monto_pagado: number;
+  estado: string;
+  estado_display: string;
+  saldo_pendiente: number;
+  esta_vencida: boolean;
+  dias_vencido: number;
+  tiene_mora: boolean;
+  monto_mora: number;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+}
+
+export interface AlertaPago {
+  id: number;
+  venta: number;
+  venta_info?: Venta;
+  cuota?: number;
+  cuota_info?: CuotaVencimiento;
+  tipo_alerta: string;
+  tipo_alerta_display: string;
+  mensaje: string;
+  fecha_creacion: string;
+  fecha_lectura?: string;
+  estado: string;
+  estado_display: string;
+  usuario_asignado?: number;
+  usuario_asignado_info?: User;
+}
+
+export interface ResumenCobros {
+  cuotas_vencidas: number;
+  cuotas_proximas_vencer: number;
+  total_monto_vencido: number;
+  alertas_activas: number;
+  ventas_alto_riesgo: number;
+}
+
+export interface ClienteFinanciado {
+  cliente_id: number;
+  nombre_completo: string;
+  cedula: string;
+  venta_id: number;
+  fecha_venta: string;
+  monto_total: number;
+  monto_con_intereses: number;
+  saldo_pendiente: number;
+  total_pagado: number;
+  cuotas_totales: number;
+  cuotas_pagadas: number;
+  cuotas_restantes: number;
+  pago_mensual: number;
+  tasa_interes: number;
+  total_mora: number;
+  proxima_cuota?: {
+    numero: number;
+    fecha_vencimiento: string;
+    monto: number;
+    dias_vencido: number;
+    tiene_mora: boolean;
+  };
 }

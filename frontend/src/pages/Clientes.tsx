@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { clienteService } from '../services/clienteService';
 import ClienteForm from '../components/ClienteForm';
+import ClienteDetalle from '../components/ClienteDetalle';
 import type { Cliente } from '../types';
 
 const Clientes: React.FC = () => {
@@ -25,6 +26,7 @@ const Clientes: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [modalMode, setModalMode] = useState<'view' | 'create' | 'edit'>('view');
+  const [showDetalle, setShowDetalle] = useState(false);
 
   const loadClientes = async (page = 1, search = '') => {
     try {
@@ -68,6 +70,16 @@ const Clientes: React.FC = () => {
     setShowModal(true);
   };
 
+  const handleViewDetalle = (cliente: Cliente) => {
+    setSelectedCliente(cliente);
+    setShowDetalle(true);
+  };
+
+  const handleBackFromDetalle = () => {
+    setShowDetalle(false);
+    setSelectedCliente(null);
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setSelectedCliente(null);
@@ -94,6 +106,15 @@ const Clientes: React.FC = () => {
       <div className="flex items-center justify-center min-h-64">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
+    );
+  }
+
+  if (showDetalle && selectedCliente) {
+    return (
+      <ClienteDetalle 
+        cliente={selectedCliente} 
+        onBack={handleBackFromDetalle} 
+      />
     );
   }
 
@@ -201,9 +222,9 @@ const Clientes: React.FC = () => {
 
             <div className="flex justify-end space-x-2">
               <button
-                onClick={() => openModal('view', cliente)}
+                onClick={() => handleViewDetalle(cliente)}
                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                title="Ver detalles"
+                title="Ver detalles completos"
               >
                 <Eye className="h-4 w-4" />
               </button>

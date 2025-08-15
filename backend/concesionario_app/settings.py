@@ -28,6 +28,28 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-qpth!83rbd05zu7xe02%@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
@@ -48,6 +70,7 @@ INSTALLED_APPS = [
     'motos',
     'ventas',
     'pagos',
+    'reportes',
 ]
 
 MIDDLEWARE = [
