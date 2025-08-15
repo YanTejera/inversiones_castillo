@@ -67,3 +67,4 @@ export default tseslint.config([
   },
 ])
 ```
+# Force rebuild with correct _redirects
