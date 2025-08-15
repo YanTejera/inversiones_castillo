@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Force production URL for now while debugging env vars
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname.includes('onrender.com') 
+    ? 'https://inversiones-castillo.onrender.com/api' 
+    : 'http://localhost:8000/api');
 
 // Debug logging
 console.log('🔍 API Configuration Debug:');
