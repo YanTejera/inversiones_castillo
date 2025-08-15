@@ -199,5 +199,10 @@ CORS_ALLOW_CREDENTIALS = True
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Para producción, asegurar que las URLs de media sean correctas
+if not DEBUG:
+    # En producción, usar la URL completa del backend
+    MEDIA_URL = 'https://inversiones-castillo.onrender.com/media/'
+
 # Static files for production
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
