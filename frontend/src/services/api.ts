@@ -6,11 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
     ? 'https://inversiones-castillo.onrender.com/api' 
     : 'http://localhost:8000/api');
 
-// Debug logging
-console.log('🔍 API Configuration Debug:');
-console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
-console.log('API_BASE_URL:', API_BASE_URL);
-console.log('All env vars:', import.meta.env);
+// API configuration confirmed working - debug logs removed
 
 // Create axios instance
 const api = axios.create({

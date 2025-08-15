@@ -33,6 +33,18 @@ else
     echo "✅ Created fallback _redirects file"
 fi
 
+# Verify _redirects file was created
+echo "🔍 Verifying _redirects file:"
+if [ -f "dist/_redirects" ]; then
+    echo "✅ _redirects exists in dist/"
+    echo "📄 Contents of dist/_redirects:"
+    cat dist/_redirects
+else
+    echo "❌ _redirects NOT found in dist/"
+fi
+echo "📂 Final dist/ contents:"
+ls -la dist/
+
 echo "✅ Frontend build completed successfully!"
 echo "📁 Build files are in ./dist directory"
 echo "🔗 _redirects file copied for SPA routing"
