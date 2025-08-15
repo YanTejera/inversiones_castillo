@@ -15,10 +15,11 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from django.views.generic import TemplateView
 
 def api_root(request):
     return JsonResponse({
@@ -32,6 +33,21 @@ def api_root(request):
             'pagos': '/api/pagos/',
             'reportes': '/api/reportes/'
         }
+    })
+
+def frontend_view(request):
+    """
+    Vista catch-all para servir el frontend SPA.
+    Retorna una respuesta simple que redirige al frontend.
+    """
+    from django.http import HttpResponseRedirect
+    # En producción, redirigir al frontend deployado
+    if not settings.DEBUG:
+        return HttpResponseRedirect('https://inversiones-castillo1.onrender.com/')
+    # En desarrollo, mostrar mensaje informativo
+    return JsonResponse({
+        'message': 'Frontend route - please access via React app on port 3000',
+        'frontend_url': 'http://localhost:3000'
     })
 
 urlpatterns = [
@@ -48,3 +64,9 @@ urlpatterns = [
 # Serve media files in development and production
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# Catch-all pattern for frontend SPA routes (must be last)
+# This handles routes like /home, /clientes, /ventas, etc.
+urlpatterns += [
+    re_path(r'^(?!api/).*$', frontend_view, name='frontend_catchall'),
+]
