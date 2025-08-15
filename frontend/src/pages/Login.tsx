@@ -35,7 +35,7 @@ const Login: React.FC = () => {
             Sistema de Gestión
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Concesionario de Motocicletas
+            Sistema de Gestión de Motocicletas
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

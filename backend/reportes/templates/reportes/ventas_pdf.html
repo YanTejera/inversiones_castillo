@@ -1,0 +1,109 @@
+{% extends "reportes/base_pdf.html" %}
+
+{% block title %}Reporte de Ventas - Inversiones C&C{% endblock %}
+
+{% block report_title %}Reporte de Ventas por Período{% endblock %}
+
+{% block content %}
+    <!-- Estadísticas Generales -->
+    <div class="section">
+        <div class="section-title">Resumen General</div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Total de Ventas</div>
+                <div class="stat-value">{{ estadisticas_generales.total_ventas|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Ingresos Totales</div>
+                <div class="stat-value currency">${{ estadisticas_generales.total_ingresos|floatformat:0|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Promedio por Venta</div>
+                <div class="stat-value currency">${{ estadisticas_generales.promedio_venta|floatformat:0|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Período</div>
+                <div class="stat-value">{{ periodo|capfirst }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ventas por Período -->
+    {% if ventas_por_periodo %}
+    <div class="section">
+        <div class="section-title">Ventas por {{ periodo|capfirst }}</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Período</th>
+                    <th class="text-right">Cantidad de Ventas</th>
+                    <th class="text-right">Ingresos Totales</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for venta in ventas_por_periodo %}
+                <tr>
+                    <td>{{ venta.periodo_fecha|date:"M Y" }}</td>
+                    <td class="text-right">{{ venta.total_ventas }}</td>
+                    <td class="text-right currency">${{ venta.total_ingresos|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Top Productos -->
+    {% if top_productos %}
+    <div class="section">
+        <div class="section-title">Productos Más Vendidos</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th class="text-right">Unidades Vendidas</th>
+                    <th class="text-right">Ingresos Generados</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in top_productos %}
+                <tr>
+                    <td>{{ producto.moto__marca }}</td>
+                    <td>{{ producto.moto__modelo }}</td>
+                    <td class="text-right">{{ producto.total_vendidos }}</td>
+                    <td class="text-right currency">${{ producto.total_ingresos|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Rendimiento por Vendedor -->
+    {% if rendimiento_vendedores %}
+    <div class="section">
+        <div class="section-title">Rendimiento por Vendedor</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Vendedor</th>
+                    <th class="text-right">Total Ventas</th>
+                    <th class="text-right">Ingresos Generados</th>
+                    <th class="text-right">Promedio por Venta</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vendedor in rendimiento_vendedores %}
+                <tr>
+                    <td>{{ vendedor.usuario__first_name }} {{ vendedor.usuario__last_name }}</td>
+                    <td class="text-right">{{ vendedor.total_ventas }}</td>
+                    <td class="text-right currency">${{ vendedor.total_ingresos|floatformat:0 }}</td>
+                    <td class="text-right currency">${{ vendedor.promedio_venta|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+{% endblock %}

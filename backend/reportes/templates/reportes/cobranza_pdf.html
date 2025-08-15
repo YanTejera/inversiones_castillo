@@ -1,0 +1,184 @@
+{% extends "reportes/base_pdf.html" %}
+
+{% block title %}Reporte de Cobranza - Inversiones C&C{% endblock %}
+
+{% block report_title %}Reporte de Cobranza{% endblock %}
+
+{% block content %}
+    <!-- Análisis de Morosidad -->
+    <div class="section">
+        <div class="section-title">Análisis de Morosidad</div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Total Cuentas por Cobrar</div>
+                <div class="stat-value">{{ analisis_morosidad.total_cuentas|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Monto Total por Cobrar</div>
+                <div class="stat-value currency">${{ analisis_morosidad.total_por_cobrar|floatformat:0|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Cuentas al Día</div>
+                <div class="stat-value text-success">{{ analisis_morosidad.cuentas_al_dia.cantidad|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Cuentas Críticas</div>
+                <div class="stat-value text-danger">{{ analisis_morosidad.cuentas_criticas.cantidad|default:0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desglose por Estado -->
+    <div class="section">
+        <div class="section-title">Distribución por Estado de Morosidad</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Estado</th>
+                    <th class="text-right">Cantidad de Cuentas</th>
+                    <th class="text-right">Monto Total</th>
+                    <th class="text-right">Porcentaje</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-success">Al Día (0-30 días)</td>
+                    <td class="text-right">{{ analisis_morosidad.cuentas_al_dia.cantidad|default:0 }}</td>
+                    <td class="text-right currency">${{ analisis_morosidad.cuentas_al_dia.monto|floatformat:0|default:0 }}</td>
+                    <td class="text-right">
+                        {% if analisis_morosidad.total_por_cobrar > 0 %}
+                            {% widthratio analisis_morosidad.cuentas_al_dia.monto analisis_morosidad.total_por_cobrar 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-warning">Morosas (31-60 días)</td>
+                    <td class="text-right">{{ analisis_morosidad.cuentas_morosas.cantidad|default:0 }}</td>
+                    <td class="text-right currency">${{ analisis_morosidad.cuentas_morosas.monto|floatformat:0|default:0 }}</td>
+                    <td class="text-right">
+                        {% if analisis_morosidad.total_por_cobrar > 0 %}
+                            {% widthratio analisis_morosidad.cuentas_morosas.monto analisis_morosidad.total_por_cobrar 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-danger">Críticas (+60 días)</td>
+                    <td class="text-right">{{ analisis_morosidad.cuentas_criticas.cantidad|default:0 }}</td>
+                    <td class="text-right currency">${{ analisis_morosidad.cuentas_criticas.monto|floatformat:0|default:0 }}</td>
+                    <td class="text-right">
+                        {% if analisis_morosidad.total_por_cobrar > 0 %}
+                            {% widthratio analisis_morosidad.cuentas_criticas.monto analisis_morosidad.total_por_cobrar 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Detalle de Cuentas por Cobrar -->
+    {% if cuentas_por_cobrar %}
+    <div class="section">
+        <div class="section-title">Detalle de Cuentas por Cobrar</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Documento</th>
+                    <th>Fecha Venta</th>
+                    <th class="text-right">Total Venta</th>
+                    <th class="text-right">Pagado</th>
+                    <th class="text-right">Saldo Pendiente</th>
+                    <th class="text-center">Días Vencimiento</th>
+                    <th class="text-center">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cuenta in cuentas_por_cobrar %}
+                <tr>
+                    <td>{{ cuenta.cliente_nombre }}</td>
+                    <td>{{ cuenta.cliente_documento }}</td>
+                    <td>{{ cuenta.fecha_venta|date:"d/m/Y" }}</td>
+                    <td class="text-right currency">${{ cuenta.total_venta|floatformat:0 }}</td>
+                    <td class="text-right currency">${{ cuenta.total_pagado|floatformat:0 }}</td>
+                    <td class="text-right currency">${{ cuenta.saldo_pendiente|floatformat:0 }}</td>
+                    <td class="text-center">{{ cuenta.dias_vencimiento }}</td>
+                    <td class="text-center">
+                        {% if cuenta.estado_morosidad == "Al día" %}
+                            <span class="text-success">{{ cuenta.estado_morosidad }}</span>
+                        {% elif cuenta.estado_morosidad == "Moroso" %}
+                            <span class="text-warning">{{ cuenta.estado_morosidad }}</span>
+                        {% else %}
+                            <span class="text-danger">{{ cuenta.estado_morosidad }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Estadísticas de Pagos -->
+    <div class="section page-break">
+        <div class="section-title">Estadísticas de Pagos del Período</div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Total Pagos Recibidos</div>
+                <div class="stat-value">{{ estadisticas_pagos.total_pagos|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Monto Total Recaudado</div>
+                <div class="stat-value currency">${{ estadisticas_pagos.total_recaudado|floatformat:0|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Promedio por Pago</div>
+                <div class="stat-value currency">${{ estadisticas_pagos.promedio_pago|floatformat:0|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Eficiencia de Cobranza</div>
+                <div class="stat-value">
+                    {% if analisis_morosidad.total_por_cobrar > 0 and estadisticas_pagos.total_recaudado > 0 %}
+                        {% widthratio estadisticas_pagos.total_recaudado analisis_morosidad.total_por_cobrar 100 %}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Pagos -->
+    {% if historial_pagos %}
+    <div class="section">
+        <div class="section-title">Historial de Pagos del Período</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Fecha Pago</th>
+                    <th class="text-right">Monto</th>
+                    <th>Tipo de Pago</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in historial_pagos %}
+                <tr>
+                    <td>{{ pago.venta__cliente__nombre }} {{ pago.venta__cliente__apellido }}</td>
+                    <td>{{ pago.fecha_pago|date:"d/m/Y H:i" }}</td>
+                    <td class="text-right currency">${{ pago.monto_pagado|floatformat:0 }}</td>
+                    <td>{{ pago.tipo_pago|capfirst }}</td>
+                    <td>{{ pago.observaciones|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+{% endblock %}

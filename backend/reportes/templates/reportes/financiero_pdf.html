@@ -1,0 +1,289 @@
+{% extends "reportes/base_pdf.html" %}
+
+{% block title %}Estados Financieros - Inversiones C&C{% endblock %}
+
+{% block report_title %}Estados Financieros{% endblock %}
+
+{% block content %}
+    <!-- Resumen Ejecutivo -->
+    <div class="section">
+        <div class="section-title">Resumen Ejecutivo</div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Ventas Realizadas</div>
+                <div class="stat-value">{{ ventas_estadisticas.total_ventas|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Ingresos por Ventas</div>
+                <div class="stat-value currency">${{ ventas_estadisticas.total_ingresos|floatformat:0|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Efectivo Recaudado</div>
+                <div class="stat-value currency">${{ pagos_estadisticas.total_recaudado|floatformat:0|default:0 }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Pagos Procesados</div>
+                <div class="stat-value">{{ pagos_estadisticas.total_pagos|default:0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance General Simplificado -->
+    <div class="section">
+        <div class="section-title">Balance General Simplificado</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th class="text-right">Monto</th>
+                    <th class="text-right">Porcentaje del Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>ACTIVOS</strong></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;Efectivo Recaudado</td>
+                    <td class="text-right currency">${{ resumen_financiero.activos.efectivo_recaudado|floatformat:0 }}</td>
+                    <td class="text-right">
+                        {% if resumen_financiero.activos.total_activos > 0 %}
+                            {% widthratio resumen_financiero.activos.efectivo_recaudado resumen_financiero.activos.total_activos 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;Cuentas por Cobrar</td>
+                    <td class="text-right currency">${{ resumen_financiero.activos.cuentas_por_cobrar|floatformat:0 }}</td>
+                    <td class="text-right">
+                        {% if resumen_financiero.activos.total_activos > 0 %}
+                            {% widthratio resumen_financiero.activos.cuentas_por_cobrar resumen_financiero.activos.total_activos 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;Valor del Inventario</td>
+                    <td class="text-right currency">${{ resumen_financiero.activos.valor_inventario|floatformat:0 }}</td>
+                    <td class="text-right">
+                        {% if resumen_financiero.activos.total_activos > 0 %}
+                            {% widthratio resumen_financiero.activos.valor_inventario resumen_financiero.activos.total_activos 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr style="border-top: 2px solid #333;">
+                    <td><strong>TOTAL ACTIVOS</strong></td>
+                    <td class="text-right currency"><strong>${{ resumen_financiero.activos.total_activos|floatformat:0 }}</strong></td>
+                    <td class="text-right"><strong>100%</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Estado de Resultados -->
+    <div class="section">
+        <div class="section-title">Estado de Resultados del Período</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th class="text-right">Monto</th>
+                    <th class="text-right">% de Ventas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>INGRESOS</strong></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;Ventas Brutas</td>
+                    <td class="text-right currency">${{ resumen_financiero.ingresos.ventas_brutas|floatformat:0 }}</td>
+                    <td class="text-right">100%</td>
+                </tr>
+                <tr style="border-top: 1px solid #ccc;">
+                    <td><strong>Total Ingresos Brutos</strong></td>
+                    <td class="text-right currency"><strong>${{ resumen_financiero.ingresos.ventas_brutas|floatformat:0 }}</strong></td>
+                    <td class="text-right"><strong>100%</strong></td>
+                </tr>
+                <tr>
+                    <td>&nbsp;</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><strong>INFORMACIÓN ADICIONAL</strong></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;Total de Ventas</td>
+                    <td class="text-right">{{ resumen_financiero.ingresos.total_ventas }} operaciones</td>
+                    <td class="text-right">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Análisis por Método de Pago -->
+    {% if pagos_por_metodo %}
+    <div class="section page-break">
+        <div class="section-title">Ingresos por Método de Pago</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Método de Pago</th>
+                    <th class="text-right">Cantidad de Transacciones</th>
+                    <th class="text-right">Monto Total</th>
+                    <th class="text-right">Promedio por Transacción</th>
+                    <th class="text-right">% del Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for metodo in pagos_por_metodo %}
+                <tr>
+                    <td>{{ metodo.tipo_pago|capfirst }}</td>
+                    <td class="text-right">{{ metodo.cantidad }}</td>
+                    <td class="text-right currency">${{ metodo.total|floatformat:0 }}</td>
+                    <td class="text-right currency">
+                        {% if metodo.cantidad > 0 %}
+                            ${% widthratio metodo.total metodo.cantidad 1 %}
+                        {% else %}
+                            $0
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% if pagos_estadisticas.total_recaudado > 0 %}
+                            {% widthratio metodo.total pagos_estadisticas.total_recaudado 100 %}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Flujo de Caja Diario -->
+    {% if flujo_caja_diario %}
+    <div class="section">
+        <div class="section-title">Flujo de Caja Diario</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th class="text-right">Cantidad de Pagos</th>
+                    <th class="text-right">Ingresos del Día</th>
+                    <th class="text-right">Promedio por Pago</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dia in flujo_caja_diario %}
+                <tr>
+                    <td>{{ dia.fecha|date:"d/m/Y" }}</td>
+                    <td class="text-right">{{ dia.pagos_dia }}</td>
+                    <td class="text-right currency">${{ dia.ingresos_dia|floatformat:0 }}</td>
+                    <td class="text-right currency">
+                        {% if dia.pagos_dia > 0 %}
+                            ${% widthratio dia.ingresos_dia dia.pagos_dia 1 %}
+                        {% else %}
+                            $0
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Análisis de Rentabilidad por Producto -->
+    {% if rentabilidad_productos %}
+    <div class="section page-break">
+        <div class="section-title">Análisis de Rentabilidad por Producto</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Marca</th>
+                    <th>Modelo</th>
+                    <th class="text-right">Unidades</th>
+                    <th class="text-right">Ingresos</th>
+                    <th class="text-right">Costo</th>
+                    <th class="text-right">Ganancia</th>
+                    <th class="text-right">Margen %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for producto in rentabilidad_productos %}
+                <tr>
+                    <td>{{ producto.moto__marca }}</td>
+                    <td>{{ producto.moto__modelo }}</td>
+                    <td class="text-right">{{ producto.unidades_vendidas }}</td>
+                    <td class="text-right currency">${{ producto.ingresos_totales|floatformat:0 }}</td>
+                    <td class="text-right currency">${{ producto.costo_total|floatformat:0 }}</td>
+                    <td class="text-right currency text-success">${{ producto.ganancia_total|floatformat:0 }}</td>
+                    <td class="text-right">{{ producto.margen_porcentaje|floatformat:1 }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Indicadores Financieros -->
+    <div class="section">
+        <div class="section-title">Indicadores Financieros Clave</div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Liquidez (Efectivo/Total Activos)</div>
+                <div class="stat-value">
+                    {% if resumen_financiero.activos.total_activos > 0 %}
+                        {% widthratio resumen_financiero.activos.efectivo_recaudado resumen_financiero.activos.total_activos 100 %}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Cuentas por Cobrar/Ventas</div>
+                <div class="stat-value">
+                    {% if resumen_financiero.ingresos.ventas_brutas > 0 %}
+                        {% widthratio resumen_financiero.activos.cuentas_por_cobrar resumen_financiero.ingresos.ventas_brutas 100 %}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Efectivo Recaudado/Ventas</div>
+                <div class="stat-value">
+                    {% if resumen_financiero.ingresos.ventas_brutas > 0 %}
+                        {% widthratio resumen_financiero.activos.efectivo_recaudado resumen_financiero.ingresos.ventas_brutas 100 %}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Rotación de Inventario</div>
+                <div class="stat-value">
+                    {% if resumen_financiero.activos.valor_inventario > 0 and resumen_financiero.ingresos.ventas_brutas > 0 %}
+                        {% widthratio resumen_financiero.ingresos.ventas_brutas resumen_financiero.activos.valor_inventario 1 %}x
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

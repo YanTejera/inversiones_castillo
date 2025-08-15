@@ -69,7 +69,7 @@ const Layout: React.FC = () => {
         <div className="flex items-center justify-between h-16 bg-gray-900 px-4">
           <div className="flex items-center">
             <Bike className="h-8 w-8 text-white" />
-            <span className="ml-2 text-white text-lg font-semibold">Concesionario</span>
+            <span className="ml-2 text-white text-lg font-semibold">Inversiones C&C</span>
           </div>
           <button
             className="lg:hidden text-gray-400 hover:text-white"

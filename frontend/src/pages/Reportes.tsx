@@ -129,6 +129,27 @@ const Reportes: React.FC = () => {
     }
   };
 
+  const handleExportPDF = async (reportId: string) => {
+    try {
+      const params = {
+        fecha_inicio: dateRange.startDate || undefined,
+        fecha_fin: dateRange.endDate || undefined
+      };
+
+      // Agregar parámetros específicos según el tipo de reporte
+      let exportParams = { ...params };
+      
+      if (reportId === 'ventas-periodo') {
+        exportParams = { ...exportParams, periodo: 'mensual' };
+      }
+
+      await reporteService.exportToPDF(reportId, exportParams);
+    } catch (error: any) {
+      setError(error.message || 'Error al exportar el PDF');
+      console.error('Error exporting PDF:', error);
+    }
+  };
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('es-CO');
   };
@@ -208,6 +229,7 @@ const Reportes: React.FC = () => {
                   Ver Reporte
                 </button>
                 <button
+                  onClick={() => handleExportPDF(report.id)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center text-sm"
                   title="Exportar PDF"
                 >
@@ -233,7 +255,10 @@ const Reportes: React.FC = () => {
                     {formatDate(dateRange.startDate)} - {formatDate(dateRange.endDate)}
                   </span>
                 )}
-                <button className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                <button 
+                  onClick={() => handleExportPDF(selectedReport)}
+                  className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Exportar PDF
                 </button>
