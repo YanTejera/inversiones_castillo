@@ -188,6 +188,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "https://inversiones-castillo1.onrender.com",  # Frontend production URL
+    "https://concesionario-frontend-free.onrender.com",  # Alternative frontend URL
 ]
 
 # Add frontend domain for production
@@ -207,7 +208,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Para producción, asegurar que las URLs de media sean correctas
 if not DEBUG:
     # En producción, usar la URL completa del backend
-    MEDIA_URL = 'https://inversiones-castillo.onrender.com/media/'
+    backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
+    MEDIA_URL = f'{backend_url}/media/'
     # También agregar configuración para servir archivos estáticos
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 

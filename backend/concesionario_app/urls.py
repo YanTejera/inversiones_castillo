@@ -41,9 +41,11 @@ def frontend_view(request):
     Retorna una respuesta simple que redirige al frontend.
     """
     from django.http import HttpResponseRedirect
+    from decouple import config
     # En producción, redirigir al frontend deployado
     if not settings.DEBUG:
-        return HttpResponseRedirect('https://inversiones-castillo1.onrender.com/')
+        frontend_url = config('FRONTEND_URL', default='https://inversiones-castillo1.onrender.com')
+        return HttpResponseRedirect(frontend_url)
     # En desarrollo, mostrar mensaje informativo
     return JsonResponse({
         'message': 'Frontend route - please access via React app on port 3000',

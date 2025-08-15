@@ -18,8 +18,10 @@ class MotoSerializer(serializers.ModelSerializer):
         # Asegurar URL absoluta para imagen en producción
         if instance.imagen:
             from django.conf import settings
+            from decouple import config
             if not settings.DEBUG and not representation['imagen'].startswith('http'):
-                representation['imagen'] = f"https://inversiones-castillo.onrender.com{representation['imagen']}"
+                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
+                representation['imagen'] = f"{backend_url}{representation['imagen']}"
         
         return representation
 
@@ -70,8 +72,10 @@ class MotoModeloSerializer(serializers.ModelSerializer):
         # Asegurar URL absoluta para imagen en producción
         if instance.imagen:
             from django.conf import settings
+            from decouple import config
             if not settings.DEBUG and not representation['imagen'].startswith('http'):
-                representation['imagen'] = f"https://inversiones-castillo.onrender.com{representation['imagen']}"
+                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
+                representation['imagen'] = f"{backend_url}{representation['imagen']}"
         
         # Agregar resumen de colores disponibles
         inventario_resumen = {}
