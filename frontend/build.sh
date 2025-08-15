@@ -6,6 +6,11 @@ echo "🌟 Building React Frontend for Production..."
 echo "📦 Installing dependencies..."
 npm install
 
+# Debug environment variables
+echo "🔍 Environment variables debug:"
+echo "VITE_API_URL: $VITE_API_URL"
+env | grep VITE || echo "No VITE variables found"
+
 # Build the project
 echo "🏗️ Building React application..."
 npm run build
