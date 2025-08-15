@@ -14,6 +14,13 @@ class MotoSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['nombre_completo'] = f"{instance.marca} {instance.modelo} {instance.ano}"
+        
+        # Asegurar URL absoluta para imagen en producción
+        if instance.imagen:
+            from django.conf import settings
+            if not settings.DEBUG and not representation['imagen'].startswith('http'):
+                representation['imagen'] = f"https://inversiones-castillo.onrender.com{representation['imagen']}"
+        
         return representation
 
 class MotoDisponibleSerializer(serializers.ModelSerializer):
@@ -27,6 +34,13 @@ class MotoDisponibleSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['nombre_completo'] = f"{instance.marca} {instance.modelo} {instance.ano}"
+        
+        # Asegurar URL absoluta para imagen en producción (si existe)
+        if hasattr(instance, 'imagen') and instance.imagen:
+            from django.conf import settings
+            if not settings.DEBUG and not representation.get('imagen', '').startswith('http'):
+                representation['imagen'] = f"https://inversiones-castillo.onrender.com{representation.get('imagen', '')}"
+        
         return representation
 
 class MotoInventarioSerializer(serializers.ModelSerializer):
@@ -52,6 +66,12 @@ class MotoModeloSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['nombre_completo'] = f"{instance.marca} {instance.modelo} {instance.ano}"
+        
+        # Asegurar URL absoluta para imagen en producción
+        if instance.imagen:
+            from django.conf import settings
+            if not settings.DEBUG and not representation['imagen'].startswith('http'):
+                representation['imagen'] = f"https://inversiones-castillo.onrender.com{representation['imagen']}"
         
         # Agregar resumen de colores disponibles
         inventario_resumen = {}
