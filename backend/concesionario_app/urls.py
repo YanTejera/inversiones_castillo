@@ -38,18 +38,28 @@ def api_root(request):
 def frontend_view(request):
     """
     Vista catch-all para servir el frontend SPA.
-    Retorna una respuesta simple que redirige al frontend.
+    Maneja rutas como /login, /motos, /clientes, etc.
     """
+    import logging
     from django.http import HttpResponseRedirect
     from decouple import config
-    # En producción, redirigir al frontend deployado
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Frontend catch-all route accessed: {request.path}")
+    
+    # En producción, redirigir al frontend deployado con la ruta preservada
     if not settings.DEBUG:
         frontend_url = config('FRONTEND_URL', default='https://inversiones-castillo1.onrender.com')
-        return HttpResponseRedirect(frontend_url)
+        full_url = f"{frontend_url}{request.path}"
+        logger.info(f"Redirecting to: {full_url}")
+        return HttpResponseRedirect(full_url)
+    
     # En desarrollo, mostrar mensaje informativo
     return JsonResponse({
-        'message': 'Frontend route - please access via React app on port 3000',
-        'frontend_url': 'http://localhost:3000'
+        'message': f'Frontend route: {request.path}',
+        'info': 'This route should be handled by React app',
+        'frontend_url': f'http://localhost:5174{request.path}',
+        'debug': True
     })
 
 urlpatterns = [
@@ -63,12 +73,13 @@ urlpatterns = [
     path('api/reportes/', include('reportes.urls')),
 ]
 
+# Catch-all pattern for frontend SPA routes (before static files)
+# This handles routes like /login, /home, /clientes, /ventas, /motos, etc.
+# Must exclude api/, admin/, media/, and static/ routes
+urlpatterns += [
+    re_path(r'^(?!api/|admin/|media/|static/).*$', frontend_view, name='frontend_catchall'),
+]
+
 # Serve media files in development and production
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-# Catch-all pattern for frontend SPA routes (must be last)
-# This handles routes like /home, /clientes, /ventas, etc.
-urlpatterns += [
-    re_path(r'^(?!api/).*$', frontend_view, name='frontend_catchall'),
-]
