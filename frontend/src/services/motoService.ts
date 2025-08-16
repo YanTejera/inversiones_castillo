@@ -58,7 +58,14 @@ export const motoService = {
     
     // Agregar imagen si existe
     if (data.imagen) {
+      console.log('🖼️ Agregando imagen al FormData:', data.imagen.name, data.imagen.size);
       formData.append('imagen', data.imagen);
+    }
+
+    // Debug: Log FormData contents
+    console.log('📝 FormData contents:');
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
     }
 
     const response = await api.post('/motos/', formData, {
