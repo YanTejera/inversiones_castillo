@@ -83,13 +83,16 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    console.log('📸 handleImageChange:', file);
     if (file) {
+      console.log('📸 Archivo seleccionado:', file.name, file.size, file.type);
       setFormData(prev => ({ ...prev, imagen: file }));
       
       // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
+        console.log('📸 Preview creado');
       };
       reader.readAsDataURL(file);
     }
@@ -152,10 +155,13 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 handleSubmit iniciado');
     
     if (!validateForm()) {
+      console.log('❌ Validación falló');
       return;
     }
+    console.log('✅ Validación pasó');
 
     setLoading(true);
     setServerError('');
@@ -175,12 +181,17 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
         imagen: formData.imagen
       };
 
-      console.log('Enviando datos de la moto:', submitData);
+      console.log('📝 Datos a enviar:', submitData);
+      console.log('🖼️ Imagen en submitData:', submitData.imagen);
 
       if (mode === 'create') {
+        console.log('🆕 Llamando createMoto...');
         await motoService.createMoto(submitData);
+        console.log('✅ createMoto completado');
       } else if (mode === 'edit' && moto) {
+        console.log('✏️ Llamando updateMoto...');
         await motoService.updateMoto(moto.id, submitData);
+        console.log('✅ updateMoto completado');
       }
       
       onSave();
