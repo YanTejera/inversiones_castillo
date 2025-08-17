@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   CreditCard,
   FileText,
+  FolderOpen,
   LogOut,
   Settings,
 } from 'lucide-react';
@@ -49,6 +50,12 @@ const Layout: React.FC = () => {
       href: '/pagos',
       icon: CreditCard,
       current: location.pathname.startsWith('/pagos'),
+    },
+    {
+      name: 'Documentos',
+      href: '/documentos',
+      icon: FolderOpen,
+      current: location.pathname.startsWith('/documentos'),
     },
     {
       name: 'Reportes',

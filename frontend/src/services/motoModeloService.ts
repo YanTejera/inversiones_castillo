@@ -5,10 +5,13 @@ interface CreateMotoModeloData {
   marca: string;
   modelo: string;
   ano: number;
+  condicion?: 'nueva' | 'usada';
   descripcion?: string;
   imagen?: File;
   precio_compra: number;
   precio_venta: number;
+  moneda_compra?: 'USD' | 'RD' | 'EUR' | 'COP';
+  moneda_venta?: 'USD' | 'RD' | 'EUR' | 'COP';
   activa: boolean;
   inventario_data?: Array<{
     color: string;
@@ -54,6 +57,18 @@ export const motoModeloService = {
     formData.append('precio_compra', data.precio_compra.toString());
     formData.append('precio_venta', data.precio_venta.toString());
     formData.append('activa', data.activa.toString());
+    
+    if (data.condicion) {
+      formData.append('condicion', data.condicion);
+    }
+    
+    if (data.moneda_compra) {
+      formData.append('moneda_compra', data.moneda_compra);
+    }
+    
+    if (data.moneda_venta) {
+      formData.append('moneda_venta', data.moneda_venta);
+    }
     
     if (data.descripcion) {
       formData.append('descripcion', data.descripcion);

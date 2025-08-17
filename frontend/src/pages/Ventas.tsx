@@ -16,8 +16,10 @@ import {
   FileText
 } from 'lucide-react';
 import { ventaService } from '../services/ventaService';
-import VentaForm from '../components/VentaForm';
+import NewVentaForm from '../components/NewVentaForm';
+import ViewToggle from '../components/common/ViewToggle';
 import type { Venta } from '../types';
+import type { VentaFormData } from '../components/NewVentaForm';
 
 const Ventas: React.FC = () => {
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -29,7 +31,17 @@ const Ventas: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
-  const [modalMode, setModalMode] = useState<'view' | 'create' | 'edit'>('view');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    const saved = localStorage.getItem('ventas_view_mode');
+    return (saved as 'grid' | 'list') || 'grid';
+  });
+
+  // Guardar la configuración de vista cuando cambie
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    localStorage.setItem('ventas_view_mode', mode);
+  };
 
   const loadVentas = async (page = 1, search = '', estado = '') => {
     try {
@@ -84,8 +96,15 @@ const Ventas: React.FC = () => {
     }
   };
 
-  const openModal = (mode: 'view' | 'create' | 'edit', venta?: Venta) => {
-    setModalMode(mode);
+  const openCreateModal = () => {
+    setShowCreateModal(true);
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+  };
+
+  const openModal = (mode: 'view' | 'edit', venta?: Venta) => {
     setSelectedVenta(venta || null);
     setShowModal(true);
   };
@@ -95,8 +114,18 @@ const Ventas: React.FC = () => {
     setSelectedVenta(null);
   };
 
-  const handleFormSave = () => {
-    loadVentas(currentPage, searchTerm, estadoFilter);
+  const handleFormSave = async (data: VentaFormData) => {
+    try {
+      // Aquí iría la lógica para guardar la venta con el nuevo formato de datos
+      console.log('Saving venta data:', data);
+      
+      // Por ahora, solo recargamos las ventas
+      await loadVentas(currentPage, searchTerm, estadoFilter);
+      closeModal();
+    } catch (error) {
+      console.error('Error saving venta:', error);
+      setError('Error al guardar la venta');
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -161,7 +190,7 @@ const Ventas: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => openModal('create')}
+            onClick={openCreateModal}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -189,6 +218,7 @@ const Ventas: React.FC = () => {
           >
             Buscar
           </button>
+          <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
         </form>
 
         {/* Estado Filters */}
@@ -242,9 +272,11 @@ const Ventas: React.FC = () => {
         </div>
       )}
 
-      {/* Ventas Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {ventas.map((venta) => (
+      {/* Ventas Display */}
+      {viewMode === 'grid' ? (
+        /* Grid View */
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {ventas.map((venta) => (
           <div key={venta.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
@@ -374,8 +406,141 @@ const Ventas: React.FC = () => {
               )}
             </div>
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        /* List View */
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Venta
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cliente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Monto Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Productos
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {ventas.map((venta) => (
+                  <tr key={venta.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          Venta #{venta.id}
+                        </div>
+                        <div className="text-xs text-gray-500 flex items-center">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {formatDate(venta.fecha_venta)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {venta.cliente_info ? 
+                          `${venta.cliente_info.nombre} ${venta.cliente_info.apellido}` : 
+                          'Cliente no disponible'
+                        }
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-green-600">
+                        {formatCurrency(venta.monto_total)}
+                      </div>
+                      {venta.tipo_venta === 'financiado' && venta.saldo_pendiente > 0 && (
+                        <div className="text-xs text-red-600">
+                          Pendiente: {formatCurrency(venta.saldo_pendiente)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`text-sm font-medium ${getTipoVentaColor(venta.tipo_venta)}`}>
+                        {venta.tipo_venta_display}
+                      </span>
+                      {venta.tipo_venta === 'financiado' && (
+                        <div className="text-xs text-gray-500">
+                          {venta.cuotas} cuotas
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(venta.estado)}`}>
+                        {getEstadoIcon(venta.estado)}
+                        <span className="ml-1">{venta.estado_display}</span>
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {venta.detalles?.length || 0} producto(s)
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => openModal('view', venta)}
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          title="Ver detalles"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => openModal('edit', venta)}
+                          className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(venta)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        
+                        {/* Estado actions en lista */}
+                        {venta.estado === 'activa' && (
+                          <>
+                            <button
+                              onClick={() => handleCambiarEstado(venta, 'finalizada')}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Marcar como finalizada"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleCambiarEstado(venta, 'cancelada')}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              title="Cancelar venta"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {ventas.length === 0 && !loading && (
         <div className="text-center py-12">
@@ -387,7 +552,7 @@ const Ventas: React.FC = () => {
           {!searchTerm && !estadoFilter && (
             <div className="mt-6">
               <button
-                onClick={() => openModal('create')}
+                onClick={openCreateModal}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
               >
                 <Plus className="h-4 w-4" />
@@ -439,14 +604,135 @@ const Ventas: React.FC = () => {
         </div>
       )}
 
-      {/* Venta Form Modal */}
-      {showModal && (
-        <VentaForm
-          venta={selectedVenta}
-          mode={modalMode}
-          onClose={closeModal}
+      {/* New Venta Form Modal */}
+      {showCreateModal && (
+        <NewVentaForm
+          onClose={closeCreateModal}
           onSave={handleFormSave}
         />
+      )}
+
+      {/* Old Venta Form Modal for viewing/editing existing sales */}
+      {showModal && selectedVenta && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold">Detalles de la Venta #{selectedVenta.id}</h2>
+              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[80vh]">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Información General</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-gray-600">Fecha de venta:</span>
+                        <p className="font-medium">{formatDate(selectedVenta.fecha_venta)}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Estado:</span>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ml-2 ${getEstadoColor(selectedVenta.estado)}`}>
+                          {selectedVenta.estado_display}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Tipo de venta:</span>
+                        <p className="font-medium">{selectedVenta.tipo_venta_display}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Información del Cliente</h3>
+                    {selectedVenta.cliente_info ? (
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-gray-600">Nombre:</span>
+                          <p className="font-medium">{selectedVenta.cliente_info.nombre} {selectedVenta.cliente_info.apellido}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Cédula:</span>
+                          <p className="font-medium">{selectedVenta.cliente_info.cedula}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Teléfono:</span>
+                          <p className="font-medium">{selectedVenta.cliente_info.telefono}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">Información del cliente no disponible</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Información Financiera</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <span className="text-gray-600">Monto total:</span>
+                      <p className="font-bold text-lg text-green-600">{formatCurrency(selectedVenta.monto_total)}</p>
+                    </div>
+                    {selectedVenta.tipo_venta === 'financiado' && (
+                      <>
+                        <div>
+                          <span className="text-gray-600">Monto inicial:</span>
+                          <p className="font-medium">{formatCurrency(selectedVenta.monto_inicial)}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Pago mensual:</span>
+                          <p className="font-medium text-blue-600">{formatCurrency(selectedVenta.pago_mensual)}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Número de cuotas:</span>
+                          <p className="font-medium">{selectedVenta.cuotas}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">Saldo pendiente:</span>
+                          <p className={`font-medium ${selectedVenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {formatCurrency(selectedVenta.saldo_pendiente)}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {selectedVenta.detalles && selectedVenta.detalles.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Productos</h3>
+                    <div className="space-y-3">
+                      {selectedVenta.detalles.map((detalle, index) => (
+                        <div key={index} className="border rounded-lg p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                              <span className="text-gray-600">Producto:</span>
+                              <p className="font-medium">{detalle.producto_info?.marca} {detalle.producto_info?.modelo}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Cantidad:</span>
+                              <p className="font-medium">{detalle.cantidad}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Precio unitario:</span>
+                              <p className="font-medium">{formatCurrency(detalle.precio_unitario)}</p>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Subtotal:</span>
+                              <p className="font-medium text-green-600">{formatCurrency(detalle.subtotal)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

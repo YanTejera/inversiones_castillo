@@ -7,7 +7,7 @@ class MotoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Moto
-        fields = ['id', 'marca', 'modelo', 'ano', 'chasis', 'precio_compra', 
+        fields = ['id', 'marca', 'modelo', 'ano', 'condicion', 'chasis', 'precio_compra', 
                  'precio_venta', 'ganancia', 'cantidad_stock', 'descripcion', 
                  'imagen', 'fecha_ingreso', 'activa', 'disponible']
     
@@ -61,7 +61,7 @@ class MotoModeloSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MotoModelo
-        fields = ['id', 'marca', 'modelo', 'ano', 'descripcion', 'imagen', 
+        fields = ['id', 'marca', 'modelo', 'ano', 'condicion', 'descripcion', 'imagen', 
                  'precio_compra', 'precio_venta', 'ganancia', 'activa', 
                  'fecha_creacion', 'total_stock', 'disponible', 'inventario']
     
@@ -97,7 +97,7 @@ class MotoModeloCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = MotoModelo
-        fields = ['marca', 'modelo', 'ano', 'descripcion', 'imagen', 
+        fields = ['marca', 'modelo', 'ano', 'condicion', 'descripcion', 'imagen', 
                  'precio_compra', 'precio_venta', 'activa', 'inventario_data']
     
     def validate(self, data):

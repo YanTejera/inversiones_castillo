@@ -8,6 +8,7 @@ import Clientes from './pages/Clientes';
 import Motocicletas from './pages/Motocicletas';
 import Ventas from './pages/Ventas';
 import Pagos from './pages/Pagos';
+import Documentos from './pages/Documentos';
 import Reportes from './pages/Reportes';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
             <Route path="clientes" element={<Clientes />} />
             <Route path="ventas" element={<Ventas />} />
             <Route path="pagos" element={<Pagos />} />
+            <Route path="documentos" element={<Documentos />} />
             <Route path="reportes" element={<Reportes />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

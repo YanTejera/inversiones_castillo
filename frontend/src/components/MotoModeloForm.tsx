@@ -31,9 +31,12 @@ interface FormData {
   marca: string;
   modelo: string;
   ano: string;
+  condicion: 'nueva' | 'usada';
   descripcion: string;
   precio_compra: string;
   precio_venta: string;
+  moneda_compra: 'USD' | 'RD' | 'EUR' | 'COP';
+  moneda_venta: 'USD' | 'RD' | 'EUR' | 'COP';
   activa: boolean;
   imagen?: File;
   colores: ColorInventario[];
@@ -44,9 +47,12 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     marca: modelo?.marca || '',
     modelo: modelo?.modelo || '',
     ano: modelo?.ano?.toString() || '',
+    condicion: modelo?.condicion || 'nueva',
     descripcion: modelo?.descripcion || '',
     precio_compra: modelo?.precio_compra?.toString() || '',
     precio_venta: modelo?.precio_venta?.toString() || '',
+    moneda_compra: modelo?.moneda_compra || 'USD',
+    moneda_venta: modelo?.moneda_venta || 'RD',
     activa: modelo?.activa ?? true,
     colores: modelo?.inventario?.map(inv => ({
       color: inv.color,
@@ -143,9 +149,12 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         marca: formData.marca,
         modelo: formData.modelo,
         ano: Number(formData.ano),
+        condicion: formData.condicion,
         descripcion: formData.descripcion,
         precio_compra: Number(formData.precio_compra),
         precio_venta: Number(formData.precio_venta),
+        moneda_compra: formData.moneda_compra,
+        moneda_venta: formData.moneda_venta,
         activa: formData.activa,
         inventario_data: formData.colores.map(color => ({
           color: color.color,
@@ -160,7 +169,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         submitData.imagen = formData.imagen;
       }
 
-      console.log('Submit data:', submitData);
+      console.log('Datos a enviar al backend (MotoModelo):', submitData);
+      console.log('ID del modelo que se está editando:', modelo?.id);
       console.log('FormData entries:');
       if (submitData.imagen) {
         console.log('- Has image file:', submitData.imagen.name, submitData.imagen.size);
@@ -275,6 +285,16 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     ? Number(formData.precio_venta) - Number(formData.precio_compra) 
     : 0;
 
+  const getCurrencySymbol = (currency: string) => {
+    switch(currency) {
+      case 'USD': return '$';
+      case 'RD': return 'RD$';
+      case 'EUR': return '€';
+      case 'COP': return '$';
+      default: return '$';
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
@@ -387,6 +407,24 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   </div>
 
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Condición *</label>
+                    <select
+                      value={formData.condicion}
+                      onChange={(e) => {
+                        console.log('Cambio de condición en MotoModeloForm:', e.target.value);
+                        setFormData(prev => ({ ...prev, condicion: e.target.value as 'nueva' | 'usada' }));
+                      }}
+                      disabled={isReadOnly}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isReadOnly ? 'bg-gray-50' : ''
+                      }`}
+                    >
+                      <option value="nueva">Nueva</option>
+                      <option value="usada">Usada</option>
+                    </select>
+                  </div>
+
+                  <div>
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -421,38 +459,126 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   Información de Precios
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Precio de Compra */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Compra *</label>
-                    <input
-                      type="number"
-                      value={formData.precio_compra}
-                      onChange={(e) => setFormData(prev => ({ ...prev, precio_compra: e.target.value }))}
-                      readOnly={isReadOnly}
-                      min="0"
-                      step="0.01"
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.precio_compra ? 'border-red-500' : 'border-gray-300'
-                      } ${isReadOnly ? 'bg-gray-50' : ''}`}
-                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={formData.moneda_compra}
+                        onChange={(e) => setFormData(prev => ({ ...prev, moneda_compra: e.target.value as 'USD' | 'RD' | 'EUR' | 'COP' }))}
+                        disabled={isReadOnly}
+                        className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      >
+                        <option value="USD">USD</option>
+                        <option value="RD">RD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="COP">COP</option>
+                      </select>
+                      <input
+                        type="number"
+                        value={formData.precio_compra}
+                        onChange={(e) => setFormData(prev => ({ ...prev, precio_compra: e.target.value }))}
+                        readOnly={isReadOnly}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.precio_compra ? 'border-red-500' : 'border-gray-300'
+                        } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                      />
+                    </div>
+                    {formData.precio_compra && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {getCurrencySymbol(formData.moneda_compra)} {new Intl.NumberFormat('es-CO', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Number(formData.precio_compra))}
+                      </p>
+                    )}
                     {errors.precio_compra && <p className="text-red-500 text-sm mt-1">{errors.precio_compra}</p>}
                   </div>
 
+                  {/* Precio de Venta */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Venta *</label>
-                    <input
-                      type="number"
-                      value={formData.precio_venta}
-                      onChange={(e) => setFormData(prev => ({ ...prev, precio_venta: e.target.value }))}
-                      readOnly={isReadOnly}
-                      min="0"
-                      step="0.01"
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.precio_venta ? 'border-red-500' : 'border-gray-300'
-                      } ${isReadOnly ? 'bg-gray-50' : ''}`}
-                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={formData.moneda_venta}
+                        onChange={(e) => setFormData(prev => ({ ...prev, moneda_venta: e.target.value as 'USD' | 'RD' | 'EUR' | 'COP' }))}
+                        disabled={isReadOnly}
+                        className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      >
+                        <option value="USD">USD</option>
+                        <option value="RD">RD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="COP">COP</option>
+                      </select>
+                      <input
+                        type="number"
+                        value={formData.precio_venta}
+                        onChange={(e) => setFormData(prev => ({ ...prev, precio_venta: e.target.value }))}
+                        readOnly={isReadOnly}
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.precio_venta ? 'border-red-500' : 'border-gray-300'
+                        } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                      />
+                    </div>
+                    {formData.precio_venta && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {getCurrencySymbol(formData.moneda_venta)} {new Intl.NumberFormat('es-CO', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Number(formData.precio_venta))}
+                      </p>
+                    )}
                     {errors.precio_venta && <p className="text-red-500 text-sm mt-1">{errors.precio_venta}</p>}
                   </div>
+                </div>
+                
+                {/* Ganancia calculada - mostrar solo cuando ambos precios tienen datos */}
+                {formData.precio_compra && formData.precio_venta && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ganancia Estimada
+                    </label>
+                    <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                      <div className="text-sm text-gray-600">
+                        <span>Compra: {getCurrencySymbol(formData.moneda_compra)} {new Intl.NumberFormat('es-CO', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Number(formData.precio_compra))}</span>
+                        <span className="mx-2">→</span>
+                        <span>Venta: {getCurrencySymbol(formData.moneda_venta)} {new Intl.NumberFormat('es-CO', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(Number(formData.precio_venta))}</span>
+                      </div>
+                      {formData.moneda_compra === formData.moneda_venta && (
+                        <div className="text-green-700 font-semibold mt-1">
+                          Ganancia: {getCurrencySymbol(formData.moneda_venta)} {new Intl.NumberFormat('es-CO', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          }).format(gananciaCalculada)}
+                        </div>
+                      )}
+                      {formData.moneda_compra !== formData.moneda_venta && (
+                        <div className="text-orange-600 text-xs mt-1">
+                          ⚠️ Diferentes monedas - conversión requerida para cálculo exacto
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ganancia Calculada</label>

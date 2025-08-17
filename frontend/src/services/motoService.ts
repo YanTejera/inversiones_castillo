@@ -5,6 +5,7 @@ interface MotoCreateData {
   marca: string;
   modelo: string;
   ano: number;
+  condicion?: 'nueva' | 'usada';
   color?: string;
   chasis?: string;
   precio_compra: number;
@@ -51,6 +52,7 @@ export const motoService = {
     formData.append('cantidad_stock', data.cantidad_stock.toString());
     
     // Agregar campos opcionales
+    if (data.condicion) formData.append('condicion', data.condicion);
     if (data.color) formData.append('color', data.color);
     if (data.chasis) formData.append('chasis', data.chasis);
     if (data.descripcion) formData.append('descripcion', data.descripcion);
@@ -58,14 +60,7 @@ export const motoService = {
     
     // Agregar imagen si existe
     if (data.imagen) {
-      console.log('🖼️ Agregando imagen al FormData:', data.imagen.name, data.imagen.size);
       formData.append('imagen', data.imagen);
-    }
-
-    // Debug: Log FormData contents
-    console.log('📝 FormData contents:');
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
     }
 
     const response = await api.post('/motos/', formData, {

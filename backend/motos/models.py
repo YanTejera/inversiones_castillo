@@ -3,9 +3,15 @@ from decimal import Decimal
 
 class MotoModelo(models.Model):
     """Modelo base de motocicleta sin color específico"""
+    CONDICION_CHOICES = [
+        ('nueva', 'Nueva'),
+        ('usada', 'Usada'),
+    ]
+    
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
     ano = models.IntegerField(verbose_name='Año')
+    condicion = models.CharField(max_length=10, choices=CONDICION_CHOICES, default='nueva', verbose_name='Condición')
     descripcion = models.TextField(blank=True, null=True)
     imagen = models.ImageField(upload_to='motos/', blank=True, null=True)
     precio_compra = models.DecimalField(max_digits=12, decimal_places=2)
@@ -63,9 +69,15 @@ class MotoInventario(models.Model):
 
 # Mantenemos el modelo Moto original para compatibilidad hacia atrás
 class Moto(models.Model):
+    CONDICION_CHOICES = [
+        ('nueva', 'Nueva'),
+        ('usada', 'Usada'),
+    ]
+    
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
     ano = models.IntegerField(verbose_name='Año')
+    condicion = models.CharField(max_length=10, choices=CONDICION_CHOICES, default='nueva', verbose_name='Condición')
     color = models.CharField(max_length=50, blank=True, null=True)
     chasis = models.CharField(max_length=100, unique=True)
     precio_compra = models.DecimalField(max_digits=12, decimal_places=2)

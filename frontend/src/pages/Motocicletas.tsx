@@ -15,13 +15,19 @@ import {
   ShoppingCart,
   Palette,
   Info,
-  X
+  X,
+  Filter,
+  Car,
+  Clock,
+  PackageX,
+  Building
 } from 'lucide-react';
 import { motoService } from '../services/motoService';
 import { motoModeloService } from '../services/motoModeloService';
 import MotoForm from '../components/MotoForm';
 import MotoModeloForm from '../components/MotoModeloForm';
 import MotoModeloDetalle from '../components/MotoModeloDetalle';
+import ViewToggle from '../components/common/ViewToggle';
 import type { Moto, MotoModelo } from '../types';
 
 const Motocicletas: React.FC = () => {
@@ -40,11 +46,42 @@ const Motocicletas: React.FC = () => {
   const [showDetalleModelo, setShowDetalleModelo] = useState(false);
   const [showVentaDirecta, setShowVentaDirecta] = useState(false);
   const [showResumenModelo, setShowResumenModelo] = useState(false);
+  
+  // Nuevos estados para filtros y agrupación con persistencia
+  const [filterType, setFilterType] = useState<'all' | 'new' | 'used' | 'out_of_stock'>(() => {
+    const saved = localStorage.getItem('motocicletas_filter_type');
+    return (saved as 'all' | 'new' | 'used' | 'out_of_stock') || 'all';
+  });
+  const [groupByBrand, setGroupByBrand] = useState(() => {
+    const saved = localStorage.getItem('motocicletas_group_by_brand');
+    return saved === 'true';
+  });
+  const [displayMode, setDisplayMode] = useState<'grid' | 'list'>(() => {
+    const saved = localStorage.getItem('motocicletas_display_mode');
+    return (saved as 'grid' | 'list') || 'grid';
+  });
+
+  // Funciones wrapper para persistir configuración
+  const handleFilterTypeChange = (newFilterType: 'all' | 'new' | 'used' | 'out_of_stock') => {
+    setFilterType(newFilterType);
+    localStorage.setItem('motocicletas_filter_type', newFilterType);
+  };
+
+  const handleGroupByBrandChange = (newGroupByBrand: boolean) => {
+    setGroupByBrand(newGroupByBrand);
+    localStorage.setItem('motocicletas_group_by_brand', newGroupByBrand.toString());
+  };
+
+  const handleDisplayModeChange = (newDisplayMode: 'grid' | 'list') => {
+    setDisplayMode(newDisplayMode);
+    localStorage.setItem('motocicletas_display_mode', newDisplayMode);
+  };
 
   const loadMotos = async (page = 1, search = '') => {
     try {
       setLoading(true);
       const response = await motoService.getMotos(page, search);
+      console.log('Motos cargadas:', response.results.map(m => ({ id: m.id, marca: m.marca, modelo: m.modelo, condicion: m.condicion })));
       setMotos(response.results);
       setTotalPages(Math.ceil(response.count / 20)); // Asumiendo 20 items por página
     } catch (err) {
@@ -59,6 +96,17 @@ const Motocicletas: React.FC = () => {
     try {
       setLoading(true);
       const response = await motoModeloService.getModelos(page, search);
+      console.log('Modelos cargados (DETALLE):');
+      response.results.forEach((m, index) => {
+        console.log(`Modelo ${index + 1}:`, {
+          id: m.id,
+          marca: m.marca,
+          modelo: m.modelo,
+          condicion: m.condicion,
+          condicion_raw: JSON.stringify(m.condicion),
+          tipo_condicion: typeof m.condicion
+        });
+      });
       setModelos(response.results);
       setTotalPages(Math.ceil(response.count / 20));
     } catch (err) {
@@ -113,11 +161,22 @@ const Motocicletas: React.FC = () => {
   };
 
   const handleFormSave = () => {
-    if (viewMode === 'modelos') {
-      loadModelos(currentPage, searchTerm);
-    } else {
-      loadMotos(currentPage, searchTerm);
-    }
+    console.log('handleFormSave llamado, viewMode:', viewMode);
+    const editedModeloId = selectedModelo?.id;
+    const editedMotoId = selectedMoto?.id;
+    
+    // Pequeño delay para asegurar que el backend haya procesado la actualización
+    setTimeout(() => {
+      if (viewMode === 'modelos') {
+        console.log('Recargando modelos...');
+        console.log('Modelo editado ID:', editedModeloId);
+        loadModelos(currentPage, searchTerm);
+      } else {
+        console.log('Recargando motos...');
+        console.log('Moto editada ID:', editedMotoId);
+        loadMotos(currentPage, searchTerm);
+      }
+    }, 100);
   };
 
   const handleDeleteModelo = async (modelo: MotoModelo) => {
@@ -188,6 +247,29 @@ const Motocicletas: React.FC = () => {
     }).format(amount);
   };
 
+  const getCurrencySymbol = (currency: string) => {
+    switch(currency) {
+      case 'USD': return '$';
+      case 'RD': return 'RD$';
+      case 'EUR': return '€';
+      case 'COP': return '$';
+      default: return '$';
+    }
+  };
+
+  const formatCurrencyWithSymbol = (amount: number, currency: string) => {
+    const symbol = getCurrencySymbol(currency);
+    const formattedAmount = new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+    
+    if (currency === 'EUR') {
+      return `${formattedAmount}${symbol}`;
+    }
+    return `${symbol} ${formattedAmount}`;
+  };
+
   const getStockStatusColor = (stock: number) => {
     if (stock === 0) return 'text-red-600';
     if (stock <= 5) return 'text-yellow-600';
@@ -239,6 +321,87 @@ const Motocicletas: React.FC = () => {
     
     const normalizedColor = colorName.toLowerCase().trim();
     return colorMap[normalizedColor] || '#6b7280'; // Default gray if color not found
+  };
+
+  // Nuevas funciones de filtrado y agrupación
+  const getFilteredData = () => {
+    let filteredData = viewMode === 'modelos' ? modelos : motos;
+    
+    // Aplicar filtros según el tipo seleccionado
+    switch (filterType) {
+      case 'new':
+        if (viewMode === 'modelos') {
+          filteredData = modelos.filter(modelo => modelo.condicion === 'nueva');
+        } else {
+          filteredData = motos.filter(moto => moto.condicion === 'nueva');
+        }
+        break;
+      case 'used':
+        if (viewMode === 'modelos') {
+          filteredData = modelos.filter(modelo => modelo.condicion === 'usada');
+        } else {
+          filteredData = motos.filter(moto => moto.condicion === 'usada');
+        }
+        break;
+      case 'out_of_stock':
+        if (viewMode === 'modelos') {
+          filteredData = modelos.filter(modelo => modelo.total_stock === 0);
+        } else {
+          filteredData = motos.filter(moto => moto.cantidad_stock === 0);
+        }
+        break;
+      default:
+        // 'all' - no filtrar
+        break;
+    }
+
+    // Aplicar búsqueda
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      if (viewMode === 'modelos') {
+        filteredData = filteredData.filter((modelo: MotoModelo) =>
+          modelo.marca.toLowerCase().includes(search) ||
+          modelo.modelo.toLowerCase().includes(search) ||
+          modelo.ano.toString().includes(search)
+        );
+      } else {
+        filteredData = filteredData.filter((moto: Moto) =>
+          moto.marca.toLowerCase().includes(search) ||
+          moto.modelo.toLowerCase().includes(search) ||
+          moto.ano.toString().includes(search) ||
+          (moto.color && moto.color.toLowerCase().includes(search))
+        );
+      }
+    }
+
+    return filteredData;
+  };
+
+  const getGroupedByBrand = () => {
+    const filteredData = getFilteredData();
+    if (!groupByBrand) return { 'Todas las marcas': filteredData };
+
+    const grouped = filteredData.reduce((acc: any, item: any) => {
+      const brand = item.marca.toUpperCase();
+      if (!acc[brand]) {
+        acc[brand] = [];
+      }
+      acc[brand].push(item);
+      return acc;
+    }, {});
+
+    return grouped;
+  };
+
+  const getFilterStats = () => {
+    const allData = viewMode === 'modelos' ? modelos : motos;
+    const newCount = allData.filter(item => item.condicion === 'nueva').length;
+    const usedCount = allData.filter(item => item.condicion === 'usada').length;
+    const outOfStockCount = viewMode === 'modelos' 
+      ? modelos.filter(modelo => modelo.total_stock === 0).length
+      : motos.filter(moto => moto.cantidad_stock === 0).length;
+
+    return { newCount, usedCount, outOfStockCount, total: allData.length };
   };
 
   if (loading && (viewMode === 'modelos' ? modelos.length === 0 : motos.length === 0)) {
@@ -304,6 +467,125 @@ const Motocicletas: React.FC = () => {
         </div>
       </div>
 
+      {/* Filtros y Controles */}
+      <div className="mb-6 space-y-4">
+        {/* Estadísticas rápidas */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {(() => {
+            const stats = getFilterStats();
+            return (
+              <>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <Bike className="h-5 w-5 text-blue-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Total</p>
+                      <p className="text-lg font-semibold text-blue-700">{stats.total}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <Car className="h-5 w-5 text-green-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-green-900">Nuevas</p>
+                      <p className="text-lg font-semibold text-green-700">{stats.newCount}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <Clock className="h-5 w-5 text-yellow-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-900">Usadas</p>
+                      <p className="text-lg font-semibold text-yellow-700">{stats.usedCount}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <PackageX className="h-5 w-5 text-red-600 mr-2" />
+                    <div>
+                      <p className="text-sm font-medium text-red-900">Sin Stock</p>
+                      <p className="text-lg font-semibold text-red-700">{stats.outOfStockCount}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+
+        {/* Controles de filtrado y visualización */}
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+          {/* Filtros de tipo */}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Filtrar por:</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => handleFilterTypeChange('all')}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filterType === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                Todas
+              </button>
+              <button
+                onClick={() => handleFilterTypeChange('new')}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filterType === 'new'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                Nuevas
+              </button>
+              <button
+                onClick={() => handleFilterTypeChange('used')}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filterType === 'used'
+                    ? 'bg-yellow-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                Usadas
+              </button>
+              <button
+                onClick={() => handleFilterTypeChange('out_of_stock')}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filterType === 'out_of_stock'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                Sin Stock
+              </button>
+            </div>
+          </div>
+
+          {/* Controles de vista */}
+          <div className="flex items-center gap-4">
+            {/* Agrupar por marca */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={groupByBrand}
+                onChange={(e) => handleGroupByBrandChange(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <Building className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Agrupar por marca</span>
+            </label>
+
+            {/* Modo de visualización */}
+            <ViewToggle viewMode={displayMode} onViewModeChange={handleDisplayModeChange} />
+          </div>
+        </div>
+      </div>
+
       {/* Search Bar */}
       <div className="mb-6">
         <form onSubmit={handleSearch} className="flex gap-4">
@@ -335,253 +617,539 @@ const Motocicletas: React.FC = () => {
       {/* Content Grid */}
       {viewMode === 'modelos' ? (
         /* Vista de Modelos con Colores */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {modelos.map((modelo) => (
-            <div key={modelo.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-              {/* Imagen */}
-              <div className="h-48 bg-gray-200 relative">
-                {modelo.imagen ? (
-                  <img
-                    src={modelo.imagen}
-                    alt={`${modelo.marca} ${modelo.modelo} ${modelo.ano}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Bike className="h-16 w-16 text-gray-400" />
-                  </div>
-                )}
-                
-                {/* Stock Badge */}
-                <div className="absolute top-2 right-2">
-                  <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    modelo.total_stock === 0 
-                      ? 'bg-red-100 text-red-800' 
-                      : modelo.total_stock <= 5 
-                        ? 'bg-yellow-100 text-yellow-800' 
-                        : 'bg-green-100 text-green-800'
-                  }`}>
-                    {getStockStatusIcon(modelo.total_stock)}
-                    <span className="ml-1">{modelo.total_stock}</span>
-                  </div>
+        <div className="space-y-6">
+          {Object.entries(getGroupedByBrand()).map(([brand, items]: [string, any[]]) => (
+            <div key={brand} className="space-y-4">
+              {/* Header de marca */}
+              {groupByBrand && (
+                <div className="flex items-center gap-3 border-b border-gray-200 pb-2">
+                  <Building className="h-5 w-5 text-gray-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">{brand}</h2>
+                  <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full">
+                    {items.length} {items.length === 1 ? 'modelo' : 'modelos'}
+                  </span>
                 </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {modelo.marca} {modelo.modelo}
-                  </h3>
-                  <p className="text-sm text-gray-500">Año {modelo.ano}</p>
-                </div>
-
-                {/* Colores Disponibles */}
-                <div className="mb-4">
-                  <p className="text-xs font-medium text-gray-500 mb-2">Colores disponibles:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(modelo.colores_disponibles).map(([color, cantidad]) => (
-                      <div 
-                        key={color}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border border-blue-200"
-                      >
-                        <div 
-                          className="w-3 h-3 rounded-full mr-2 border border-gray-300"
-                          style={{ 
-                            backgroundColor: getColorCode(color),
-                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
-                          }}
-                        ></div>
-                        <span className="font-semibold">{color}</span>
-                        <span className="ml-1 px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded-full text-xs font-bold">
-                          {cantidad}
-                        </span>
+              )}
+              
+              {/* Grid de elementos */}
+              <div className={`
+                ${displayMode === 'grid' 
+                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                  : 'space-y-4'
+                }
+              `}>
+                {items.map((modelo) => (
+                  displayMode === 'grid' ? (
+                    /* Vista en grilla */
+                    <div key={modelo.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                      {/* Imagen */}
+                      <div className="h-48 bg-gray-200 relative">
+                        {modelo.imagen ? (
+                          <img
+                            src={modelo.imagen}
+                            alt={`${modelo.marca} ${modelo.modelo} ${modelo.ano}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Bike className="h-16 w-16 text-gray-400" />
+                          </div>
+                        )}
+                        
+                        {/* Stock Badge */}
+                        <div className="absolute top-2 right-2">
+                          <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            modelo.total_stock === 0 
+                              ? 'bg-red-100 text-red-800' 
+                              : modelo.total_stock <= 5 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-green-100 text-green-800'
+                          }`}>
+                            {getStockStatusIcon(modelo.total_stock)}
+                            <span className="ml-1">{modelo.total_stock}</span>
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                    {Object.keys(modelo.colores_disponibles).length === 0 && (
-                      <span className="text-xs text-gray-400 italic">Sin colores registrados</span>
-                    )}
-                  </div>
-                </div>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Precio de Venta:</span>
-                    <span className="font-semibold text-green-600">
-                      {formatCurrency(modelo.precio_venta)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Ganancia:</span>
-                    <span className="font-semibold text-blue-600">
-                      {formatCurrency(modelo.ganancia)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Stock Total:</span>
-                    <span className={`font-semibold ${getStockStatusColor(modelo.total_stock)}`}>
-                      {modelo.total_stock} unidades
-                    </span>
-                  </div>
-                </div>
+                      {/* Content */}
+                      <div className="p-6">
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {modelo.marca} {modelo.modelo}
+                            </h3>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              modelo.condicion?.toLowerCase()?.trim() === 'nueva' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {modelo.condicion?.toLowerCase()?.trim() === 'nueva' ? 'Nueva' : 'Usada'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500">Año {modelo.ano}</p>
+                        </div>
 
-                {/* Actions */}
-                <div className="flex justify-between items-center pt-4 border-t">
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={() => handleVerDetalleModelo(modelo)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                      title="Ver detalles"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => openModal('edit', null, modelo)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                      title="Editar"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteModelo(modelo)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleResumenModelo(modelo)}
-                      className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                      title="Ver resumen y estadísticas"
-                    >
-                      <Info className="h-4 w-4 mr-1" />
-                      Resumen
-                    </button>
-                    {modelo.disponible && (
-                      <button
-                        onClick={() => handleVentaDirecta(modelo)}
-                        className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Vender
-                      </button>
-                    )}
-                  </div>
-                </div>
+                        {/* Colores Disponibles */}
+                        <div className="mb-4">
+                          <p className="text-xs font-medium text-gray-500 mb-2">Colores disponibles:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(modelo.colores_disponibles).map(([color, cantidad]) => (
+                              <div 
+                                key={color}
+                                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border border-blue-200"
+                              >
+                                <div 
+                                  className="w-3 h-3 rounded-full mr-2 border border-gray-300"
+                                  style={{ 
+                                    backgroundColor: getColorCode(color),
+                                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
+                                  }}
+                                ></div>
+                                <span className="font-semibold">{color}</span>
+                                <span className="ml-1 px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded-full text-xs font-bold">
+                                  {cantidad}
+                                </span>
+                              </div>
+                            ))}
+                            {Object.keys(modelo.colores_disponibles).length === 0 && (
+                              <span className="text-xs text-gray-400 italic">Sin colores registrados</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Compra:</span>
+                            <span className="font-semibold text-orange-600">
+                              {formatCurrencyWithSymbol(modelo.precio_compra, modelo.moneda_compra || 'COP')}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Venta:</span>
+                            <span className="font-semibold text-green-600">
+                              {formatCurrencyWithSymbol(modelo.precio_venta, modelo.moneda_venta || 'COP')}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Stock Total:</span>
+                            <span className={`font-semibold ${getStockStatusColor(modelo.total_stock)}`}>
+                              {modelo.total_stock} unidades
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-between items-center pt-4 border-t">
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => handleVerDetalleModelo(modelo)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              title="Ver detalles"
+                            >
+                              <Info className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => openModal('edit', null, modelo)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                              title="Editar"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteModelo(modelo)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleResumenModelo(modelo)}
+                              className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                              title="Ver resumen y estadísticas"
+                            >
+                              <Info className="h-4 w-4 mr-1" />
+                              Resumen
+                            </button>
+                            {modelo.disponible && (
+                              <button
+                                onClick={() => handleVentaDirecta(modelo)}
+                                className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-1" />
+                                Vender
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Vista en lista */
+                    <div key={modelo.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            {/* Imagen pequeña */}
+                            <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                              {modelo.imagen ? (
+                                <img
+                                  src={modelo.imagen}
+                                  alt={`${modelo.marca} ${modelo.modelo} ${modelo.ano}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Bike className="h-8 w-8 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Información básica */}
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {modelo.marca} {modelo.modelo}
+                                </h3>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  modelo.condicion === 'nueva' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {modelo.condicion === 'nueva' ? 'Nueva' : 'Usada'}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500">Año {modelo.ano}</p>
+                              
+                              {/* Colores en línea */}
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-400">Colores:</span>
+                                <div className="flex gap-1">
+                                  {Object.entries(modelo.colores_disponibles).slice(0, 4).map(([color, cantidad]) => (
+                                    <div 
+                                      key={color}
+                                      className="w-4 h-4 rounded-full border border-gray-300"
+                                      style={{ backgroundColor: getColorCode(color) }}
+                                      title={`${color}: ${cantidad} unidades`}
+                                    ></div>
+                                  ))}
+                                  {Object.keys(modelo.colores_disponibles).length > 4 && (
+                                    <span className="text-xs text-gray-400">+{Object.keys(modelo.colores_disponibles).length - 4}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Información de precio y stock */}
+                          <div className="flex items-center space-x-6">
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Compra</p>
+                              <p className="font-semibold text-orange-600">{formatCurrencyWithSymbol(modelo.precio_compra, modelo.moneda_compra || 'COP')}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Venta</p>
+                              <p className="font-semibold text-green-600">{formatCurrencyWithSymbol(modelo.precio_venta, modelo.moneda_venta || 'COP')}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Stock</p>
+                              <div className={`flex items-center justify-end gap-1 ${getStockStatusColor(modelo.total_stock)}`}>
+                                {getStockStatusIcon(modelo.total_stock)}
+                                <span className="font-semibold">{modelo.total_stock}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Acciones */}
+                          <div className="flex items-center space-x-1 ml-4">
+                            <button
+                              onClick={() => handleVerDetalleModelo(modelo)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              title="Ver detalles"
+                            >
+                              <Info className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => openModal('edit', null, modelo)}
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                              title="Editar"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteModelo(modelo)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleResumenModelo(modelo)}
+                              className="flex items-center px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                              title="Ver resumen"
+                            >
+                              <Info className="h-3 w-3 mr-1" />
+                              Resumen
+                            </button>
+                            {modelo.disponible && (
+                              <button
+                                onClick={() => handleVentaDirecta(modelo)}
+                                className="flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                                title="Vender"
+                              >
+                                <ShoppingCart className="h-3 w-3 mr-1" />
+                                Vender
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ))}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        /* Vista Individual Original */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {motos.map((moto) => (
-          <div key={moto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-            {/* Imagen */}
-            <div className="h-48 bg-gray-200 relative">
-              {moto.imagen ? (
-                <img
-                  src={moto.imagen}
-                  alt={`${moto.marca} ${moto.modelo}${moto.color ? ` ${moto.color}` : ''}`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Bike className="h-16 w-16 text-gray-400" />
+        /* Vista Individual con Filtros y Agrupación */
+        <div className="space-y-6">
+          {Object.entries(getGroupedByBrand()).map(([brand, items]: [string, any[]]) => (
+            <div key={brand} className="space-y-4">
+              {/* Header de marca */}
+              {groupByBrand && (
+                <div className="flex items-center gap-3 border-b border-gray-200 pb-2">
+                  <Building className="h-5 w-5 text-gray-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">{brand}</h2>
+                  <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full">
+                    {items.length} {items.length === 1 ? 'moto' : 'motos'}
+                  </span>
                 </div>
               )}
               
-              {/* Status Badge */}
-              <div className="absolute top-2 right-2">
-                {moto.disponible ? (
-                  <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                    Disponible
-                  </span>
-                ) : (
-                  <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
-                    No Disponible
-                  </span>
-                )}
+              {/* Grid de elementos */}
+              <div className={`
+                ${displayMode === 'grid' 
+                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                  : 'space-y-4'
+                }
+              `}>
+                {items.map((moto) => (
+                  displayMode === 'grid' ? (
+                    /* Vista en grilla */
+                    <div key={moto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                      {/* Imagen */}
+                      <div className="h-48 bg-gray-200 relative">
+                        {moto.imagen ? (
+                          <img
+                            src={moto.imagen}
+                            alt={`${moto.marca} ${moto.modelo}${moto.color ? ` ${moto.color}` : ''}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Bike className="h-16 w-16 text-gray-400" />
+                          </div>
+                        )}
+                        
+                        {/* Status Badge */}
+                        <div className="absolute top-2 right-2">
+                          {moto.disponible ? (
+                            <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                              Disponible
+                            </span>
+                          ) : (
+                            <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
+                              No Disponible
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-6">
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {moto.marca} {moto.modelo}
+                              {moto.color && <span className="text-blue-600"> - {moto.color}</span>}
+                            </h3>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              moto.condicion?.toLowerCase()?.trim() === 'nueva' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {moto.condicion?.toLowerCase()?.trim() === 'nueva' ? 'Nueva' : 'Usada'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500">Año {moto.ano}</p>
+                          {moto.chasis && (
+                            <p className="text-xs text-gray-400">Chasis: {moto.chasis}</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Compra:</span>
+                            <span className="font-semibold text-orange-600">
+                              {formatCurrencyWithSymbol(moto.precio_compra, moto.moneda_compra || 'COP')}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Venta:</span>
+                            <span className="font-semibold text-green-600">
+                              {formatCurrencyWithSymbol(moto.precio_venta, moto.moneda_venta || 'COP')}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Stock:</span>
+                            <div className={`flex items-center gap-1 ${getStockStatusColor(moto.cantidad_stock)}`}>
+                              {getStockStatusIcon(moto.cantidad_stock)}
+                              <span className="font-semibold">{moto.cantidad_stock}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            Ingreso: {new Date(moto.fecha_ingreso).toLocaleDateString('es-CO')}
+                          </div>
+                        </div>
+
+                        {moto.descripcion && (
+                          <div className="mb-4">
+                            <p className="text-sm text-gray-600 line-clamp-2">{moto.descripcion}</p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => openModal('view', moto)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => openModal('edit', moto)}
+                            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
+                            title="Editar"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(moto)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Vista en lista */
+                    <div key={moto.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            {/* Imagen pequeña */}
+                            <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                              {moto.imagen ? (
+                                <img
+                                  src={moto.imagen}
+                                  alt={`${moto.marca} ${moto.modelo}${moto.color ? ` ${moto.color}` : ''}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Bike className="h-8 w-8 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Información básica */}
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                  {moto.marca} {moto.modelo}
+                                  {moto.color && <span className="text-blue-600"> - {moto.color}</span>}
+                                </h3>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  moto.condicion === 'nueva' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {moto.condicion === 'nueva' ? 'Nueva' : 'Usada'}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500">Año {moto.ano}</p>
+                              {moto.chasis && (
+                                <p className="text-xs text-gray-400">Chasis: {moto.chasis}</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Información de precio y stock */}
+                          <div className="flex items-center space-x-6">
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Compra</p>
+                              <p className="font-semibold text-orange-600">{formatCurrencyWithSymbol(moto.precio_compra, moto.moneda_compra || 'COP')}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Venta</p>
+                              <p className="font-semibold text-green-600">{formatCurrencyWithSymbol(moto.precio_venta, moto.moneda_venta || 'COP')}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Stock</p>
+                              <div className={`flex items-center justify-end gap-1 ${getStockStatusColor(moto.cantidad_stock)}`}>
+                                {getStockStatusIcon(moto.cantidad_stock)}
+                                <span className="font-semibold">{moto.cantidad_stock}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Estado</p>
+                              <div className={`text-xs font-medium ${moto.disponible ? 'text-green-600' : 'text-red-600'}`}>
+                                {moto.disponible ? 'Disponible' : 'No Disponible'}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Acciones */}
+                          <div className="flex items-center space-x-1 ml-4">
+                            <button
+                              onClick={() => openModal('view', moto)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              title="Ver detalles"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => openModal('edit', moto)}
+                              className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
+                              title="Editar"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(moto)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ))}
               </div>
             </div>
-
-            {/* Content */}
-            <div className="p-6">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {moto.marca} {moto.modelo}
-                  {moto.color && <span className="text-blue-600"> - {moto.color}</span>}
-                </h3>
-                <p className="text-sm text-gray-500">Año {moto.ano}</p>
-                {moto.chasis && (
-                  <p className="text-xs text-gray-400">Chasis: {moto.chasis}</p>
-                )}
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Precio de Venta:</span>
-                  <span className="font-semibold text-green-600">
-                    {formatCurrency(moto.precio_venta)}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Ganancia:</span>
-                  <span className="font-semibold text-blue-600">
-                    {formatCurrency(moto.ganancia)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Stock:</span>
-                  <div className={`flex items-center gap-1 ${getStockStatusColor(moto.cantidad_stock)}`}>
-                    {getStockStatusIcon(moto.cantidad_stock)}
-                    <span className="font-semibold">{moto.cantidad_stock}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  Ingreso: {new Date(moto.fecha_ingreso).toLocaleDateString('es-CO')}
-                </div>
-              </div>
-
-              {moto.descripcion && (
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 line-clamp-2">{moto.descripcion}</p>
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => openModal('view', moto)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                  title="Ver detalles"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => openModal('edit', moto)}
-                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
-                  title="Editar"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(moto)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                  title="Eliminar"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+          ))}
         </div>
       )}
 
@@ -699,7 +1267,8 @@ const Motocicletas: React.FC = () => {
                 <h4 className="font-medium text-blue-900 mb-2">Información del Modelo</h4>
                 <div className="text-sm text-blue-700 space-y-1">
                   <p><span className="font-medium">Modelo:</span> {selectedModelo.marca} {selectedModelo.modelo} {selectedModelo.ano}</p>
-                  <p><span className="font-medium">Precio:</span> {formatCurrency(selectedModelo.precio_venta)}</p>
+                  <p><span className="font-medium">Compra:</span> {formatCurrencyWithSymbol(selectedModelo.precio_compra, selectedModelo.moneda_compra || 'COP')}</p>
+                  <p><span className="font-medium">Venta:</span> {formatCurrencyWithSymbol(selectedModelo.precio_venta, selectedModelo.moneda_venta || 'COP')}</p>
                   <p><span className="font-medium">Stock Total:</span> {selectedModelo.total_stock} unidades</p>
                 </div>
               </div>
@@ -797,11 +1366,11 @@ const Motocicletas: React.FC = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-blue-700">Precio de Compra:</span>
-                        <span className="font-semibold text-blue-900">{formatCurrency(estadisticasModelo.modelo_info.precio_compra)}</span>
+                        <span className="font-semibold text-blue-900">{formatCurrencyWithSymbol(estadisticasModelo.modelo_info.precio_compra, selectedModelo.moneda_compra || 'COP')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-blue-700">Precio de Venta:</span>
-                        <span className="font-semibold text-blue-900">{formatCurrency(estadisticasModelo.modelo_info.precio_venta)}</span>
+                        <span className="font-semibold text-blue-900">{formatCurrencyWithSymbol(estadisticasModelo.modelo_info.precio_venta, selectedModelo.moneda_venta || 'COP')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-blue-700">Ganancia por Unidad:</span>

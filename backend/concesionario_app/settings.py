@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'django_filters',
+    'concesionario_app',  # Agregar para comandos personalizados
     'usuarios',
     'motos',
     'ventas',
@@ -185,8 +186,24 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:5173",  # Vite dev server default
     "http://localhost:5174",  # Vite dev server alternative
+    "http://localhost:5175",  # Vite dev server alternative
+    "http://localhost:5176",  # Vite dev server alternative
+    "http://localhost:5177",  # Vite dev server alternative
+    "http://localhost:5178",  # Vite dev server alternative
+    "http://localhost:5179",  # Vite dev server alternative
+    "http://localhost:5180",  # Vite dev server alternative
+    "http://localhost:5181",  # Vite dev server alternative
+    "http://localhost:5182",  # Vite dev server alternative
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://127.0.0.1:5176",
+    "http://127.0.0.1:5177",
+    "http://127.0.0.1:5178",
+    "http://127.0.0.1:5179",
+    "http://127.0.0.1:5180",
+    "http://127.0.0.1:5181",
+    "http://127.0.0.1:5182",
     "https://inversiones-castillo1.onrender.com",  # Frontend production URL
     "https://concesionario-frontend-free.onrender.com",  # Alternative frontend URL
 ]
