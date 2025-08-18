@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
-  Edit, 
-  Trash2, 
   Eye,
   ShoppingCart,
   DollarSign,
@@ -17,6 +15,7 @@ import {
 } from 'lucide-react';
 import { ventaService } from '../services/ventaService';
 import NewVentaForm from '../components/NewVentaForm';
+import CancelarVentaModal from '../components/CancelarVentaModal';
 import ViewToggle from '../components/common/ViewToggle';
 import type { Venta } from '../types';
 import type { VentaFormData } from '../components/NewVentaForm';
@@ -32,6 +31,8 @@ const Ventas: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [ventaACancelar, setVentaACancelar] = useState<Venta | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
     const saved = localStorage.getItem('ventas_view_mode');
     return (saved as 'grid' | 'list') || 'grid';
@@ -84,7 +85,7 @@ const Ventas: React.FC = () => {
     }
   };
 
-  const handleCambiarEstado = async (venta: Venta, nuevoEstado: 'activa' | 'finalizada' | 'cancelada') => {
+  const handleCambiarEstado = async (venta: Venta, nuevoEstado: 'activa' | 'finalizada') => {
     if (window.confirm(`¿Cambiar estado de la venta a "${nuevoEstado}"?`)) {
       try {
         await ventaService.cambiarEstadoVenta(venta.id, nuevoEstado);
@@ -93,6 +94,25 @@ const Ventas: React.FC = () => {
         alert('Error al cambiar estado de venta');
         console.error('Error changing venta status:', err);
       }
+    }
+  };
+
+  const handleCancelarVenta = (venta: Venta) => {
+    setVentaACancelar(venta);
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmarCancelacion = async (motivo: string, descripcion: string) => {
+    if (!ventaACancelar) return;
+
+    try {
+      await ventaService.cancelarVenta(ventaACancelar.id, { motivo, descripcion });
+      setShowCancelModal(false);
+      setVentaACancelar(null);
+      loadVentas(currentPage, searchTerm, estadoFilter);
+    } catch (err) {
+      console.error('Error al cancelar venta:', err);
+      alert('Error al cancelar la venta');
     }
   };
 
@@ -116,15 +136,97 @@ const Ventas: React.FC = () => {
 
   const handleFormSave = async (data: VentaFormData) => {
     try {
-      // Aquí iría la lógica para guardar la venta con el nuevo formato de datos
       console.log('Saving venta data:', data);
       
-      // Por ahora, solo recargamos las ventas
-      await loadVentas(currentPage, searchTerm, estadoFilter);
-      closeModal();
+      if (!data.customer || !data.selectedMotorcycle) {
+        throw new Error('Faltan datos requeridos para la venta');
+      }
+
+      const totalAmount = data.selectedMotorcycle.precio_unitario * data.selectedMotorcycle.cantidad;
+
+      // Preparar datos para el nuevo servicio mejorado
+      const ventaData = {
+        cliente_id: data.customer.id,
+        tipo_venta: data.paymentType,
+        motorcycle: {
+          tipo: data.selectedMotorcycle.tipo,
+          modelo_id: data.selectedMotorcycle.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.id : undefined,
+          moto_id: data.selectedMotorcycle.tipo === 'individual' ? data.selectedMotorcycle.moto?.id : undefined,
+          color: data.selectedMotorcycle.color,
+          chasis: data.selectedMotorcycle.chasis,
+          cantidad: data.selectedMotorcycle.cantidad,
+          precio_unitario: data.selectedMotorcycle.precio_unitario
+        },
+        payment: {
+          monto_total: totalAmount,
+          monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
+          cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
+          tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
+          pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
+          monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount
+        },
+        documentos: data.allSelectedDocuments || [],
+        observaciones: data.observations || ''
+      };
+
+      console.log('Prepared venta data for API:', ventaData);
+
+      // Intentar crear la venta usando el nuevo método
+      try {
+        const newVenta = await ventaService.createVentaFromForm(ventaData);
+        console.log('Venta created successfully:', newVenta);
+        
+        // Recargar la lista de ventas
+        await loadVentas(currentPage, searchTerm, estadoFilter);
+        
+        // Cerrar el modal
+        closeCreateModal();
+        
+        // Mostrar mensaje de éxito
+        alert(`Venta #${newVenta.id} registrada exitosamente!`);
+        
+      } catch (apiError) {
+        console.log('New API method not available, falling back to old method');
+        
+        // Fallback al método anterior para motos individuales
+        if (data.selectedMotorcycle.tipo === 'individual' && data.selectedMotorcycle.moto) {
+          const oldVentaData = {
+            cliente: data.customer.id,
+            tipo_venta: data.paymentType,
+            monto_total: totalAmount,
+            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
+            cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
+            tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
+            pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
+            monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount,
+            detalles: [{
+              moto: data.selectedMotorcycle.moto.id,
+              cantidad: data.selectedMotorcycle.cantidad,
+              precio_unitario: data.selectedMotorcycle.precio_unitario
+            }]
+          };
+
+          const newVenta = await ventaService.createVenta(oldVentaData);
+          console.log('Venta created with fallback method:', newVenta);
+          
+          // Recargar la lista de ventas
+          await loadVentas(currentPage, searchTerm, estadoFilter);
+          
+          // Cerrar el modal
+          closeCreateModal();
+          
+          // Mostrar mensaje de éxito
+          alert(`Venta #${newVenta.id} registrada exitosamente!`);
+          
+        } else {
+          // Para modelos, necesitamos el endpoint nuevo
+          throw new Error('La venta de modelos con selección de color requiere actualización del backend. Por favor, contacte al administrador del sistema.');
+        }
+      }
+      
     } catch (error) {
       console.error('Error saving venta:', error);
-      setError('Error al guardar la venta');
+      setError(`Error al guardar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -359,6 +461,27 @@ const Ventas: React.FC = () => {
               {venta.detalles?.length || 0} producto(s)
             </div>
 
+            {/* Información de cancelación */}
+            {venta.estado === 'cancelada' && venta.motivo_cancelacion && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <div className="text-sm">
+                  <div className="text-red-700 font-medium mb-1">
+                    Motivo: {venta.motivo_cancelacion_display}
+                  </div>
+                  {venta.fecha_cancelacion && (
+                    <div className="text-red-600 text-xs">
+                      Cancelada: {formatDate(venta.fecha_cancelacion)}
+                    </div>
+                  )}
+                  {venta.descripcion_cancelacion && (
+                    <div className="text-gray-600 text-xs mt-1">
+                      {venta.descripcion_cancelacion}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex justify-between items-center pt-4 border-t">
               <div className="flex space-x-2">
@@ -369,20 +492,15 @@ const Ventas: React.FC = () => {
                 >
                   <Eye className="h-4 w-4" />
                 </button>
-                <button
-                  onClick={() => openModal('edit', venta)}
-                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
-                  title="Editar"
-                >
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(venta)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                  title="Eliminar"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {venta.estado === 'activa' && (
+                  <button
+                    onClick={() => handleCancelarVenta(venta)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                    title="Cancelar venta"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               {/* Estado actions */}
@@ -394,13 +512,6 @@ const Ventas: React.FC = () => {
                     title="Marcar como finalizada"
                   >
                     <CheckCircle className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => handleCambiarEstado(venta, 'cancelada')}
-                    className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200"
-                    title="Cancelar venta"
-                  >
-                    <XCircle className="h-3 w-3" />
                   </button>
                 </div>
               )}
@@ -429,6 +540,9 @@ const Ventas: React.FC = () => {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cancelación
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Productos
@@ -486,6 +600,22 @@ const Ventas: React.FC = () => {
                         <span className="ml-1">{venta.estado_display}</span>
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {venta.estado === 'cancelada' && venta.motivo_cancelacion ? (
+                        <div className="text-xs">
+                          <div className="text-red-600 font-medium">
+                            {venta.motivo_cancelacion_display}
+                          </div>
+                          {venta.fecha_cancelacion && (
+                            <div className="text-gray-500">
+                              {formatDate(venta.fecha_cancelacion)}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {venta.detalles?.length || 0} producto(s)
                     </td>
@@ -498,39 +628,25 @@ const Ventas: React.FC = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => openModal('edit', venta)}
-                          className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
-                          title="Editar"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(venta)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {venta.estado === 'activa' && (
+                          <button
+                            onClick={() => handleCancelarVenta(venta)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            title="Cancelar venta"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
+                        )}
                         
                         {/* Estado actions en lista */}
                         {venta.estado === 'activa' && (
-                          <>
-                            <button
-                              onClick={() => handleCambiarEstado(venta, 'finalizada')}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                              title="Marcar como finalizada"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleCambiarEstado(venta, 'cancelada')}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded"
-                              title="Cancelar venta"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </button>
-                          </>
+                          <button
+                            onClick={() => handleCambiarEstado(venta, 'finalizada')}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Marcar como finalizada"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -609,6 +725,18 @@ const Ventas: React.FC = () => {
         <NewVentaForm
           onClose={closeCreateModal}
           onSave={handleFormSave}
+        />
+      )}
+
+      {/* Cancelar Venta Modal */}
+      {showCancelModal && ventaACancelar && (
+        <CancelarVentaModal
+          venta={ventaACancelar}
+          onClose={() => {
+            setShowCancelModal(false);
+            setVentaACancelar(null);
+          }}
+          onConfirm={handleConfirmarCancelacion}
         />
       )}
 

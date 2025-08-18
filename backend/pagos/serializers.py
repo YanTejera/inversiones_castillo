@@ -6,13 +6,19 @@ from usuarios.serializers import UsuarioSerializer
 class PagoSerializer(serializers.ModelSerializer):
     venta_info = VentaSerializer(source='venta', read_only=True)
     usuario_cobrador_info = UsuarioSerializer(source='usuario_cobrador', read_only=True)
+    usuario_cancelacion_info = UsuarioSerializer(source='usuario_cancelacion', read_only=True)
     tipo_pago_display = serializers.CharField(source='get_tipo_pago_display', read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    motivo_cancelacion_display = serializers.CharField(source='get_motivo_cancelacion_display', read_only=True)
     
     class Meta:
         model = Pago
         fields = ['id', 'venta', 'venta_info', 'fecha_pago', 'monto_pagado', 
                  'tipo_pago', 'tipo_pago_display', 'observaciones', 
-                 'usuario_cobrador', 'usuario_cobrador_info']
+                 'usuario_cobrador', 'usuario_cobrador_info',
+                 'estado', 'estado_display', 'motivo_cancelacion', 'motivo_cancelacion_display',
+                 'descripcion_cancelacion', 'fecha_cancelacion', 
+                 'usuario_cancelacion', 'usuario_cancelacion_info']
 
 class PagoCreateSerializer(serializers.ModelSerializer):
     class Meta:

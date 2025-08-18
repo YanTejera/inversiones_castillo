@@ -15,6 +15,18 @@ class Venta(models.Model):
         ('finalizada', 'Finalizada'),
     ]
     
+    MOTIVO_CANCELACION_CHOICES = [
+        ('venta_erronea', 'Venta Errónea'),
+        ('cliente_equivocado', 'Cliente Equivocado'),
+        ('cancelado_por_cliente', 'Cancelado por el Cliente'),
+        ('moto_no_disponible', 'Moto No Disponible'),
+        ('problema_financiacion', 'Problema de Financiación'),
+        ('error_sistema', 'Error del Sistema'),
+        ('precio_incorrecto', 'Precio Incorrecto'),
+        ('documentacion_incompleta', 'Documentación Incompleta'),
+        ('otros', 'Otros'),
+    ]
+    
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='ventas')
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ventas')
     fecha_venta = models.DateTimeField(auto_now_add=True)
@@ -26,6 +38,12 @@ class Venta(models.Model):
     pago_mensual = models.DecimalField(max_digits=20, decimal_places=2, default=0)
     monto_total_con_intereses = models.DecimalField(max_digits=20, decimal_places=2, default=0, help_text="Monto total que pagará el cliente incluyendo intereses")
     estado = models.CharField(max_length=15, choices=ESTADO_CHOICES, default='activa')
+    
+    # Campos para cancelación
+    motivo_cancelacion = models.CharField(max_length=30, choices=MOTIVO_CANCELACION_CHOICES, blank=True, null=True)
+    descripcion_cancelacion = models.TextField(blank=True, null=True)
+    fecha_cancelacion = models.DateTimeField(blank=True, null=True)
+    usuario_cancelacion = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ventas_canceladas', blank=True, null=True)
     
     class Meta:
         verbose_name = 'Venta'

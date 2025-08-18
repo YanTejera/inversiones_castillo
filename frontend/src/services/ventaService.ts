@@ -136,5 +136,38 @@ export const ventaService = {
   async generarFactura(ventaId: number): Promise<any> {
     const response = await api.get(`/ventas/${ventaId}/factura/`);
     return response.data;
+  },
+
+  // Nuevo método para crear venta desde formulario mejorado
+  async createVentaFromForm(data: {
+    cliente_id: number;
+    tipo_venta: 'contado' | 'financiado';
+    motorcycle: {
+      tipo: 'modelo' | 'individual';
+      modelo_id?: number;
+      moto_id?: number;
+      color?: string;
+      chasis?: string;
+      cantidad: number;
+      precio_unitario: number;
+    };
+    payment: {
+      monto_total: number;
+      monto_inicial: number;
+      cuotas?: number;
+      tasa_interes?: number;
+      pago_mensual?: number;
+      monto_total_con_intereses?: number;
+    };
+    documentos?: string[];
+    observaciones?: string;
+  }): Promise<Venta> {
+    const response = await api.post('/ventas/create-from-form/', data);
+    return response.data as Venta;
+  },
+
+  async cancelarVenta(ventaId: number, cancelacionData?: { motivo: string, descripcion: string }): Promise<any> {
+    const response = await api.post(`/ventas/${ventaId}/cancelar/`, cancelacionData || {});
+    return response.data;
   }
 };

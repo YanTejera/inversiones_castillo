@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   X, 
   Save, 
@@ -18,6 +18,7 @@ import type { Pago, Venta, ClienteFinanciado } from '../types';
 interface PagoFormProps {
   pago?: Pago | null;
   venta?: Venta;
+  cliente?: ClienteFinanciado | null; // Nuevo: cliente pre-seleccionado
   mode: 'create' | 'edit' | 'view';
   onClose: () => void;
   onSave: () => void;
@@ -30,7 +31,7 @@ interface FormData {
   tipo_monto: 'pago_completo' | 'total_adeudado' | 'otro_monto';
 }
 
-const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave }) => {
+const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, cliente, mode, onClose, onSave }) => {
   const [formData, setFormData] = useState<FormData>({
     monto_pagado: pago?.monto_pagado?.toString() || '',
     tipo_pago: (pago?.tipo_pago as 'efectivo' | 'transferencia' | 'tarjeta' | 'cheque') || 'efectivo',
@@ -43,27 +44,14 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave 
   const [serverError, setServerError] = useState<string>('');
   
   // Estado para búsqueda de clientes financiados
-  const [showClientSearch, setShowClientSearch] = useState(!venta);
+  const [showClientSearch, setShowClientSearch] = useState(!venta && !cliente);
   const [searchTerm, setSearchTerm] = useState('');
   const [clientesFinanciados, setClientesFinanciados] = useState<ClienteFinanciado[]>([]);
-  const [selectedCliente, setSelectedCliente] = useState<ClienteFinanciado | null>(null);
+  const [selectedCliente, setSelectedCliente] = useState<ClienteFinanciado | null>(cliente || null);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  // Cargar clientes financiados al inicio
-  useEffect(() => {
-    if (showClientSearch) {
-      buscarClientes('');
-    }
-  }, [showClientSearch]);
-
-  // Calcular monto automáticamente cuando cambia la venta o el tipo de monto
-  useEffect(() => {
-    if (mode === 'create' && formData.tipo_monto !== 'otro_monto') {
-      calculateMonto(formData.tipo_monto);
-    }
-  }, [venta, selectedCliente, formData.tipo_monto, mode]);
-
-  const buscarClientes = async (term: string) => {
+  // Función para buscar clientes
+  const buscarClientes = useCallback(async (term: string) => {
     try {
       setSearchLoading(true);
       const clientes = await cuotaService.buscarClientesFinanciados(term);
@@ -73,7 +61,48 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave 
     } finally {
       setSearchLoading(false);
     }
-  };
+  }, []);
+
+  // Cargar clientes financiados al inicio
+  useEffect(() => {
+    if (showClientSearch) {
+      buscarClientes('');
+    }
+  }, [showClientSearch, buscarClientes]);
+
+  // Función para calcular monto automáticamente
+  const calculateMonto = useCallback((tipoMonto: string, clienteInfo?: ClienteFinanciado | null) => {
+    const ventaActual = venta || clienteInfo || selectedCliente;
+    if (!ventaActual) return;
+
+    let nuevoMonto = '';
+    
+    if (tipoMonto === 'pago_completo') {
+      // Para pago completo, usar el monto de la próxima cuota o pago mensual
+      if ('proxima_cuota' in ventaActual && ventaActual.proxima_cuota && 
+          typeof ventaActual.proxima_cuota.monto === 'number') {
+        nuevoMonto = ventaActual.proxima_cuota.monto.toFixed(2);
+      } else if ('pago_mensual' in ventaActual && typeof ventaActual.pago_mensual === 'number') {
+        nuevoMonto = ventaActual.pago_mensual.toFixed(2);
+      }
+    } else if (tipoMonto === 'total_adeudado') {
+      // Para total adeudado, usar todo el saldo pendiente
+      if (typeof ventaActual.saldo_pendiente === 'number') {
+        nuevoMonto = ventaActual.saldo_pendiente.toFixed(2);
+      }
+    }
+    
+    if (nuevoMonto) {
+      setFormData(prev => ({ ...prev, monto_pagado: nuevoMonto }));
+    }
+  }, [venta, selectedCliente]);
+
+  // Calcular monto automáticamente cuando cambia la venta o el tipo de monto
+  useEffect(() => {
+    if (mode === 'create' && formData.tipo_monto !== 'otro_monto') {
+      calculateMonto(formData.tipo_monto);
+    }
+  }, [venta, selectedCliente, formData.tipo_monto, mode, calculateMonto]);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
@@ -89,29 +118,6 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave 
     // Si el tipo de monto no es 'otro_monto', calcular automáticamente
     if (formData.tipo_monto !== 'otro_monto') {
       calculateMonto(formData.tipo_monto, cliente);
-    }
-  };
-
-  const calculateMonto = (tipoMonto: string, clienteInfo?: ClienteFinanciado | null) => {
-    const ventaActual = venta || clienteInfo || selectedCliente;
-    if (!ventaActual) return;
-
-    let nuevoMonto = '';
-    
-    if (tipoMonto === 'pago_completo') {
-      // Para pago completo, usar el monto de la próxima cuota o pago mensual
-      if ('proxima_cuota' in ventaActual && ventaActual.proxima_cuota) {
-        nuevoMonto = ventaActual.proxima_cuota.monto.toFixed(2);
-      } else if ('pago_mensual' in ventaActual) {
-        nuevoMonto = ventaActual.pago_mensual.toFixed(2);
-      }
-    } else if (tipoMonto === 'total_adeudado') {
-      // Para total adeudado, usar todo el saldo pendiente
-      nuevoMonto = ventaActual.saldo_pendiente.toFixed(2);
-    }
-    
-    if (nuevoMonto) {
-      setFormData(prev => ({ ...prev, monto_pagado: nuevoMonto }));
     }
   };
 
@@ -153,19 +159,39 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
-
-    const ventaActual = venta || (selectedCliente ? { id: selectedCliente.venta_id } : null);
-    if (!ventaActual) {
-      return;
-    }
-
-    setLoading(true);
-    setServerError('');
-    
     try {
+      if (!validateForm()) {
+        return;
+      }
+
+      const ventaActual = venta || (selectedCliente ? { id: selectedCliente.venta_id } : null);
+      if (!ventaActual) {
+        setServerError('No se ha seleccionado una venta válida para procesar el pago');
+        return;
+      }
+
+      // Additional validation for venta ID
+      if (!ventaActual.id || isNaN(ventaActual.id) || ventaActual.id <= 0) {
+        setServerError(`ID de venta inválido: ${ventaActual.id}. No se puede procesar el pago.`);
+        console.error('Invalid venta ID:', ventaActual.id, 'selectedCliente:', selectedCliente, 'venta:', venta);
+        return;
+      }
+
+      setLoading(true);
+      setServerError('');
+
+      // Verify that the venta exists before creating payment
+      try {
+        console.log(`Verifying venta ${ventaActual.id} exists...`);
+        const { ventaService } = await import('../services/ventaService');
+        await ventaService.getVenta(ventaActual.id);
+        console.log(`Venta ${ventaActual.id} verified successfully`);
+      } catch (ventaError: any) {
+        console.error('Venta verification failed:', ventaError);
+        setServerError(`La venta #${ventaActual.id} no existe o no es accesible. No se puede procesar el pago.`);
+        setLoading(false);
+        return;
+      }
       const submitData = {
         venta: ventaActual.id,
         monto_pagado: parseFloat(formData.monto_pagado),
@@ -173,16 +199,50 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave 
         observaciones: formData.observaciones || undefined
       };
 
+      // Debug: Log the data being sent
+      console.log('=== PAGO FORM DEBUG ===');
+      console.log('ventaActual:', ventaActual);
+      console.log('selectedCliente:', selectedCliente);
+      console.log('submitData:', submitData);
+      console.log('formData:', formData);
+      console.log('========================');
+
+      let pagoCreado;
       if (mode === 'create') {
-        await pagoService.createPago(submitData);
+        pagoCreado = await pagoService.createPago(submitData);
       } else if (mode === 'edit' && pago) {
-        await pagoService.updatePago(pago.id, submitData);
+        pagoCreado = await pagoService.updatePago(pago.id, submitData);
+      }
+      
+      // Generar factura automáticamente para nuevos pagos
+      if (mode === 'create' && pagoCreado && pagoCreado.id) {
+        try {
+          console.log(`Generating invoice for payment ID: ${pagoCreado.id}`);
+          await pagoService.generarFacturaPago(pagoCreado.id);
+          console.log(`Invoice generated successfully for payment ID: ${pagoCreado.id}`);
+        } catch (facturaError) {
+          console.warn('No se pudo generar la factura automáticamente:', facturaError);
+          // This is not a critical error, payment was created successfully
+        }
+      } else {
+        console.log('Skipping invoice generation:', {
+          mode,
+          pagoCreado: !!pagoCreado,
+          pagoId: pagoCreado?.id
+        });
       }
       
       onSave();
       onClose();
     } catch (error: any) {
-      console.error('Error al guardar pago:', error);
+      console.error('=== ERROR DETAILS ===');
+      console.error('Full error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error response status:', error.response?.status);
+      console.error('Error response statusText:', error.response?.statusText);
+      console.error('API Error Response:', error.response?.data);
+      console.error('======================');
       
       let errorMessage = 'Error al guardar pago';
       
@@ -268,6 +328,18 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave 
             </div>
           )}
 
+          {/* Mensaje si el cliente no tiene saldo pendiente */}
+          {cliente && !cliente.saldo_pendiente && (
+            <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+              <p className="text-sm font-medium">
+                El cliente {cliente.nombre_completo} no tiene saldo pendiente.
+              </p>
+              <p className="text-sm">
+                Todas sus cuentas están al día.
+              </p>
+            </div>
+          )}
+
           {/* Búsqueda de Clientes con Saldo Pendiente */}
           {showClientSearch && (
             <div className="mb-6">
@@ -348,18 +420,33 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, mode, onClose, onSave 
 
           {/* Información del Cliente/Venta Seleccionado */}
           {ventaInfo && !showClientSearch && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex justify-between items-start mb-3">
                 <h3 className="text-sm font-medium text-gray-900">
-                  {'cuotas_restantes' in ventaInfo && ventaInfo.cuotas_restantes > 0 ? 'Información del Financiamiento' : 'Información de la Venta'}
+                  {cliente ? 
+                    `Registrar pago para ${cliente.nombre_completo}` : 
+                    ('cuotas_restantes' in ventaInfo && ventaInfo.cuotas_restantes > 0 ? 'Información del Financiamiento' : 'Información de la Venta')
+                  }
                 </h3>
-                {!venta && (
+                {!venta && !cliente && (
                   <button
                     type="button"
                     onClick={() => setShowClientSearch(true)}
                     className="text-blue-600 hover:text-blue-800 text-sm"
                   >
                     Cambiar cliente
+                  </button>
+                )}
+                {cliente && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCliente(null);
+                      setShowClientSearch(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    Seleccionar otro cliente
                   </button>
                 )}
               </div>

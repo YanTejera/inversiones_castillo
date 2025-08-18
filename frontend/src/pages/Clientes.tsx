@@ -176,7 +176,6 @@ const Clientes: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('Clientes component mounted, loading clientes...');
     loadClientes(currentPage, searchTerm);
   }, [currentPage]);
 
@@ -415,7 +414,6 @@ const Clientes: React.FC = () => {
         /* Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {clientes.map((cliente) => {
-            console.log('Rendering cliente:', cliente.nombre);
             const estadoPago = getEstadoPagoInfo(cliente);
             const sistemaCredito = calcularSistemaCredito(cliente);
             const NivelIcon = getNivelIcon(sistemaCredito.nivel);

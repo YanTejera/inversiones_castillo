@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.http import HttpResponse
 from django.template.loader import get_template
+from django.utils import timezone
+from datetime import datetime
 from .models import Venta, VentaDetalle
 from .serializers import VentaSerializer, VentaCreateSerializer, VentaDetalleSerializer
 
@@ -231,3 +233,87 @@ class ClienteVentasView(APIView):
                 {'error': str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class CancelarVentaView(APIView):
+    def post(self, request, pk):
+        """
+        Cancela una venta específica y devuelve el stock de motocicletas al inventario
+        """
+        try:
+            venta = Venta.objects.get(pk=pk)
+            
+            # Verificar que la venta no esté ya cancelada
+            if venta.estado == 'cancelada':
+                return Response({'error': 'Esta venta ya está cancelada'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Obtener datos de la cancelación
+            motivo = request.data.get('motivo', 'otros')
+            descripcion = request.data.get('descripcion', '')
+            
+            # Devolver stock de motocicletas al inventario
+            stock_devuelto = []
+            for detalle in venta.detalles.all():
+                moto = detalle.moto
+                cantidad_devuelta = detalle.cantidad
+                
+                # Aumentar el stock de la moto
+                moto.cantidad_stock += cantidad_devuelta
+                moto.save()
+                
+                stock_devuelto.append({
+                    'moto': f"{moto.marca} {moto.modelo}",
+                    'cantidad': cantidad_devuelta,
+                    'nuevo_stock': moto.cantidad_stock
+                })
+            
+            # Marcar la venta como cancelada
+            venta.estado = 'cancelada'
+            venta.motivo_cancelacion = motivo
+            venta.descripcion_cancelacion = descripcion
+            venta.fecha_cancelacion = timezone.now()
+            venta.usuario_cancelacion = request.user
+            venta.save()
+            
+            # Registrar la cancelación en auditoría
+            from pagos.models import Auditoria
+            Auditoria.objects.create(
+                usuario=request.user,
+                accion='CANCELAR_VENTA',
+                tabla_afectada='Venta',
+                id_registro=venta.id,
+                detalles={
+                    'monto_total': float(venta.monto_total),
+                    'cliente': f"{venta.cliente.nombre} {venta.cliente.apellido}",
+                    'motivo': motivo,
+                    'descripcion': descripcion,
+                    'stock_devuelto': stock_devuelto,
+                    'fecha_cancelacion': timezone.now().isoformat()
+                }
+            )
+            
+            # Cancelar cuotas programadas si las hay
+            try:
+                from pagos.models import CuotaVencimiento
+                cuotas_pendientes = CuotaVencimiento.objects.filter(
+                    venta=venta,
+                    estado__in=['pendiente', 'parcial', 'vencida']
+                )
+                cuotas_canceladas = cuotas_pendientes.count()
+                cuotas_pendientes.delete()
+            except Exception as e:
+                cuotas_canceladas = 0
+                print(f"Error cancelando cuotas: {e}")
+            
+            return Response({
+                'message': f'Venta cancelada exitosamente. Stock devuelto al inventario.',
+                'venta_id': venta.id,
+                'motivo': venta.get_motivo_cancelacion_display(),
+                'descripcion': descripcion,
+                'stock_devuelto': stock_devuelto,
+                'cuotas_canceladas': cuotas_canceladas
+            }, status=status.HTTP_200_OK)
+            
+        except Venta.DoesNotExist:
+            return Response({'error': 'Venta no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

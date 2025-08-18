@@ -130,6 +130,7 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
       modelo: undefined,
       moto,
       color: moto.color,
+      chasis: moto.chasis,
       cantidad: 1,
       precio_unitario: moto.precio_venta
     });
@@ -285,6 +286,12 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
                       Color: {selectedColor}
                     </span>
                   )}
+                  {data.selectedMotorcycle.chasis && (
+                    <span className="flex items-center">
+                      <Tag className="h-4 w-4 mr-1" />
+                      Chasis: {data.selectedMotorcycle.chasis}
+                    </span>
+                  )}
                   <span>Cantidad: {data.selectedMotorcycle.cantidad}</span>
                   <span>Precio: {formatCurrency(data.selectedMotorcycle.precio_unitario)}</span>
                   <span className="font-semibold">Total: {formatCurrency(calculateTotal())}</span>
@@ -408,6 +415,12 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
                     <Package className="h-4 w-4 mr-2" />
                     Stock: {moto.cantidad_stock}
                   </div>
+                  {moto.chasis && (
+                    <div className="flex items-center">
+                      <Tag className="h-4 w-4 mr-2" />
+                      Chasis: {moto.chasis}
+                    </div>
+                  )}
                 </div>
               </div>
             ))

@@ -24,6 +24,7 @@ import { pagoService } from '../services/pagoService';
 import { ventaService } from '../services/ventaService';
 import { cuotaService } from '../services/cuotaService';
 import PagoForm from './PagoForm';
+import CancelarPagoModal from './CancelarPagoModal';
 import type { Pago, Venta, ResumenCobros } from '../types';
 
 const Pagos: React.FC = () => {
@@ -43,6 +44,10 @@ const Pagos: React.FC = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
   const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
+
+  // Cancel modal state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [pagoACancelar, setPagoACancelar] = useState<Pago | null>(null);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -156,6 +161,31 @@ const Pagos: React.FC = () => {
   const handleFormSave = async () => {
     await loadPagos();
     await loadResumenCobros();
+  };
+
+  const handleCancelarPago = (pago: Pago) => {
+    setPagoACancelar(pago);
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmarCancelacion = async (motivo: string, descripcion: string) => {
+    if (!pagoACancelar) return;
+
+    try {
+      await pagoService.cancelarPago(pagoACancelar.id, { motivo, descripcion });
+      
+      // Recargar datos
+      await loadPagos();
+      await loadResumenCobros();
+      
+      // Cerrar modal
+      setShowCancelModal(false);
+      setPagoACancelar(null);
+      
+    } catch (error: any) {
+      console.error('Error cancelando pago:', error);
+      throw new Error(error.response?.data?.message || error.message || 'Error al cancelar el pago');
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -409,6 +439,9 @@ const Pagos: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Cobrador
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Estado
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -417,7 +450,7 @@ const Pagos: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                       <span className="ml-2 text-gray-600">Cargando pagos...</span>
@@ -426,7 +459,7 @@ const Pagos: React.FC = () => {
                 </tr>
               ) : pagos.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
+                  <td colSpan={8} className="px-6 py-12 text-center">
                     <div className="text-gray-500">
                       <DollarSign className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                       <h3 className="text-lg font-medium mb-2">No hay pagos registrados</h3>
@@ -480,6 +513,21 @@ const Pagos: React.FC = () => {
                       </div>
                     </td>
                     
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        pago.estado === 'cancelado' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {pago.estado === 'cancelado' ? 'Cancelado' : 'Completado'}
+                      </span>
+                      {pago.estado === 'cancelado' && pago.motivo_cancelacion_display && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {pago.motivo_cancelacion_display}
+                        </div>
+                      )}
+                    </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button
@@ -489,20 +537,15 @@ const Pagos: React.FC = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => handleEditPago(pago)}
-                          className="text-yellow-600 hover:text-yellow-900"
-                          title="Editar"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeletePago(pago)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        {pago.estado !== 'cancelado' && (
+                          <button
+                            onClick={() => handleCancelarPago(pago)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Cancelar pago"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -569,6 +612,18 @@ const Pagos: React.FC = () => {
           mode={formMode}
           onClose={() => setShowForm(false)}
           onSave={handleFormSave}
+        />
+      )}
+
+      {/* Cancel Pago Modal */}
+      {showCancelModal && pagoACancelar && (
+        <CancelarPagoModal
+          pago={pagoACancelar}
+          onClose={() => {
+            setShowCancelModal(false);
+            setPagoACancelar(null);
+          }}
+          onConfirm={handleConfirmarCancelacion}
         />
       )}
     </div>

@@ -227,6 +227,114 @@ class MarcarAlertaResueltaView(APIView):
         except AlertaPago.DoesNotExist:
             return Response({'error': 'Alerta no encontrada'}, status=status.HTTP_404_NOT_FOUND)
 
+class CancelarPagoView(APIView):
+    def post(self, request, pk):
+        """
+        Cancela un pago específico y devuelve el monto al saldo pendiente de la venta
+        """
+        try:
+            pago = Pago.objects.get(pk=pk)
+            
+            # Verificar que el pago no esté ya cancelado
+            if pago.estado == 'cancelado':
+                return Response({'error': 'Este pago ya está cancelado'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            venta = pago.venta
+            monto_cancelado = pago.monto_pagado
+            
+            # Obtener datos de la cancelación
+            motivo = request.data.get('motivo', 'otros')
+            descripcion = request.data.get('descripcion', '')
+            
+            # Marcar el pago como cancelado
+            pago.estado = 'cancelado'
+            pago.motivo_cancelacion = motivo
+            pago.descripcion_cancelacion = descripcion
+            pago.fecha_cancelacion = datetime.now()
+            pago.usuario_cancelacion = request.user
+            
+            # Actualizar observaciones para mantener compatibilidad
+            observacion_cancelacion = f"CANCELADO - Motivo: {pago.get_motivo_cancelacion_display()} - {descripcion} - Cancelado el {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            if pago.observaciones:
+                pago.observaciones = f"{pago.observaciones}\n\n{observacion_cancelacion}"
+            else:
+                pago.observaciones = observacion_cancelacion
+            
+            pago.save()
+            
+            # Registrar la cancelación en auditoría
+            Auditoria.objects.create(
+                usuario=request.user,
+                accion='CANCELAR_PAGO',
+                tabla_afectada='Pago',
+                id_registro=pago.id,
+                detalles={
+                    'monto_cancelado': float(monto_cancelado),
+                    'venta_id': venta.id,
+                    'cliente': f"{venta.cliente.nombre} {venta.cliente.apellido}",
+                    'motivo': motivo,
+                    'descripcion': descripcion,
+                    'fecha_cancelacion': datetime.now().isoformat()
+                }
+            )
+            
+            # Actualizar cuotas de vencimiento para reflejar la cancelación
+            pago.actualizar_cuotas_vencimiento()
+            
+            return Response({
+                'message': f'Pago cancelado exitosamente. Monto de ${monto_cancelado:,.2f} devuelto al saldo pendiente.',
+                'pago_id': pago.id,
+                'monto_cancelado': monto_cancelado,
+                'motivo': pago.get_motivo_cancelacion_display(),
+                'descripcion': descripcion,
+                'nuevo_saldo_pendiente': venta.saldo_pendiente
+            }, status=status.HTTP_200_OK)
+            
+        except Pago.DoesNotExist:
+            return Response({'error': 'Pago no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GenerarFacturaPagoView(APIView):
+    def get(self, request, pk):
+        """
+        Genera la factura de un pago específico
+        """
+        try:
+            pago = Pago.objects.get(pk=pk)
+            
+            # Datos para la factura
+            factura_data = {
+                'pago_id': pago.id,
+                'fecha_pago': pago.fecha_pago,
+                'monto_pagado': pago.monto_pagado,
+                'tipo_pago': pago.get_tipo_pago_display(),
+                'observaciones': pago.observaciones,
+                'venta': {
+                    'id': pago.venta.id,
+                    'fecha_venta': pago.venta.fecha_venta,
+                    'monto_total': pago.venta.monto_total,
+                    'saldo_pendiente': pago.venta.saldo_pendiente
+                },
+                'cliente': {
+                    'nombre': f"{pago.venta.cliente.nombre} {pago.venta.cliente.apellido}",
+                    'cedula': pago.venta.cliente.cedula,
+                    'telefono': pago.venta.cliente.telefono,
+                    'email': pago.venta.cliente.email
+                },
+                'usuario_cobrador': {
+                    'nombre': f"{pago.usuario_cobrador.first_name} {pago.usuario_cobrador.last_name}",
+                    'username': pago.usuario_cobrador.username
+                }
+            }
+            
+            return Response(factura_data, status=status.HTTP_200_OK)
+            
+        except Pago.DoesNotExist:
+            return Response({'error': 'Pago no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class ResumenCobrosView(APIView):
     def get(self, request):
         hoy = datetime.now().date()

@@ -278,7 +278,188 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    // Crear contenido completo para impresión incluyendo documentos
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const printContent = generatePrintContent();
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const generatePrintContent = () => {
+    const selectedDocs = getAllSelectedDocuments();
+    const documentContents = selectedDocs.map(docId => {
+      const template = DOCUMENT_TEMPLATES[docId as keyof typeof DOCUMENT_TEMPLATES];
+      if (template) {
+        return {
+          name: template.name,
+          content: processDocumentTemplate(template.content)
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Venta - ${data.customer?.nombre} ${data.customer?.apellido}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .page-break { page-break-before: always; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .section { margin-bottom: 20px; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+          table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+          th { background-color: #f0f0f0; }
+          .signature { margin-top: 80px; text-align: center; border-top: 1px solid #000; padding-top: 10px; }
+          .document-content { white-space: pre-line; line-height: 1.5; }
+        </style>
+      </head>
+      <body>
+        <!-- Recibo Principal -->
+        <div class="header">
+          <h1>RECIBO DE VENTA</h1>
+          <p>Inversiones Castillo</p>
+          <p>Fecha: ${formatDate(new Date().toISOString())}</p>
+        </div>
+
+        <div class="grid">
+          <div class="section">
+            <h3>INFORMACIÓN DEL CLIENTE</h3>
+            <p><strong>Nombre:</strong> ${data.customer?.nombre} ${data.customer?.apellido}</p>
+            <p><strong>Cédula:</strong> ${data.customer?.cedula}</p>
+            <p><strong>Teléfono:</strong> ${data.customer?.telefono}</p>
+            <p><strong>Dirección:</strong> ${data.customer?.direccion}</p>
+          </div>
+
+          ${data.needsGuarantor && data.guarantor ? `
+          <div class="section">
+            <h3>INFORMACIÓN DEL GARANTE</h3>
+            <p><strong>Nombre:</strong> ${data.guarantor.nombre} ${data.guarantor.apellido}</p>
+            <p><strong>Cédula:</strong> ${data.guarantor.cedula}</p>
+            <p><strong>Parentesco:</strong> ${data.guarantor.parentesco_cliente}</p>
+            <p><strong>Teléfono:</strong> ${data.guarantor.telefono || data.guarantor.celular}</p>
+          </div>
+          ` : ''}
+        </div>
+
+        <div class="section">
+          <h3>DETALLE DEL PRODUCTO</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Descripción</th>
+                <th>Cantidad</th>
+                <th>Precio Unit.</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  ${data.selectedMotorcycle?.tipo === 'modelo'
+                    ? `${data.selectedMotorcycle.modelo?.marca} ${data.selectedMotorcycle.modelo?.modelo} ${data.selectedMotorcycle.modelo?.ano}`
+                    : `${data.selectedMotorcycle?.moto?.marca} ${data.selectedMotorcycle?.moto?.modelo} ${data.selectedMotorcycle?.moto?.ano}`
+                  }
+                  ${data.selectedMotorcycle?.color ? ` - Color: ${data.selectedMotorcycle.color}` : ''}
+                  ${data.selectedMotorcycle?.chasis ? ` - Chasis: ${data.selectedMotorcycle.chasis}` : ''}
+                </td>
+                <td>${data.selectedMotorcycle?.cantidad}</td>
+                <td>${formatCurrency(data.selectedMotorcycle?.precio_unitario || 0)}</td>
+                <td><strong>${formatCurrency(getTotalAmount())}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>CONDICIONES DE PAGO</h3>
+          <div class="grid">
+            <div>
+              <p><strong>Tipo de pago:</strong> ${data.paymentType === 'contado' ? 'Contado' : 'Financiado'}</p>
+              ${data.paymentType === 'financiado' && data.financingDetails ? `
+                <p><strong>Cuota inicial:</strong> ${formatCurrency(data.downPayment)}</p>
+                <p><strong>Monto financiado:</strong> ${formatCurrency(data.financingDetails.financedAmount)}</p>
+                <p><strong>Tasa de interés:</strong> ${data.financingDetails.interestRate}% anual</p>
+              ` : ''}
+            </div>
+            <div>
+              ${data.paymentType === 'financiado' && data.financingDetails ? `
+                <p><strong>Número de cuotas:</strong> ${data.financingDetails.numberOfPayments}</p>
+                <p><strong>Frecuencia:</strong> ${getPaymentFrequencyName(data.financingDetails.paymentFrequency)}</p>
+                <p><strong>Valor cuota:</strong> ${formatCurrency(data.financingDetails.paymentAmount)}</p>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="grid" style="margin-top: 60px;">
+          <div class="signature">
+            <p>Firma del Cliente<br>${data.customer?.nombre} ${data.customer?.apellido}<br>C.C. ${data.customer?.cedula}</p>
+          </div>
+          <div class="signature">
+            <p>Firma Autorizada<br>Inversiones Castillo</p>
+          </div>
+        </div>
+
+        <!-- Documentos Adicionales -->
+        ${documentContents.map(doc => `
+          <div class="page-break">
+            <div class="header">
+              <h2>${doc?.name}</h2>
+              <p>Inversiones Castillo</p>
+            </div>
+            <div class="document-content">
+              ${doc?.content}
+            </div>
+          </div>
+        `).join('')}
+
+      </body>
+      </html>
+    `;
+  };
+
+  const processDocumentTemplate = (template: string) => {
+    // Reemplazar variables del template con datos reales
+    return template
+      .replace(/\{\{empresa_nombre\}\}/g, 'Inversiones Castillo')
+      .replace(/\{\{empresa_rnc\}\}/g, '123456789') // Agregar RNC real
+      .replace(/\{\{empresa_direccion\}\}/g, 'Dirección de la empresa') // Agregar dirección real
+      .replace(/\{\{cliente_nombre_completo\}\}/g, `${data.customer?.nombre} ${data.customer?.apellido}`)
+      .replace(/\{\{cliente_nombre\}\}/g, data.customer?.nombre || '')
+      .replace(/\{\{cliente_apellido\}\}/g, data.customer?.apellido || '')
+      .replace(/\{\{cliente_cedula\}\}/g, data.customer?.cedula || '')
+      .replace(/\{\{cliente_direccion\}\}/g, data.customer?.direccion || '')
+      .replace(/\{\{cliente_telefono\}\}/g, data.customer?.telefono || '')
+      .replace(/\{\{vehiculo_marca\}\}/g, data.selectedMotorcycle?.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.marca || '' : data.selectedMotorcycle?.moto?.marca || '')
+      .replace(/\{\{vehiculo_modelo\}\}/g, data.selectedMotorcycle?.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.modelo || '' : data.selectedMotorcycle?.moto?.modelo || '')
+      .replace(/\{\{vehiculo_ano\}\}/g, data.selectedMotorcycle?.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.ano?.toString() || '' : data.selectedMotorcycle?.moto?.ano?.toString() || '')
+      .replace(/\{\{vehiculo_color\}\}/g, data.selectedMotorcycle?.color || 'No especificado')
+      .replace(/\{\{vehiculo_chasis\}\}/g, data.selectedMotorcycle?.chasis || 'No especificado')
+      .replace(/\{\{vehiculo_condicion\}\}/g, data.selectedMotorcycle?.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.condicion || '' : data.selectedMotorcycle?.moto?.condicion || '')
+      .replace(/\{\{vehiculo_cantidad\}\}/g, data.selectedMotorcycle?.cantidad?.toString() || '1')
+      .replace(/\{\{vehiculo_descripcion_completa\}\}/g, `${data.selectedMotorcycle?.tipo === 'modelo' ? `${data.selectedMotorcycle.modelo?.marca} ${data.selectedMotorcycle.modelo?.modelo} ${data.selectedMotorcycle.modelo?.ano}` : `${data.selectedMotorcycle?.moto?.marca} ${data.selectedMotorcycle?.moto?.modelo} ${data.selectedMotorcycle?.moto?.ano}`} ${data.selectedMotorcycle?.color ? `- ${data.selectedMotorcycle.color}` : ''} ${data.selectedMotorcycle?.chasis ? `- Chasis: ${data.selectedMotorcycle.chasis}` : ''}`)
+      .replace(/\{\{precio_total\}\}/g, formatCurrency(getTotalAmount()))
+      .replace(/\{\{precio_total_letras\}\}/g, 'CANTIDAD EN LETRAS') // Implementar conversión a letras
+      .replace(/\{\{tipo_venta\}\}/g, data.paymentType === 'contado' ? 'Contado' : 'Financiado')
+      .replace(/\{\{cuota_inicial\}\}/g, formatCurrency(data.downPayment))
+      .replace(/\{\{monto_financiado\}\}/g, formatCurrency(data.financingDetails?.financedAmount || 0))
+      .replace(/\{\{tasa_interes\}\}/g, data.financingDetails?.interestRate?.toString() || '0')
+      .replace(/\{\{numero_cuotas\}\}/g, data.financingDetails?.numberOfPayments?.toString() || '0')
+      .replace(/\{\{valor_cuota\}\}/g, formatCurrency(data.financingDetails?.paymentAmount || 0))
+      .replace(/\{\{frecuencia_pago\}\}/g, getPaymentFrequencyName(data.financingDetails?.paymentFrequency || 'mensual'))
+      .replace(/\{\{fecha_venta\}\}/g, formatDate(new Date().toISOString()))
+      .replace(/\{\{fecha_venta_completa\}\}/g, formatDate(new Date().toISOString()))
+      .replace(/\{\{fecha_actual\}\}/g, formatDate(new Date().toISOString()))
+      .replace(/\{\{dia_actual\}\}/g, new Date().getDate().toString())
+      .replace(/\{\{ano_actual\}\}/g, new Date().getFullYear().toString())
+      .replace(/\{\{fecha_primer_pago\}\}/g, data.financingDetails?.paymentSchedule?.[0]?.date || 'No especificado')
+      .replace(/\{\{fecha_ultimo_pago\}\}/g, data.financingDetails?.paymentSchedule?.[data.financingDetails.paymentSchedule.length - 1]?.date || 'No especificado');
   };
 
   const handleSave = async () => {
@@ -490,6 +671,12 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
               <div>
                 <span className="text-gray-600">Color:</span>
                 <p className="font-medium">{data.selectedMotorcycle.color}</p>
+              </div>
+            )}
+            {data.selectedMotorcycle.chasis && (
+              <div>
+                <span className="text-gray-600">Chasis:</span>
+                <p className="font-medium">{data.selectedMotorcycle.chasis}</p>
               </div>
             )}
             <div>
@@ -833,8 +1020,8 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
 
       {/* Vista previa para impresión */}
       {showPrintPreview && (
-        <div className="print:block hidden">
-          <div className="bg-white p-8 border border-gray-300 rounded-lg max-w-4xl mx-auto">
+        <div className="block">
+          <div className="bg-white p-8 border border-gray-300 rounded-lg max-w-4xl mx-auto print:shadow-none print:border-0">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-gray-900">RECIBO DE VENTA</h1>
               <p className="text-gray-600">Inversiones Castillo</p>
@@ -886,7 +1073,8 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
                           ? `${data.selectedMotorcycle.modelo?.marca} ${data.selectedMotorcycle.modelo?.modelo} ${data.selectedMotorcycle.modelo?.ano}`
                           : `${data.selectedMotorcycle.moto?.marca} ${data.selectedMotorcycle.moto?.modelo} ${data.selectedMotorcycle.moto?.ano}`
                         }
-                        {data.selectedMotorcycle.color && ` - ${data.selectedMotorcycle.color}`}
+                        {data.selectedMotorcycle.color && ` - Color: ${data.selectedMotorcycle.color}`}
+                        {data.selectedMotorcycle.chasis && ` - Chasis: ${data.selectedMotorcycle.chasis}`}
                       </td>
                       <td className="border border-gray-300 p-2 text-center">{data.selectedMotorcycle.cantidad}</td>
                       <td className="border border-gray-300 p-2 text-right">{formatCurrency(data.selectedMotorcycle.precio_unitario)}</td>

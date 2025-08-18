@@ -45,6 +45,7 @@ export interface VentaFormData {
     modelo?: MotoModelo;
     moto?: Moto;
     color?: string;
+    chasis?: string;
     cantidad: number;
     precio_unitario: number;
   } | null;

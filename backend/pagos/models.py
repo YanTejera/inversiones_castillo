@@ -12,12 +12,33 @@ class Pago(models.Model):
         ('cheque', 'Cheque'),
     ]
     
+    ESTADO_PAGO_CHOICES = [
+        ('activo', 'Activo'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    MOTIVO_CANCELACION_CHOICES = [
+        ('pago_erroneo', 'Pago Erróneo'),
+        ('cliente_equivocado', 'Cliente Equivocado'),
+        ('cancelado_por_cliente', 'Cancelado por el Cliente'),
+        ('duplicado', 'Pago Duplicado'),
+        ('metodo_pago_invalido', 'Método de Pago Inválido'),
+        ('otros', 'Otros'),
+    ]
+    
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name='pagos')
     fecha_pago = models.DateTimeField(auto_now_add=True)
     monto_pagado = models.DecimalField(max_digits=15, decimal_places=2)
     tipo_pago = models.CharField(max_length=20, choices=TIPO_PAGO_CHOICES)
     observaciones = models.TextField(blank=True, null=True)
     usuario_cobrador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cobros_realizados')
+    
+    # Campos para cancelación
+    estado = models.CharField(max_length=20, choices=ESTADO_PAGO_CHOICES, default='activo')
+    motivo_cancelacion = models.CharField(max_length=30, choices=MOTIVO_CANCELACION_CHOICES, blank=True, null=True)
+    descripcion_cancelacion = models.TextField(blank=True, null=True)
+    fecha_cancelacion = models.DateTimeField(blank=True, null=True)
+    usuario_cancelacion = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='pagos_cancelados', blank=True, null=True)
     
     class Meta:
         verbose_name = 'Pago'

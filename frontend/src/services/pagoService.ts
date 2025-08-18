@@ -16,7 +16,7 @@ interface PagoListResponse {
 }
 
 export const pagoService = {
-  async getPagos(page = 1, ventaId?: number, fechaDesde?: string, fechaHasta?: string): Promise<PagoListResponse> {
+  async getPagos(page = 1, ventaId?: number, fechaDesde?: string, fechaHasta?: string, tipoPago?: string, search?: string): Promise<PagoListResponse> {
     const params = new URLSearchParams();
     params.append('page', page.toString());
     if (ventaId) {
@@ -27,6 +27,12 @@ export const pagoService = {
     }
     if (fechaHasta) {
       params.append('fecha_hasta', fechaHasta);
+    }
+    if (tipoPago) {
+      params.append('tipo_pago', tipoPago);
+    }
+    if (search) {
+      params.append('search', search);
     }
     
     const response = await api.get(`/pagos/?${params.toString()}`);
@@ -39,8 +45,32 @@ export const pagoService = {
   },
 
   async createPago(data: PagoCreateData): Promise<Pago> {
-    const response = await api.post('/pagos/', data);
-    return response.data as Pago;
+    console.log('=== PAGO SERVICE DEBUG ===');
+    console.log('Data being sent to API:', data);
+    console.log('Data types:', {
+      venta: typeof data.venta,
+      monto_pagado: typeof data.monto_pagado,
+      tipo_pago: typeof data.tipo_pago,
+      observaciones: typeof data.observaciones
+    });
+    console.log('API endpoint: /pagos/');
+    console.log('===========================');
+    
+    try {
+      const response = await api.post('/pagos/', data);
+      console.log('=== API RESPONSE SUCCESS ===');
+      console.log('Response data:', response.data);
+      console.log('===============================');
+      return response.data as Pago;
+    } catch (error: any) {
+      console.log('=== API RESPONSE ERROR ===');
+      console.log('Error:', error);
+      console.log('Error response:', error.response);
+      console.log('Error response data:', error.response?.data);
+      console.log('Error response status:', error.response?.status);
+      console.log('=============================');
+      throw error;
+    }
   },
 
   async updatePago(id: number, data: Partial<PagoCreateData>): Promise<Pago> {
@@ -70,6 +100,16 @@ export const pagoService = {
     }>;
   }> {
     const response = await api.get('/pagos/dashboard/');
+    return response.data;
+  },
+
+  async generarFacturaPago(pagoId: number): Promise<any> {
+    const response = await api.get(`/pagos/${pagoId}/factura/`);
+    return response.data;
+  },
+
+  async cancelarPago(pagoId: number, cancelacionData?: { motivo: string, descripcion: string }): Promise<any> {
+    const response = await api.post(`/pagos/${pagoId}/cancelar/`, cancelacionData || {});
     return response.data;
   }
 };

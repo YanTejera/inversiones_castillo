@@ -14,10 +14,12 @@ class VentaDetalleSerializer(serializers.ModelSerializer):
 class VentaSerializer(serializers.ModelSerializer):
     cliente_info = ClienteSerializer(source='cliente', read_only=True)
     usuario_info = UsuarioSerializer(source='usuario', read_only=True)
+    usuario_cancelacion_info = UsuarioSerializer(source='usuario_cancelacion', read_only=True)
     detalles = VentaDetalleSerializer(many=True, read_only=True)
     saldo_pendiente = serializers.ReadOnlyField()
     tipo_venta_display = serializers.CharField(source='get_tipo_venta_display', read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    motivo_cancelacion_display = serializers.CharField(source='get_motivo_cancelacion_display', read_only=True)
     
     class Meta:
         model = Venta
@@ -25,6 +27,8 @@ class VentaSerializer(serializers.ModelSerializer):
                  'fecha_venta', 'tipo_venta', 'tipo_venta_display', 'monto_total', 
                  'monto_inicial', 'cuotas', 'tasa_interes', 'pago_mensual', 
                  'monto_total_con_intereses', 'estado', 'estado_display',
+                 'motivo_cancelacion', 'motivo_cancelacion_display', 'descripcion_cancelacion',
+                 'fecha_cancelacion', 'usuario_cancelacion', 'usuario_cancelacion_info',
                  'detalles', 'saldo_pendiente']
 
 class VentaDetalleCreateSerializer(serializers.ModelSerializer):
