@@ -9,7 +9,8 @@ class MotoSerializer(serializers.ModelSerializer):
         model = Moto
         fields = ['id', 'marca', 'modelo', 'ano', 'condicion', 'chasis', 'precio_compra', 
                  'precio_venta', 'ganancia', 'cantidad_stock', 'descripcion', 
-                 'imagen', 'fecha_ingreso', 'activa', 'disponible']
+                 'imagen', 'fecha_ingreso', 'activa', 'disponible', 'cilindraje', 'tipo_motor',
+                 'potencia', 'torque', 'combustible', 'transmision', 'peso', 'capacidad_tanque']
     
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -63,7 +64,8 @@ class MotoModeloSerializer(serializers.ModelSerializer):
         model = MotoModelo
         fields = ['id', 'marca', 'modelo', 'ano', 'condicion', 'descripcion', 'imagen', 
                  'precio_compra', 'precio_venta', 'ganancia', 'activa', 
-                 'fecha_creacion', 'total_stock', 'disponible', 'inventario']
+                 'fecha_creacion', 'total_stock', 'disponible', 'inventario', 'cilindraje', 'tipo_motor',
+                 'potencia', 'torque', 'combustible', 'transmision', 'peso', 'capacidad_tanque']
     
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -98,7 +100,8 @@ class MotoModeloCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MotoModelo
         fields = ['marca', 'modelo', 'ano', 'condicion', 'descripcion', 'imagen', 
-                 'precio_compra', 'precio_venta', 'activa', 'inventario_data']
+                 'precio_compra', 'precio_venta', 'activa', 'inventario_data', 'cilindraje', 'tipo_motor',
+                 'potencia', 'torque', 'combustible', 'transmision', 'peso', 'capacidad_tanque']
     
     def validate(self, data):
         # Verificar si ya existe un modelo con la misma marca, modelo y año

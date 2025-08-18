@@ -8,10 +8,27 @@ class MotoModelo(models.Model):
         ('usada', 'Usada'),
     ]
     
+    TIPO_MOTOR_CHOICES = [
+        ('2_tiempos', '2 Tiempos'),
+        ('4_tiempos', '4 Tiempos'),
+        ('electrico', 'Eléctrico'),
+    ]
+    
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
     ano = models.IntegerField(verbose_name='Año')
     condicion = models.CharField(max_length=10, choices=CONDICION_CHOICES, default='nueva', verbose_name='Condición')
+    
+    # Especificaciones técnicas
+    cilindraje = models.IntegerField(blank=True, null=True, help_text="Cilindraje en CC")
+    tipo_motor = models.CharField(max_length=20, choices=TIPO_MOTOR_CHOICES, blank=True, null=True)
+    potencia = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: 15 HP @ 8000 RPM")
+    torque = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: 12 Nm @ 6000 RPM")
+    combustible = models.CharField(max_length=50, blank=True, null=True, default="Gasolina")
+    transmision = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: Manual 5 velocidades")
+    peso = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True, help_text="Peso en kg")
+    capacidad_tanque = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Capacidad del tanque en litros")
+    
     descripcion = models.TextField(blank=True, null=True)
     imagen = models.ImageField(upload_to='motos/', blank=True, null=True)
     precio_compra = models.DecimalField(max_digits=12, decimal_places=2)
@@ -74,12 +91,29 @@ class Moto(models.Model):
         ('usada', 'Usada'),
     ]
     
+    TIPO_MOTOR_CHOICES = [
+        ('2_tiempos', '2 Tiempos'),
+        ('4_tiempos', '4 Tiempos'),
+        ('electrico', 'Eléctrico'),
+    ]
+    
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
     ano = models.IntegerField(verbose_name='Año')
     condicion = models.CharField(max_length=10, choices=CONDICION_CHOICES, default='nueva', verbose_name='Condición')
     color = models.CharField(max_length=50, blank=True, null=True)
     chasis = models.CharField(max_length=100, unique=True)
+    
+    # Especificaciones técnicas
+    cilindraje = models.IntegerField(blank=True, null=True, help_text="Cilindraje en CC")
+    tipo_motor = models.CharField(max_length=20, choices=TIPO_MOTOR_CHOICES, blank=True, null=True)
+    potencia = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: 15 HP @ 8000 RPM")
+    torque = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: 12 Nm @ 6000 RPM")
+    combustible = models.CharField(max_length=50, blank=True, null=True, default="Gasolina")
+    transmision = models.CharField(max_length=50, blank=True, null=True, help_text="Ej: Manual 5 velocidades")
+    peso = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True, help_text="Peso en kg")
+    capacidad_tanque = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Capacidad del tanque en litros")
+    
     precio_compra = models.DecimalField(max_digits=12, decimal_places=2)
     precio_venta = models.DecimalField(max_digits=12, decimal_places=2)
     cantidad_stock = models.IntegerField(default=1)

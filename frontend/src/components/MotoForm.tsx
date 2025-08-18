@@ -25,6 +25,15 @@ interface FormData {
   descripcion: string;
   activa: boolean;
   imagen?: File;
+  // Especificaciones técnicas
+  cilindraje: string;
+  tipo_motor: '2_tiempos' | '4_tiempos' | 'electrico' | '';
+  potencia: string;
+  torque: string;
+  combustible: string;
+  transmision: string;
+  peso: string;
+  capacidad_tanque: string;
 }
 
 const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
@@ -41,7 +50,16 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
     moneda_venta: 'RD',
     cantidad_stock: '',
     descripcion: '',
-    activa: true
+    activa: true,
+    // Especificaciones técnicas
+    cilindraje: '',
+    tipo_motor: '',
+    potencia: '',
+    torque: '',
+    combustible: 'Gasolina',
+    transmision: '',
+    peso: '',
+    capacidad_tanque: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -65,7 +83,16 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
         moneda_venta: moto.moneda_venta || 'RD',
         cantidad_stock: moto.cantidad_stock?.toString() || '',
         descripcion: moto.descripcion || '',
-        activa: moto.activa ?? true
+        activa: moto.activa ?? true,
+        // Especificaciones técnicas
+        cilindraje: moto.cilindraje?.toString() || '',
+        tipo_motor: moto.tipo_motor || '',
+        potencia: moto.potencia || '',
+        torque: moto.torque || '',
+        combustible: moto.combustible || 'Gasolina',
+        transmision: moto.transmision || '',
+        peso: moto.peso?.toString() || '',
+        capacidad_tanque: moto.capacidad_tanque?.toString() || ''
       });
       
       if (moto.imagen) {
@@ -189,7 +216,16 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
         cantidad_stock: Number(formData.cantidad_stock),
         descripcion: formData.descripcion,
         activa: formData.activa,
-        imagen: formData.imagen
+        imagen: formData.imagen,
+        // Especificaciones técnicas
+        cilindraje: formData.cilindraje ? Number(formData.cilindraje) : null,
+        tipo_motor: formData.tipo_motor || null,
+        potencia: formData.potencia || null,
+        torque: formData.torque || null,
+        combustible: formData.combustible || null,
+        transmision: formData.transmision || null,
+        peso: formData.peso ? Number(formData.peso) : null,
+        capacidad_tanque: formData.capacidad_tanque ? Number(formData.capacidad_tanque) : null
       };
 
       console.log('Datos a enviar al backend:', submitData);
@@ -436,6 +472,171 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
                       isReadOnly ? 'bg-gray-50' : ''
                     }`}
                   />
+                </div>
+              </div>
+
+              {/* Especificaciones Técnicas */}
+              <h3 className="text-lg font-medium text-gray-900 flex items-center mt-6">
+                <Bike className="h-5 w-5 mr-2" />
+                Especificaciones Técnicas del Motor
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="cilindraje" className="block text-sm font-medium text-gray-700 mb-1">
+                    Cilindraje (CC)
+                  </label>
+                  <input
+                    type="number"
+                    id="cilindraje"
+                    name="cilindraje"
+                    value={formData.cilindraje}
+                    onChange={handleChange}
+                    readOnly={isReadOnly}
+                    min="0"
+                    placeholder="Ej: 150, 250, 500..."
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Cilindrada del motor en centímetros cúbicos</p>
+                </div>
+
+                <div>
+                  <label htmlFor="tipo_motor" className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Motor
+                  </label>
+                  <select
+                    id="tipo_motor"
+                    name="tipo_motor"
+                    value={formData.tipo_motor}
+                    onChange={handleChange}
+                    disabled={isReadOnly}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  >
+                    <option value="">Seleccionar tipo</option>
+                    <option value="2_tiempos">2 Tiempos</option>
+                    <option value="4_tiempos">4 Tiempos</option>
+                    <option value="electrico">Eléctrico</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="potencia" className="block text-sm font-medium text-gray-700 mb-1">
+                    Potencia
+                  </label>
+                  <input
+                    type="text"
+                    id="potencia"
+                    name="potencia"
+                    value={formData.potencia}
+                    onChange={handleChange}
+                    readOnly={isReadOnly}
+                    placeholder="Ej: 15 HP @ 8000 RPM"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Potencia máxima del motor</p>
+                </div>
+
+                <div>
+                  <label htmlFor="torque" className="block text-sm font-medium text-gray-700 mb-1">
+                    Torque
+                  </label>
+                  <input
+                    type="text"
+                    id="torque"
+                    name="torque"
+                    value={formData.torque}
+                    onChange={handleChange}
+                    readOnly={isReadOnly}
+                    placeholder="Ej: 12 Nm @ 6000 RPM"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Torque máximo del motor</p>
+                </div>
+
+                <div>
+                  <label htmlFor="combustible" className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Combustible
+                  </label>
+                  <input
+                    type="text"
+                    id="combustible"
+                    name="combustible"
+                    value={formData.combustible}
+                    onChange={handleChange}
+                    readOnly={isReadOnly}
+                    placeholder="Ej: Gasolina, Diesel, Eléctrico"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="transmision" className="block text-sm font-medium text-gray-700 mb-1">
+                    Transmisión
+                  </label>
+                  <input
+                    type="text"
+                    id="transmision"
+                    name="transmision"
+                    value={formData.transmision}
+                    onChange={handleChange}
+                    readOnly={isReadOnly}
+                    placeholder="Ej: Manual 5 velocidades"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="peso" className="block text-sm font-medium text-gray-700 mb-1">
+                    Peso (kg)
+                  </label>
+                  <input
+                    type="number"
+                    id="peso"
+                    name="peso"
+                    value={formData.peso}
+                    onChange={handleChange}
+                    readOnly={isReadOnly}
+                    min="0"
+                    step="0.1"
+                    placeholder="Ej: 120.5"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Peso en seco de la motocicleta</p>
+                </div>
+
+                <div>
+                  <label htmlFor="capacidad_tanque" className="block text-sm font-medium text-gray-700 mb-1">
+                    Capacidad del Tanque (L)
+                  </label>
+                  <input
+                    type="number"
+                    id="capacidad_tanque"
+                    name="capacidad_tanque"
+                    value={formData.capacidad_tanque}
+                    onChange={handleChange}
+                    readOnly={isReadOnly}
+                    min="0"
+                    step="0.1"
+                    placeholder="Ej: 12.5"
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Capacidad del tanque de combustible</p>
                 </div>
               </div>
 

@@ -40,6 +40,15 @@ interface FormData {
   activa: boolean;
   imagen?: File;
   colores: ColorInventario[];
+  // Especificaciones técnicas
+  cilindraje: string;
+  tipo_motor: '2_tiempos' | '4_tiempos' | 'electrico' | '';
+  potencia: string;
+  torque: string;
+  combustible: string;
+  transmision: string;
+  peso: string;
+  capacidad_tanque: string;
 }
 
 const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, onSave }) => {
@@ -59,7 +68,16 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       cantidad_stock: inv.cantidad_stock,
       descuento_porcentaje: inv.descuento_porcentaje,
       chasis: inv.chasis || ''
-    })) || []
+    })) || [],
+    // Especificaciones técnicas
+    cilindraje: modelo?.cilindraje?.toString() || '',
+    tipo_motor: modelo?.tipo_motor || '',
+    potencia: modelo?.potencia || '',
+    torque: modelo?.torque || '',
+    combustible: modelo?.combustible || 'Gasolina',
+    transmision: modelo?.transmision || '',
+    peso: modelo?.peso?.toString() || '',
+    capacidad_tanque: modelo?.capacidad_tanque?.toString() || ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -156,6 +174,15 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         moneda_compra: formData.moneda_compra,
         moneda_venta: formData.moneda_venta,
         activa: formData.activa,
+        // Especificaciones técnicas
+        cilindraje: formData.cilindraje ? Number(formData.cilindraje) : null,
+        tipo_motor: formData.tipo_motor || null,
+        potencia: formData.potencia || null,
+        torque: formData.torque || null,
+        combustible: formData.combustible || null,
+        transmision: formData.transmision || null,
+        peso: formData.peso ? Number(formData.peso) : null,
+        capacidad_tanque: formData.capacidad_tanque ? Number(formData.capacidad_tanque) : null,
         inventario_data: formData.colores.map(color => ({
           color: color.color,
           cantidad_stock: color.cantidad_stock,
@@ -280,6 +307,11 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     return basePrice;
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const isReadOnly = mode === 'view';
   const gananciaCalculada = formData.precio_venta && formData.precio_compra 
     ? Number(formData.precio_venta) - Number(formData.precio_compra) 
@@ -324,6 +356,19 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
               <div className="flex items-center">
                 <Bike className="h-4 w-4 mr-2" />
                 Información Básica
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('tecnicas')}
+              className={`py-3 px-6 text-sm font-medium border-b-2 ${
+                activeTab === 'tecnicas'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center">
+                <Package className="h-4 w-4 mr-2" />
+                Especificaciones Técnicas
               </div>
             </button>
             <button
@@ -637,6 +682,210 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                       </button>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Especificaciones Técnicas */}
+          {activeTab === 'tecnicas' && (
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <Package className="h-5 w-5 mr-2" />
+                Especificaciones Técnicas del Motor
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Motor */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-900 mb-4">Motor</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="cilindraje" className="block text-sm font-medium text-gray-700 mb-1">
+                        Cilindraje (CC)
+                      </label>
+                      <input
+                        type="number"
+                        id="cilindraje"
+                        name="cilindraje"
+                        value={formData.cilindraje}
+                        onChange={handleChange}
+                        readOnly={isReadOnly}
+                        min="0"
+                        placeholder="Ej: 150, 250, 500..."
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Cilindrada del motor en centímetros cúbicos</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="tipo_motor" className="block text-sm font-medium text-gray-700 mb-1">
+                        Tipo de Motor
+                      </label>
+                      <select
+                        id="tipo_motor"
+                        name="tipo_motor"
+                        value={formData.tipo_motor}
+                        onChange={handleChange}
+                        disabled={isReadOnly}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      >
+                        <option value="">Seleccionar tipo</option>
+                        <option value="2_tiempos">2 Tiempos</option>
+                        <option value="4_tiempos">4 Tiempos</option>
+                        <option value="electrico">Eléctrico</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="potencia" className="block text-sm font-medium text-gray-700 mb-1">
+                        Potencia
+                      </label>
+                      <input
+                        type="text"
+                        id="potencia"
+                        name="potencia"
+                        value={formData.potencia}
+                        onChange={handleChange}
+                        readOnly={isReadOnly}
+                        placeholder="Ej: 15 HP @ 8000 RPM"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Potencia máxima del motor</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="torque" className="block text-sm font-medium text-gray-700 mb-1">
+                        Torque
+                      </label>
+                      <input
+                        type="text"
+                        id="torque"
+                        name="torque"
+                        value={formData.torque}
+                        onChange={handleChange}
+                        readOnly={isReadOnly}
+                        placeholder="Ej: 12 Nm @ 6000 RPM"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Torque máximo del motor</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="combustible" className="block text-sm font-medium text-gray-700 mb-1">
+                        Tipo de Combustible
+                      </label>
+                      <input
+                        type="text"
+                        id="combustible"
+                        name="combustible"
+                        value={formData.combustible}
+                        onChange={handleChange}
+                        readOnly={isReadOnly}
+                        placeholder="Ej: Gasolina, Diesel, Eléctrico"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Características */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-4">Características</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="transmision" className="block text-sm font-medium text-gray-700 mb-1">
+                        Transmisión
+                      </label>
+                      <input
+                        type="text"
+                        id="transmision"
+                        name="transmision"
+                        value={formData.transmision}
+                        onChange={handleChange}
+                        readOnly={isReadOnly}
+                        placeholder="Ej: Manual 5 velocidades"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="peso" className="block text-sm font-medium text-gray-700 mb-1">
+                        Peso (kg)
+                      </label>
+                      <input
+                        type="number"
+                        id="peso"
+                        name="peso"
+                        value={formData.peso}
+                        onChange={handleChange}
+                        readOnly={isReadOnly}
+                        min="0"
+                        step="0.1"
+                        placeholder="Ej: 120.5"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Peso en seco de la motocicleta</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="capacidad_tanque" className="block text-sm font-medium text-gray-700 mb-1">
+                        Capacidad del Tanque (L)
+                      </label>
+                      <input
+                        type="number"
+                        id="capacidad_tanque"
+                        name="capacidad_tanque"
+                        value={formData.capacidad_tanque}
+                        onChange={handleChange}
+                        readOnly={isReadOnly}
+                        min="0"
+                        step="0.1"
+                        placeholder="Ej: 12.5"
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50' : ''
+                        }`}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Capacidad del tanque de combustible</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resumen de especificaciones */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Resumen de Especificaciones</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="font-medium text-gray-900">{formData.cilindraje || '---'}</div>
+                    <div className="text-gray-600">CC</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-gray-900">{formData.tipo_motor ? (formData.tipo_motor === '2_tiempos' ? '2T' : formData.tipo_motor === '4_tiempos' ? '4T' : 'E') : '---'}</div>
+                    <div className="text-gray-600">Motor</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-gray-900">{formData.peso || '---'}</div>
+                    <div className="text-gray-600">kg</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-gray-900">{formData.capacidad_tanque || '---'}</div>
+                    <div className="text-gray-600">L</div>
+                  </div>
                 </div>
               </div>
             </div>

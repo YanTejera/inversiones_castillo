@@ -31,6 +31,8 @@ import PagoForm from './PagoForm';
 import CancelarPagoModal from './CancelarPagoModal';
 import type { ClienteFinanciado, Venta } from '../types';
 import { ventaService } from '../services/ventaService';
+import NewVentaForm from './NewVentaForm';
+import type { VentaFormData } from './NewVentaForm';
 
 interface ClienteDetalleCompletoProps {
   cliente: Cliente;
@@ -64,6 +66,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
   const [loadingPagos, setLoadingPagos] = useState(false);
   const [pagoACancelar, setPagoACancelar] = useState<any>(null);
   const [showCancelarModal, setShowCancelarModal] = useState(false);
+  const [showVentaForm, setShowVentaForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const estadoPago = getEstadoPagoInfo(cliente);
@@ -256,8 +259,91 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
   };
 
   const handleVentaRapidaClick = () => {
-    // Mostrar mensaje informativo en lugar de redireccionar
-    showInfoModal(`Función Nueva Venta para ${cliente.nombre} ${cliente.apellido}\n\nEsta función se integrará con el sistema de ventas próximamente.`);
+    setShowVentaForm(true);
+  };
+
+  const handleVentaFormSave = async (data: VentaFormData) => {
+    try {
+      console.log('Saving venta data from client profile:', data);
+      
+      if (!data.customer || !data.selectedMotorcycle) {
+        throw new Error('Faltan datos requeridos para la venta');
+      }
+
+      const totalAmount = data.selectedMotorcycle.precio_unitario * data.selectedMotorcycle.cantidad;
+
+      // Preparar datos para el nuevo servicio mejorado
+      const ventaData = {
+        cliente_id: data.customer.id,
+        tipo_venta: data.paymentType,
+        motorcycle: {
+          tipo: data.selectedMotorcycle.tipo,
+          modelo_id: data.selectedMotorcycle.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.id : undefined,
+          moto_id: data.selectedMotorcycle.tipo === 'individual' ? data.selectedMotorcycle.moto?.id : undefined,
+          color: data.selectedMotorcycle.color,
+          chasis: data.selectedMotorcycle.chasis,
+          cantidad: data.selectedMotorcycle.cantidad,
+          precio_unitario: data.selectedMotorcycle.precio_unitario
+        },
+        payment: {
+          monto_total: totalAmount,
+          monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
+          cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
+          tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
+          pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
+          monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount
+        },
+        documentos: data.allSelectedDocuments || [],
+        observaciones: data.observations || ''
+      };
+
+      console.log('Prepared venta data for API:', ventaData);
+
+      // Intentar crear la venta usando el nuevo método
+      try {
+        const newVenta = await ventaService.createVentaFromForm(ventaData);
+        console.log('Venta created successfully:', newVenta);
+        
+        setShowVentaForm(false);
+        showSuccessModal(`¡Venta #${newVenta.id} registrada exitosamente para ${cliente.nombre} ${cliente.apellido}!`);
+        
+      } catch (apiError) {
+        console.log('New API method not available, falling back to old method');
+        
+        // Fallback al método anterior para motos individuales
+        if (data.selectedMotorcycle.tipo === 'individual' && data.selectedMotorcycle.moto) {
+          const oldVentaData = {
+            cliente: data.customer.id,
+            tipo_venta: data.paymentType,
+            monto_total: totalAmount,
+            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
+            cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
+            tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
+            pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
+            monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount,
+            detalles: [{
+              moto: data.selectedMotorcycle.moto.id,
+              cantidad: data.selectedMotorcycle.cantidad,
+              precio_unitario: data.selectedMotorcycle.precio_unitario
+            }]
+          };
+
+          const newVenta = await ventaService.createVenta(oldVentaData);
+          console.log('Venta created with fallback method:', newVenta);
+          
+          setShowVentaForm(false);
+          showSuccessModal(`¡Venta #${newVenta.id} registrada exitosamente para ${cliente.nombre} ${cliente.apellido}!`);
+          
+        } else {
+          // Para modelos, necesitamos el endpoint nuevo
+          throw new Error('La venta de modelos con selección de color requiere actualización del backend. Por favor, contacte al administrador del sistema.');
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error saving venta from client profile:', error);
+      showInfoModal(`Error al guardar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
   };
 
   const handlePagoCuota = async () => {
@@ -1439,6 +1525,18 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
               setPagoACancelar(null);
             }}
             onConfirm={handleConfirmarCancelacion}
+          />
+        )}
+
+        {/* Formulario de Nueva Venta */}
+        {showVentaForm && (
+          <NewVentaForm
+            onClose={() => setShowVentaForm(false)}
+            onSave={handleVentaFormSave}
+            initialData={{
+              customer: cliente,
+              isNewCustomer: false
+            }}
           />
         )}
       </div>

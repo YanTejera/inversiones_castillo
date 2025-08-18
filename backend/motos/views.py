@@ -150,15 +150,26 @@ class MotoModeloEstadisticasView(APIView):
                 total_vendidas += cantidad_vendida
                 total_ingresos += float(ingresos)
             
-            # Inventario actual del modelo unificado
+            # Inventario actual del modelo unificado con información de chasis
             inventario_actual = {}
             stock_total_actual = 0
             for inventario in modelo.inventario.all():
-                inventario_actual[inventario.color] = {
-                    'stock': inventario.cantidad_stock,
-                    'descuento': float(inventario.descuento_porcentaje),
-                    'precio_con_descuento': float(inventario.precio_con_descuento)
-                }
+                color = inventario.color
+                if color not in inventario_actual:
+                    inventario_actual[color] = {
+                        'stock': 0,
+                        'descuento': float(inventario.descuento_porcentaje),
+                        'precio_con_descuento': float(inventario.precio_con_descuento),
+                        'chasis_list': []
+                    }
+                
+                inventario_actual[color]['stock'] += inventario.cantidad_stock
+                if inventario.chasis:
+                    inventario_actual[color]['chasis_list'].append({
+                        'chasis': inventario.chasis,
+                        'cantidad': inventario.cantidad_stock,
+                        'fecha_ingreso': inventario.fecha_ingreso
+                    })
                 stock_total_actual += inventario.cantidad_stock
             
             # Calcular ganancias
@@ -176,6 +187,15 @@ class MotoModeloEstadisticasView(APIView):
                     'precio_venta': float(modelo.precio_venta),
                     'ganancia_por_unidad': ganancia_por_unidad,
                     'activa': modelo.activa,
+                    'cilindraje': modelo.cilindraje,
+                    'tipo_motor': modelo.get_tipo_motor_display() if modelo.tipo_motor else None,
+                    'potencia': modelo.potencia,
+                    'torque': modelo.torque,
+                    'combustible': modelo.combustible,
+                    'transmision': modelo.transmision,
+                    'peso': float(modelo.peso) if modelo.peso else None,
+                    'capacidad_tanque': float(modelo.capacidad_tanque) if modelo.capacidad_tanque else None,
+                    'descripcion': modelo.descripcion,
                 },
                 'inventario_actual': {
                     'por_color': inventario_actual,

@@ -22,6 +22,7 @@ interface VentaFormProps {
   mode: 'create' | 'edit' | 'view';
   onClose: () => void;
   onSave: () => void;
+  clientePreseleccionado?: Cliente;
 }
 
 interface DetalleVenta {
@@ -52,9 +53,9 @@ interface VentaCalculation {
   total_intereses: number;
 }
 
-const VentaForm: React.FC<VentaFormProps> = ({ venta, mode, onClose, onSave }) => {
+const VentaForm: React.FC<VentaFormProps> = ({ venta, mode, onClose, onSave, clientePreseleccionado }) => {
   const [formData, setFormData] = useState<FormData>({
-    cliente: 0,
+    cliente: clientePreseleccionado?.id || 0,
     tipo_venta: 'contado',
     monto_inicial: '',
     cuotas: '12',
@@ -64,11 +65,13 @@ const VentaForm: React.FC<VentaFormProps> = ({ venta, mode, onClose, onSave }) =
   
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [motosDisponibles, setMotosDisponibles] = useState<Moto[]>([]);
-  const [clienteSearch, setClienteSearch] = useState('');
+  const [clienteSearch, setClienteSearch] = useState(
+    clientePreseleccionado ? `${clientePreseleccionado.nombre} ${clientePreseleccionado.apellido}` : ''
+  );
   const [motoSearch, setMotoSearch] = useState('');
   const [showClienteDropdown, setShowClienteDropdown] = useState(false);
   const [showMotoDropdown, setShowMotoDropdown] = useState(false);
-  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(clientePreseleccionado || null);
   
   const [calculation, setCalculation] = useState<VentaCalculation>({
     monto_total: 0,
@@ -471,14 +474,19 @@ const VentaForm: React.FC<VentaFormProps> = ({ venta, mode, onClose, onSave }) =
                       searchClientes(e.target.value);
                       setShowClienteDropdown(true);
                     }}
-                    onFocus={() => setShowClienteDropdown(true)}
-                    readOnly={isReadOnly}
+                    onFocus={() => !clientePreseleccionado && setShowClienteDropdown(true)}
+                    readOnly={isReadOnly || !!clientePreseleccionado}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.cliente ? 'border-red-500' : 'border-gray-300'
-                    } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                    } ${isReadOnly || clientePreseleccionado ? 'bg-gray-50' : ''}`}
                   />
+                  {clientePreseleccionado && (
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <span className="text-sm text-green-600 font-medium">✓ Preseleccionado</span>
+                    </div>
+                  )}
                   
-                  {showClienteDropdown && !isReadOnly && clientes.length > 0 && (
+                  {showClienteDropdown && !isReadOnly && !clientePreseleccionado && clientes.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
                       {clientes.map(cliente => (
                         <div
