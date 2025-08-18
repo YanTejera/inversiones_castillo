@@ -30,4 +30,20 @@ urlpatterns = [
     # Vistas específicas por cliente
     path('clientes/<int:cliente_id>/fiador/', views.ClienteFiadorView.as_view(), name='cliente-fiador'),
     path('clientes/<int:cliente_id>/documentos/', views.ClienteDocumentosView.as_view(), name='cliente-documentos'),
+    
+    # ===== NUEVAS RUTAS PARA GESTIÓN AVANZADA =====
+    # Perfil de usuario
+    path('perfil/', views.PerfilUsuarioView.as_view(), name='perfil-usuario'),
+    path('cambiar-password/', views.CambiarPasswordView.as_view(), name='cambiar-password'),
+    
+    # Estadísticas y gestión
+    path('estadisticas/', views.EstadisticasUsuariosView.as_view(), name='estadisticas-usuarios'),
+    path('usuarios/<int:usuario_id>/toggle-estado/', views.ActivarDesactivarUsuarioView.as_view(), name='toggle-estado-usuario'),
+    
+    # Gestión de roles (solo master)
+    path('gestion/roles/', views.GestionRolesView.as_view(), name='gestion-roles'),
+    path('gestion/roles/<int:rol_id>/', views.GestionRolDetailView.as_view(), name='gestion-rol-detail'),
+    
+    # Configuración del sistema
+    path('configuracion/', views.ConfiguracionSistemaView.as_view(), name='configuracion-sistema'),
 ]

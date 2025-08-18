@@ -63,6 +63,12 @@ const Layout: React.FC = () => {
       icon: FileText,
       current: location.pathname.startsWith('/reportes'),
     },
+    {
+      name: 'Configuración',
+      href: '/configuracion',
+      icon: Settings,
+      current: location.pathname.startsWith('/configuracion'),
+    },
   ];
 
   const handleLogout = async () => {

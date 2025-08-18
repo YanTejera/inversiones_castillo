@@ -2,25 +2,70 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class Rol(models.Model):
-    nombre_rol = models.CharField(max_length=50, unique=True)
+    ROLES_CHOICES = [
+        ('master', 'Master (Dueño)'),
+        ('admin', 'Administrador'),
+        ('vendedor', 'Vendedor'),
+        ('cobrador', 'Cobrador'),
+    ]
+    
+    nombre_rol = models.CharField(max_length=50, choices=ROLES_CHOICES, unique=True)
     descripcion = models.TextField(blank=True, null=True)
+    # Permisos específicos
+    puede_gestionar_usuarios = models.BooleanField(default=False)
+    puede_ver_reportes = models.BooleanField(default=False)
+    puede_gestionar_motos = models.BooleanField(default=False)
+    puede_crear_ventas = models.BooleanField(default=False)
+    puede_gestionar_pagos = models.BooleanField(default=False)
+    puede_ver_finanzas = models.BooleanField(default=False)
+    puede_configurar_sistema = models.BooleanField(default=False)
     
     class Meta:
         verbose_name = 'Rol'
         verbose_name_plural = 'Roles'
     
     def __str__(self):
-        return self.nombre_rol
+        return f"{self.get_nombre_rol_display()}"
 
 class Usuario(AbstractUser):
     telefono = models.CharField(max_length=20, blank=True, null=True)
     rol = models.ForeignKey(Rol, on_delete=models.CASCADE, related_name='usuarios')
     estado = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    ultimo_acceso = models.DateTimeField(blank=True, null=True)
+    foto_perfil = models.ImageField(upload_to='usuarios/perfiles/', blank=True, null=True)
+    
+    # Configuraciones de usuario
+    tema_oscuro = models.BooleanField(default=False)
+    notificaciones_email = models.BooleanField(default=True)
+    idioma = models.CharField(max_length=10, default='es', choices=[
+        ('es', 'Español'),
+        ('en', 'English'),
+    ])
     
     class Meta:
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
+    
+    @property
+    def nombre_completo(self):
+        return f"{self.first_name} {self.last_name}".strip() or self.username
+    
+    @property
+    def es_master(self):
+        return self.rol.nombre_rol == 'master'
+    
+    @property 
+    def es_admin(self):
+        return self.rol.nombre_rol in ['master', 'admin']
+    
+    def puede_acceder_a(self, permiso):
+        """Verifica si el usuario puede acceder a una funcionalidad específica"""
+        if not self.estado:
+            return False
+        if self.es_master:
+            return True
+        return getattr(self.rol, permiso, False)
 
 class Cliente(models.Model):
     nombre = models.CharField(max_length=100)
