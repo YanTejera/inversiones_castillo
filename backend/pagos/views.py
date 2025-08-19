@@ -119,6 +119,7 @@ class DashboardView(APIView):
         
         # Cobros pendientes
         ventas_con_saldo = []
+        total_cuentas_por_cobrar = 0
         for venta in Venta.objects.filter(estado='activa'):
             if venta.saldo_pendiente > 0:
                 ventas_con_saldo.append({
@@ -126,6 +127,22 @@ class DashboardView(APIView):
                     'cliente': f"{venta.cliente.nombre} {venta.cliente.apellido}",
                     'saldo': venta.saldo_pendiente
                 })
+                total_cuentas_por_cobrar += venta.saldo_pendiente
+
+        # Clientes activos (con ventas en los últimos 6 meses)
+        hace_seis_meses = hoy - timedelta(days=180)
+        clientes_activos = Cliente.objects.filter(
+            ventas__fecha_venta__date__gte=hace_seis_meses
+        ).distinct().count()
+
+        # Valor total del inventario
+        from motos.models import MotoInventario
+        total_inventario = MotoInventario.objects.aggregate(
+            total=models.Sum(
+                models.F('cantidad_stock') * models.F('modelo__precio_compra'),
+                output_field=models.DecimalField()
+            )
+        )['total'] or 0
         
         return Response({
             'ventas_hoy': {
@@ -142,7 +159,10 @@ class DashboardView(APIView):
             },
             'stock_critico': stock_critico,
             'cobros_pendientes': len(ventas_con_saldo),
-            'ventas_con_saldo': ventas_con_saldo[:10]  # Primeras 10
+            'ventas_con_saldo': ventas_con_saldo[:10],  # Primeras 10
+            'clientes_activos': clientes_activos,
+            'total_inventario': total_inventario,
+            'cuentas_por_cobrar': total_cuentas_por_cobrar
         })
 
 class CuotaVencimientoListView(generics.ListAPIView):

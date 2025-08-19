@@ -8,6 +8,7 @@ import Clientes from './pages/Clientes';
 import Motocicletas from './pages/Motocicletas';
 import Ventas from './pages/Ventas';
 import Pagos from './pages/Pagos';
+import CobrosPendientes from './pages/CobrosPendientes';
 import Documentos from './pages/Documentos';
 import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
@@ -32,6 +33,7 @@ function App() {
             <Route path="clientes" element={<Clientes />} />
             <Route path="ventas" element={<Ventas />} />
             <Route path="pagos" element={<Pagos />} />
+            <Route path="cobros" element={<CobrosPendientes />} />
             <Route path="documentos" element={<Documentos />} />
             <Route path="reportes" element={<Reportes />} />
             <Route path="configuracion" element={<Configuracion />} />

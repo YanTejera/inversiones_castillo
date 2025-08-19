@@ -186,6 +186,13 @@ export interface Pago {
   observaciones?: string;
   usuario_cobrador: number;
   usuario_cobrador_info?: User;
+  estado: 'activo' | 'cancelado';
+  motivo_cancelacion?: string;
+  motivo_cancelacion_display?: string;
+  descripcion_cancelacion?: string;
+  fecha_cancelacion?: string;
+  usuario_cancelacion?: number;
+  usuario_cancelacion_info?: User;
 }
 
 export interface DashboardData {

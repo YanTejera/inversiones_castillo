@@ -94,7 +94,12 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
       
       for (const venta of ventasCliente) {
         try {
-          const pagosVenta = await pagoService.getPagosPorVenta(venta.id);
+          const pagosVentaResponse = await pagoService.getPagosPorVenta(venta.id);
+          // Manejar respuesta paginada de Django
+          const pagosVenta = Array.isArray(pagosVentaResponse) 
+            ? pagosVentaResponse 
+            : pagosVentaResponse?.results || [];
+          
           // Agregar información de la venta a cada pago
           const pagosConVenta = pagosVenta.map(pago => ({
             ...pago,

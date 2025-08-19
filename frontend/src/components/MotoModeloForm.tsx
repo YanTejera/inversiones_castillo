@@ -24,7 +24,7 @@ interface ColorInventario {
   color: string;
   cantidad_stock: number;
   descuento_porcentaje: number;
-  chasis?: string;
+  chasis: string[]; // Array de chasis, uno por cada unidad
 }
 
 interface FormData {
@@ -64,10 +64,12 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     moneda_venta: modelo?.moneda_venta || 'RD',
     activa: modelo?.activa ?? true,
     colores: modelo?.inventario?.map(inv => ({
-      color: inv.color,
-      cantidad_stock: inv.cantidad_stock,
-      descuento_porcentaje: inv.descuento_porcentaje,
-      chasis: inv.chasis || ''
+      color: inv.color || '',
+      cantidad_stock: inv.cantidad_stock || 1,
+      descuento_porcentaje: inv.descuento_porcentaje || 0,
+      chasis: inv.chasis && inv.chasis.trim() 
+        ? [inv.chasis] 
+        : Array(inv.cantidad_stock || 1).fill('')
     })) || [],
     // Especificaciones técnicas
     cilindraje: modelo?.cilindraje?.toString() || '',
@@ -88,10 +90,17 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
+    console.log('=== ESTADO INICIAL DEL FORMULARIO ===');
+    console.log('Modelo recibido:', modelo);
+    console.log('Formdata.colores inicial:', formData.colores);
+    console.log('Mode:', mode);
+    
     if (modelo?.imagen) {
       setImagePreview(modelo.imagen);
     }
   }, [modelo]);
+  
+  // Debug: Log cuando cambien los colores (removido para evitar loops)
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -145,6 +154,19 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         if (color.descuento_porcentaje < 0 || color.descuento_porcentaje > 100) {
           newErrors[`descuento_${index}`] = 'El descuento debe estar entre 0 y 100%';
         }
+        
+        // Validar que todos los chasis estén completos
+        const chasisArray = Array.isArray(color.chasis) ? color.chasis : [color.chasis || ''];
+        const emptyChasis = chasisArray.filter(chasis => !chasis.trim()).length;
+        if (emptyChasis > 0) {
+          newErrors[`chasis_${index}`] = `Faltan ${emptyChasis} números de chasis`;
+        }
+        
+        // Validar que no haya chasis duplicados
+        const uniqueChasis = new Set(chasisArray.filter(c => c.trim()));
+        if (uniqueChasis.size !== chasisArray.filter(c => c.trim()).length) {
+          newErrors[`chasis_duplicados_${index}`] = 'Los números de chasis deben ser únicos';
+        }
       });
     }
 
@@ -186,8 +208,9 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         inventario_data: formData.colores.map(color => ({
           color: color.color,
           cantidad_stock: color.cantidad_stock,
-          descuento_porcentaje: color.descuento_porcentaje,
-          chasis: color.chasis || undefined
+          descuento_porcentaje: color.descuento_porcentaje || 0,
+          chasis: Array.isArray(color.chasis) ? color.chasis[0] || undefined : color.chasis || undefined,
+          chasis_list: Array.isArray(color.chasis) ? color.chasis : [color.chasis || '']
         }))
       };
 
@@ -196,19 +219,56 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         submitData.imagen = formData.imagen;
       }
 
-      console.log('Datos a enviar al backend (MotoModelo):', submitData);
-      console.log('ID del modelo que se está editando:', modelo?.id);
-      console.log('FormData entries:');
-      if (submitData.imagen) {
-        console.log('- Has image file:', submitData.imagen.name, submitData.imagen.size);
-      }
-      console.log('- Inventario data:', submitData.inventario_data);
+      // Validar que todos los chasis estén llenos
+      const invalidChasis = [];
+      formData.colores.forEach((color, colorIndex) => {
+        color.chasis.forEach((chasis, chasisIndex) => {
+          if (!chasis || chasis.trim() === '') {
+            invalidChasis.push(`Color ${colorIndex + 1}, Unidad ${chasisIndex + 1}`);
+          }
+        });
+      });
 
-      if (mode === 'create') {
-        await motoModeloService.createModelo(submitData);
-      } else if (mode === 'edit' && modelo) {
-        await motoModeloService.updateModelo({ ...submitData, id: modelo.id });
+      if (invalidChasis.length > 0) {
+        setServerError(`⚠️ Los siguientes chasis están vacíos: ${invalidChasis.join(', ')}. Todos los chasis son obligatorios.`);
+        return;
       }
+
+      // Validar chasis únicos
+      const allChasis = formData.colores.flatMap(color => color.chasis.filter(c => c.trim() !== ''));
+      const duplicateChasis = allChasis.filter((chasis, index) => allChasis.indexOf(chasis) !== index);
+      if (duplicateChasis.length > 0) {
+        setServerError(`⚠️ Chasis duplicados encontrados: ${[...new Set(duplicateChasis)].join(', ')}. Cada chasis debe ser único.`);
+        return;
+      }
+
+      console.log('🚀 === DATOS ENVIADOS AL BACKEND ===');
+      console.log('📋 Datos completos:', submitData);
+      console.log('🔢 ID del modelo:', modelo?.id);
+      console.log('📦 Inventario data detallado:');
+      submitData.inventario_data.forEach((item, index) => {
+        console.log(`   Color ${index + 1}:`, {
+          color: item.color,
+          cantidad_stock: item.cantidad_stock,
+          chasis: item.chasis,
+          chasis_list: item.chasis_list
+        });
+      });
+      if (submitData.imagen) {
+        console.log('🖼️ Imagen:', submitData.imagen.name, submitData.imagen.size);
+      }
+
+      let response;
+      if (mode === 'create') {
+        console.log('📤 Creando nuevo modelo...');
+        response = await motoModeloService.createModelo(submitData);
+      } else if (mode === 'edit' && modelo) {
+        console.log('📤 Actualizando modelo ID:', modelo.id);
+        response = await motoModeloService.updateModelo({ ...submitData, id: modelo.id });
+      }
+      
+      console.log('✅ Respuesta del backend:', response);
+      console.log('🔄 Cerrando formulario y recargando...');
       
       onSave();
       onClose();
@@ -249,10 +309,29 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   };
 
   const addColor = () => {
-    setFormData(prev => ({
-      ...prev,
-      colores: [...prev.colores, { color: '', cantidad_stock: 1, descuento_porcentaje: 0, chasis: '' }]
-    }));
+    try {
+      console.log('=== AGREGANDO NUEVO COLOR ===');
+      
+      setFormData(prev => {
+        const newColor = { 
+          color: '', 
+          cantidad_stock: 1, 
+          descuento_porcentaje: 0, 
+          chasis: [''] 
+        };
+        const newColores = [...prev.colores, newColor];
+        console.log(`Colores: ${prev.colores.length} -> ${newColores.length}`);
+        
+        return {
+          ...prev,
+          colores: newColores
+        };
+      });
+      
+      console.log('=== COLOR AGREGADO EXITOSAMENTE ===');
+    } catch (error) {
+      console.error('Error al agregar color:', error);
+    }
   };
 
   const removeColor = (index: number) => {
@@ -263,11 +342,51 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   };
 
   const updateColor = (index: number, field: keyof ColorInventario, value: any) => {
+    console.log(`Actualizando color ${index}, campo ${field}:`, value);
     setFormData(prev => ({
       ...prev,
-      colores: prev.colores.map((color, i) => 
-        i === index ? { ...color, [field]: value } : color
-      )
+      colores: prev.colores.map((color, i) => {
+        if (i === index) {
+          const updatedColor = { ...color, [field]: value };
+          
+          // Si se cambió la cantidad, ajustar el array de chasis
+          if (field === 'cantidad_stock') {
+            const newQuantity = parseInt(value) || 1;
+            const currentChasis = color.chasis || [];
+            console.log(`📦 Cantidad: ${currentChasis.length} -> ${newQuantity} chasis`);
+            
+            if (newQuantity > currentChasis.length) {
+              // Agregar campos vacíos para los nuevos chasis (manual)
+              updatedColor.chasis = [
+                ...currentChasis,
+                ...Array(newQuantity - currentChasis.length).fill('')
+              ];
+              console.log('✅ Chasis agregados:', updatedColor.chasis.length);
+            } else if (newQuantity < currentChasis.length) {
+              // Recortar el array si la cantidad disminuye
+              updatedColor.chasis = currentChasis.slice(0, newQuantity);
+              console.log('🔄 Chasis recortados:', updatedColor.chasis.length);
+            }
+          }
+          
+          return updatedColor;
+        }
+        return color;
+      })
+    }));
+  };
+
+  const updateChasis = (colorIndex: number, chasisIndex: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      colores: prev.colores.map((color, i) => {
+        if (i === colorIndex) {
+          const newChasis = [...color.chasis];
+          newChasis[chasisIndex] = value;
+          return { ...color, chasis: newChasis };
+        }
+        return color;
+      })
     }));
   };
 
@@ -307,8 +426,9 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     return basePrice;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    console.log(`Campo ${name} cambiado a:`, value);
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -359,6 +479,19 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
               </div>
             </button>
             <button
+              onClick={() => setActiveTab('colores')}
+              className={`py-3 px-6 text-sm font-medium border-b-2 ${
+                activeTab === 'colores'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <div className="flex items-center">
+                <Palette className="h-4 w-4 mr-2" />
+                Colores y Chasis ({formData.colores.length})
+              </div>
+            </button>
+            <button
               onClick={() => setActiveTab('tecnicas')}
               className={`py-3 px-6 text-sm font-medium border-b-2 ${
                 activeTab === 'tecnicas'
@@ -369,19 +502,6 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
               <div className="flex items-center">
                 <Package className="h-4 w-4 mr-2" />
                 Especificaciones Técnicas
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('colores')}
-              className={`py-3 px-6 text-sm font-medium border-b-2 ${
-                activeTab === 'colores'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <div className="flex items-center">
-                <Palette className="h-4 w-4 mr-2" />
-                Colores y Stock ({formData.colores.length})
               </div>
             </button>
           </nav>
@@ -510,8 +630,9 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                     <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Compra *</label>
                     <div className="flex gap-2">
                       <select
+                        name="moneda_compra"
                         value={formData.moneda_compra}
-                        onChange={(e) => setFormData(prev => ({ ...prev, moneda_compra: e.target.value as 'USD' | 'RD' | 'EUR' | 'COP' }))}
+                        onChange={handleChange}
                         disabled={isReadOnly}
                         className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           isReadOnly ? 'bg-gray-50' : ''
@@ -551,8 +672,9 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                     <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Venta *</label>
                     <div className="flex gap-2">
                       <select
+                        name="moneda_venta"
                         value={formData.moneda_venta}
-                        onChange={(e) => setFormData(prev => ({ ...prev, moneda_venta: e.target.value as 'USD' | 'RD' | 'EUR' | 'COP' }))}
+                        onChange={handleChange}
                         disabled={isReadOnly}
                         className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           isReadOnly ? 'bg-gray-50' : ''
@@ -996,18 +1118,39 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           )}
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Chasis (Opcional)</label>
-                          <input
-                            type="text"
-                            value={color.chasis}
-                            onChange={(e) => updateColor(index, 'chasis', e.target.value)}
-                            readOnly={isReadOnly}
-                            placeholder="Número de chasis..."
-                            className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              isReadOnly ? 'bg-gray-50' : 'bg-white'
-                            }`}
-                          />
+                        <div className="md:col-span-2 lg:col-span-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Números de Chasis *
+                          </label>
+                          <p className="text-xs text-gray-500 mb-2">
+                            Se requiere un número de chasis único para cada unidad ({color.cantidad_stock} unidades)
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {color.chasis.map((chasis, chasisIndex) => (
+                              <div key={chasisIndex}>
+                                <input
+                                  type="text"
+                                  value={chasis}
+                                  onChange={(e) => updateChasis(index, chasisIndex, e.target.value)}
+                                  readOnly={isReadOnly}
+                                  placeholder={`Chasis ${chasisIndex + 1}...`}
+                                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                    isReadOnly ? 'bg-gray-50' : 'bg-white'
+                                  } ${!chasis.trim() ? 'border-red-300 bg-red-50' : ''}`}
+                                />
+                                {!chasis.trim() && (
+                                  <p className="text-red-500 text-xs mt-1">Chasis requerido</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {/* Errores de validación de chasis */}
+                          {errors[`chasis_${index}`] && (
+                            <p className="text-red-500 text-sm mt-2">{errors[`chasis_${index}`]}</p>
+                          )}
+                          {errors[`chasis_duplicados_${index}`] && (
+                            <p className="text-red-500 text-sm mt-2">{errors[`chasis_duplicados_${index}`]}</p>
+                          )}
                         </div>
                       </div>
 

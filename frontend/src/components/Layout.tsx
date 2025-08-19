@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import NotificacionesBell from './NotificacionesBell';
 import {
   Menu,
   X,
@@ -9,6 +10,7 @@ import {
   Users,
   ShoppingCart,
   CreditCard,
+  AlertTriangle,
   FileText,
   FolderOpen,
   LogOut,
@@ -49,7 +51,13 @@ const Layout: React.FC = () => {
       name: 'Pagos',
       href: '/pagos',
       icon: CreditCard,
-      current: location.pathname.startsWith('/pagos'),
+      current: location.pathname === '/pagos',
+    },
+    {
+      name: 'Cobros Pendientes',
+      href: '/cobros',
+      icon: AlertTriangle,
+      current: location.pathname.startsWith('/cobros'),
     },
     {
       name: 'Documentos',
@@ -137,7 +145,7 @@ const Layout: React.FC = () => {
 
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Top bar */}
+        {/* Top bar - Mobile */}
         <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">
             <button
@@ -148,6 +156,22 @@ const Layout: React.FC = () => {
             </button>
             <div className="text-lg font-semibold text-gray-900">
               Sistema de Gestión
+            </div>
+            <NotificacionesBell />
+          </div>
+        </header>
+
+        {/* Top bar - Desktop */}
+        <header className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
+          <div className="flex items-center justify-between h-16 px-6">
+            <div className="text-lg font-semibold text-gray-900">
+              Sistema de Gestión - Inversiones C&C
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-600">
+                Bienvenido, {user?.first_name} {user?.last_name}
+              </div>
+              <NotificacionesBell />
             </div>
           </div>
         </header>
@@ -171,6 +195,7 @@ const Layout: React.FC = () => {
           <div className="absolute inset-0 bg-gray-600 opacity-75"></div>
         </div>
       )}
+
     </div>
   );
 };

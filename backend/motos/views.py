@@ -108,7 +108,11 @@ class MotoModeloListCreateView(generics.ListCreateAPIView):
 
 class MotoModeloDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = MotoModelo.objects.all()
-    serializer_class = MotoModeloSerializer
+    
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return MotoModeloCreateSerializer  # Usa el serializer que maneja inventario_data
+        return MotoModeloSerializer
 
 class MotoModeloEstadisticasView(APIView):
     """Vista para obtener estadísticas detalladas de un modelo de moto"""

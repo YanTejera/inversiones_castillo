@@ -270,7 +270,7 @@ class AlertaPago(models.Model):
             
             if not alerta_existente:
                 dias_restantes = (cuota.fecha_vencimiento - hoy).days
-                mensaje = f"La cuota #{cuota.numero_cuota} de la venta #{cuota.venta.id} vence en {dias_restantes} día(s). Cliente: {cuota.venta.cliente_info.nombre} {cuota.venta.cliente_info.apellido}. Monto: ${cuota.monto_cuota:,.0f}"
+                mensaje = f"La cuota #{cuota.numero_cuota} de la venta #{cuota.venta.id} vence en {dias_restantes} día(s). Cliente: {cuota.venta.cliente.nombre} {cuota.venta.cliente.apellido}. Monto: ${cuota.monto_cuota:,.0f}"
                 
                 cls.objects.create(
                     venta=cuota.venta,
@@ -298,7 +298,7 @@ class AlertaPago(models.Model):
             
             if not alerta_existente:
                 dias_vencida = (hoy - cuota.fecha_vencimiento).days
-                mensaje = f"La cuota #{cuota.numero_cuota} de la venta #{cuota.venta.id} está vencida desde hace {dias_vencida} día(s). Cliente: {cuota.venta.cliente_info.nombre} {cuota.venta.cliente_info.apellido}. Monto pendiente: ${cuota.saldo_pendiente:,.0f}"
+                mensaje = f"La cuota #{cuota.numero_cuota} de la venta #{cuota.venta.id} está vencida desde hace {dias_vencida} día(s). Cliente: {cuota.venta.cliente.nombre} {cuota.venta.cliente.apellido}. Monto pendiente: ${cuota.saldo_pendiente:,.0f}"
                 
                 cls.objects.create(
                     venta=cuota.venta,
@@ -326,7 +326,7 @@ class AlertaPago(models.Model):
             ).exists()
             
             if not alerta_existente:
-                mensaje = f"La venta #{venta.id} tiene {total_vencidas} cuotas vencidas. Cliente: {venta.cliente_info.nombre} {venta.cliente_info.apellido}. Saldo total pendiente: ${venta.saldo_pendiente:,.0f}"
+                mensaje = f"La venta #{venta.id} tiene {total_vencidas} cuotas vencidas. Cliente: {venta.cliente.nombre} {venta.cliente.apellido}. Saldo total pendiente: ${venta.saldo_pendiente:,.0f}"
                 
                 cls.objects.create(
                     venta=venta,

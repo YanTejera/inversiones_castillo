@@ -70,5 +70,10 @@ class VentaCreateSerializer(serializers.ModelSerializer):
         
         for detalle_data in detalles_data:
             VentaDetalle.objects.create(venta=venta, **detalle_data)
+        
+        # Generar cuotas automáticamente si es venta financiada
+        if venta.tipo_venta == 'financiado':
+            from pagos.models import CuotaVencimiento
+            CuotaVencimiento.generar_cuotas_venta(venta)
             
         return venta

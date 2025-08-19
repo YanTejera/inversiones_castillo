@@ -16,6 +16,7 @@ interface CreateMotoModeloData {
   inventario_data?: Array<{
     color: string;
     chasis?: string;
+    chasis_list?: string[];
     cantidad_stock: number;
     descuento_porcentaje?: number;
   }>;
@@ -89,7 +90,17 @@ export const motoModeloService = {
     
     if (data.inventario_data) {
       console.log('Adding inventario_data:', data.inventario_data);
-      formData.append('inventario_data', JSON.stringify(data.inventario_data));
+      // Convert chasis_list to chasis for backend compatibility
+      const cleanedInventarioData = data.inventario_data.map(item => {
+        const { chasis_list, ...cleanItem } = item;
+        // Use first chasis from chasis_list if available, otherwise keep existing chasis
+        if (chasis_list && chasis_list.length > 0) {
+          cleanItem.chasis = chasis_list[0];
+        }
+        return cleanItem;
+      });
+      console.log('Cleaned inventario_data:', cleanedInventarioData);
+      formData.append('inventario_data', JSON.stringify(cleanedInventarioData));
     }
 
     console.log('Making POST request to /motos/modelos/');
@@ -116,27 +127,49 @@ export const motoModeloService = {
     const { id, ...updateData } = data;
     const formData = new FormData();
     
+    console.log('🔄 === ACTUALIZANDO MODELO ===');
+    console.log('📝 Data recibida:', updateData);
+    
     Object.entries(updateData).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (key === 'imagen' && value instanceof File) {
+          console.log('🖼️ Agregando imagen:', value.name);
           formData.append(key, value);
+        } else if (key === 'inventario_data' && Array.isArray(value)) {
+          console.log('📦 Agregando inventario_data:', value);
+          formData.append(key, JSON.stringify(value));
         } else if (typeof value === 'boolean') {
+          console.log(`✅ Agregando ${key}:`, value.toString());
           formData.append(key, value.toString());
         } else if (typeof value === 'number') {
+          console.log(`🔢 Agregando ${key}:`, value.toString());
           formData.append(key, value.toString());
         } else if (typeof value === 'string') {
+          console.log(`📝 Agregando ${key}:`, value);
           formData.append(key, value);
+        } else {
+          console.log(`⚠️ Tipo no manejado para ${key}:`, typeof value, value);
         }
       }
     });
 
-    const response = await api.put(`/motos/modelos/${id}/`, formData, {
-      headers: {
-        'Content-Type': undefined, // Let browser set it automatically
-      },
-      transformRequest: [(data) => data], // Don't transform FormData
-    });
-    return response.data;
+    console.log('📤 Enviando PUT request a /motos/modelos/' + id + '/');
+
+    try {
+      const response = await api.put(`/motos/modelos/${id}/`, formData, {
+        headers: {
+          'Content-Type': undefined, // Let browser set it automatically
+        },
+        transformRequest: [(data) => data], // Don't transform FormData
+      });
+      console.log('✅ Update response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Update error:', error);
+      console.error('❌ Update error response:', error.response?.data);
+      console.error('❌ Update error status:', error.response?.status);
+      throw error;
+    }
   },
 
   async deleteModelo(id: number): Promise<void> {

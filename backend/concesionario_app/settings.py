@@ -194,9 +194,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5180",  # Vite dev server alternative
     "http://localhost:5181",  # Vite dev server alternative
     "http://localhost:5182",  # Vite dev server alternative
+    "http://localhost:5183",  # Vite dev server alternative
+    "http://localhost:5184",  # Vite dev server alternative
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://127.0.0.1:5175",
+    "http://127.0.0.1:5183",
+    "http://127.0.0.1:5184",
     "http://127.0.0.1:5176",
     "http://127.0.0.1:5177",
     "http://127.0.0.1:5178",

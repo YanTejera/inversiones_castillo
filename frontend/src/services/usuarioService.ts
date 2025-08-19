@@ -10,7 +10,7 @@ const api = axios.create({
 
 // Interceptor para agregar el token de autenticación
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Token ${token}`;
   }
@@ -104,7 +104,7 @@ export const usuarioService = {
   },
 
   // Gestión de usuarios
-  async getUsuarios(params?: {rol?: string}): Promise<Usuario[]> {
+  async getUsuarios(params?: {rol?: string}): Promise<any> {
     const response = await api.get('usuarios/', { params });
     return response.data;
   },

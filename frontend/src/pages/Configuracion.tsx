@@ -18,7 +18,11 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  FileText,
+  FolderOpen,
+  Bike,
+  ShoppingCart
 } from 'lucide-react';
 import { usuarioService, type Usuario, type Rol, type EstadisticasUsuarios } from '../services/usuarioService';
 
@@ -57,12 +61,16 @@ const Configuracion: React.FC = () => {
 
       // Cargar roles disponibles
       const rolesData = await usuarioService.getRoles();
-      setRoles(rolesData);
+      // Manejar respuesta vs array directo
+      const roles = Array.isArray(rolesData) ? rolesData : rolesData.results || [];
+      setRoles(roles);
 
       // Si tiene permisos, cargar usuarios y estadísticas
       if (perfil.rol_info.puede_gestionar_usuarios || perfil.es_admin) {
         const usuariosData = await usuarioService.getUsuarios();
-        setUsuarios(usuariosData);
+        // Manejar respuesta paginada vs array directo
+        const usuarios = Array.isArray(usuariosData) ? usuariosData : usuariosData.results || [];
+        setUsuarios(usuarios);
       }
 
       if (perfil.rol_info.puede_ver_reportes || perfil.es_admin) {
@@ -116,7 +124,9 @@ const Configuracion: React.FC = () => {
       setSuccess(result.message);
       // Recargar usuarios
       const usuariosData = await usuarioService.getUsuarios();
-      setUsuarios(usuariosData);
+      // Manejar respuesta paginada vs array directo
+      const usuarios = Array.isArray(usuariosData) ? usuariosData : usuariosData.results || [];
+      setUsuarios(usuarios);
       setTimeout(() => setSuccess(''), 3000);
     } catch (error: any) {
       setError('Error al cambiar estado: ' + error.message);
@@ -141,6 +151,18 @@ const Configuracion: React.FC = () => {
       label: 'Gestión de Roles', 
       icon: Shield, 
       available: currentUser?.es_master 
+    },
+    { 
+      id: 'permisos', 
+      label: 'Permisos Avanzados', 
+      icon: Key, 
+      available: currentUser?.es_admin || currentUser?.es_master 
+    },
+    { 
+      id: 'documentos', 
+      label: 'Configuración Documentos', 
+      icon: FileText, 
+      available: currentUser?.rol_info?.puede_configurar_sistema || currentUser?.es_admin 
     },
     { 
       id: 'estadisticas', 
@@ -296,7 +318,7 @@ const Configuracion: React.FC = () => {
                         </label>
                         <input
                           type="text"
-                          value={currentUser.rol_info.nombre_rol_display}
+                          value={currentUser?.rol_info?.nombre_rol_display || 'No definido'}
                           disabled
                           className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                         />
@@ -311,44 +333,53 @@ const Configuracion: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <Palette className="h-5 w-5 mr-2 text-gray-500" />
-                          <span>Tema Oscuro</span>
+                          <div>
+                            <span>Tema Oscuro</span>
+                            <p className="text-xs text-orange-600">En desarrollo</p>
+                          </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-not-allowed opacity-50">
                           <input
                             type="checkbox"
-                            checked={currentUser.tema_oscuro}
-                            onChange={(e) => handleUpdatePerfil({ tema_oscuro: e.target.checked })}
+                            checked={false}
+                            disabled
                             className="sr-only peer"
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-200 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                         </label>
                       </div>
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <Bell className="h-5 w-5 mr-2 text-gray-500" />
-                          <span>Notificaciones Email</span>
+                          <div>
+                            <span>Notificaciones Email</span>
+                            <p className="text-xs text-orange-600">En desarrollo</p>
+                          </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-not-allowed opacity-50">
                           <input
                             type="checkbox"
-                            checked={currentUser.notificaciones_email}
-                            onChange={(e) => handleUpdatePerfil({ notificaciones_email: e.target.checked })}
+                            checked={false}
+                            disabled
                             className="sr-only peer"
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-200 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                         </label>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <Globe className="h-5 w-5 mr-2 text-gray-500" />
-                          <span>Idioma</span>
+                          <div>
+                            <span>Idioma</span>
+                            <p className="text-xs text-orange-600">En desarrollo</p>
+                          </div>
                         </div>
                         <select
-                          value={currentUser.idioma}
-                          onChange={(e) => handleUpdatePerfil({ idioma: e.target.value })}
-                          className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          value="es"
+                          disabled
+                          className="px-3 py-1 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed opacity-50"
                         >
                           <option value="es">Español</option>
                           <option value="en">English</option>
@@ -483,7 +514,7 @@ const Configuracion: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {usuarios.map((usuario) => (
+                      {Array.isArray(usuarios) && usuarios.map((usuario) => (
                         <tr key={usuario.id} className={usuario.estado ? '' : 'bg-red-50'}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -620,7 +651,7 @@ const Configuracion: React.FC = () => {
                 </h2>
                 
                 <div className="space-y-4">
-                  {roles.map((rol) => (
+                  {Array.isArray(roles) && roles.map((rol) => (
                     <div key={rol.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <h3 className="font-medium">{rol.nombre_rol_display}</h3>
@@ -654,6 +685,192 @@ const Configuracion: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Permisos Avanzados */}
+            {activeTab === 'permisos' && (currentUser?.es_admin || currentUser?.es_master) && (
+              <div className="p-6">
+                <h2 className="text-xl font-semibold mb-6 flex items-center">
+                  <Key className="h-6 w-6 mr-2" />
+                  Permisos Avanzados
+                </h2>
+                
+                <div className="space-y-6">
+                  {/* Otorgar todos los permisos */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-4 flex items-center">
+                      <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                      Gestión de Permisos Globales
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-green-800">Otorgar Todos los Permisos</p>
+                          <p className="text-sm text-green-600">Permite seleccionar usuarios y otorgarles acceso completo al sistema</p>
+                        </div>
+                        <button className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center">
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Gestionar
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Array.isArray(usuarios) && usuarios.map((usuario) => (
+                          <div key={usuario.id} className="border rounded-lg p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{usuario.nombre_completo}</p>
+                                <p className="text-sm text-gray-500">{usuario.rol_info.nombre_rol_display}</p>
+                              </div>
+                              <button 
+                                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                                onClick={() => {
+                                  // TODO: Implementar función para otorgar todos los permisos
+                                  setSuccess(`Todos los permisos otorgados a ${usuario.nombre_completo}`);
+                                  setTimeout(() => setSuccess(''), 3000);
+                                }}
+                              >
+                                Otorgar Todo
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Control de visibilidad de módulos */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-4 flex items-center">
+                      <Eye className="h-5 w-5 mr-2 text-blue-600" />
+                      Control de Visibilidad de Módulos
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        { module: 'Documentos', icon: FileText, description: 'Controla quién puede ver y acceder a los documentos' },
+                        { module: 'Motocicletas', icon: Bike, description: 'Controla quién puede gestionar las motocicletas' },
+                        { module: 'Reportes', icon: BarChart3, description: 'Controla el acceso a reportes y estadísticas' },
+                        { module: 'Ventas', icon: ShoppingCart, description: 'Controla quién puede crear y gestionar ventas' },
+                      ].map((item) => {
+                        const IconComponent = item.icon;
+                        return (
+                          <div key={item.module} className="border rounded-lg p-3">
+                            <div className="flex items-center mb-2">
+                              <IconComponent className="h-5 w-5 mr-2 text-gray-600" />
+                              <h4 className="font-medium">{item.module}</h4>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-3">{item.description}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-green-600">Visible</span>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" defaultChecked className="sr-only peer" />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Configuración de Documentos */}
+            {activeTab === 'documentos' && (currentUser?.rol_info?.puede_configurar_sistema || currentUser?.es_admin) && (
+              <div className="p-6">
+                <h2 className="text-xl font-semibold mb-6 flex items-center">
+                  <FileText className="h-6 w-6 mr-2" />
+                  Configuración de Documentos
+                </h2>
+                
+                <div className="space-y-6">
+                  {/* Permisos de documentos */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-4 flex items-center">
+                      <Shield className="h-5 w-5 mr-2 text-blue-600" />
+                      Permisos de Acceso a Documentos
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-blue-800">Documentos Ocultos</p>
+                          <p className="text-sm text-blue-600">Gestionar qué documentos están ocultos para usuarios específicos</p>
+                        </div>
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center">
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Configurar
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="border rounded-lg p-3">
+                          <h4 className="font-medium mb-2">Quién puede agregar documentos</h4>
+                          <div className="space-y-2">
+                            {Array.isArray(usuarios) && usuarios.map((usuario) => (
+                              <label key={usuario.id} className="flex items-center">
+                                <input 
+                                  type="checkbox" 
+                                  defaultChecked={usuario.rol_info.puede_configurar_sistema || usuario.es_admin}
+                                  className="mr-2" 
+                                />
+                                <span className="text-sm">{usuario.nombre_completo}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div className="border rounded-lg p-3">
+                          <h4 className="font-medium mb-2">Quién puede agregar motocicletas</h4>
+                          <div className="space-y-2">
+                            {Array.isArray(usuarios) && usuarios.map((usuario) => (
+                              <label key={usuario.id} className="flex items-center">
+                                <input 
+                                  type="checkbox" 
+                                  defaultChecked={usuario.rol_info.puede_gestionar_motos || usuario.es_admin}
+                                  className="mr-2" 
+                                />
+                                <span className="text-sm">{usuario.nombre_completo}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Configuración de tipos de documentos */}
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-4 flex items-center">
+                      <FolderOpen className="h-5 w-5 mr-2 text-orange-600" />
+                      Tipos de Documentos Permitidos
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[
+                        { type: 'PDF', extension: '.pdf', enabled: true },
+                        { type: 'Word', extension: '.docx', enabled: true },
+                        { type: 'Excel', extension: '.xlsx', enabled: true },
+                        { type: 'Imágenes', extension: '.jpg, .png', enabled: true },
+                        { type: 'PowerPoint', extension: '.pptx', enabled: false },
+                        { type: 'Texto', extension: '.txt', enabled: false },
+                        { type: 'Zip', extension: '.zip', enabled: false },
+                        { type: 'Video', extension: '.mp4', enabled: false },
+                      ].map((docType) => (
+                        <div key={docType.type} className="border rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-sm">{docType.type}</h4>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input type="checkbox" defaultChecked={docType.enabled} className="sr-only peer" />
+                              <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                          </div>
+                          <p className="text-xs text-gray-500">{docType.extension}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

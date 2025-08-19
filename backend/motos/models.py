@@ -14,6 +14,13 @@ class MotoModelo(models.Model):
         ('electrico', 'Eléctrico'),
     ]
     
+    MONEDA_CHOICES = [
+        ('USD', 'Dólares (USD)'),
+        ('RD', 'Pesos Dominicanos (RD)'),
+        ('EUR', 'Euros (EUR)'),
+        ('COP', 'Pesos Colombianos (COP)'),
+    ]
+    
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
     ano = models.IntegerField(verbose_name='Año')
@@ -33,6 +40,8 @@ class MotoModelo(models.Model):
     imagen = models.ImageField(upload_to='motos/', blank=True, null=True)
     precio_compra = models.DecimalField(max_digits=12, decimal_places=2)
     precio_venta = models.DecimalField(max_digits=12, decimal_places=2)
+    moneda_compra = models.CharField(max_length=3, choices=MONEDA_CHOICES, default='USD', verbose_name='Moneda de Compra')
+    moneda_venta = models.CharField(max_length=3, choices=MONEDA_CHOICES, default='RD', verbose_name='Moneda de Venta')
     activa = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
