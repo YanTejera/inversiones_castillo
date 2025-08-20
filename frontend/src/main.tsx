@@ -12,11 +12,11 @@ createRoot(document.getElementById('root')!).render(
 
 console.log('API URL:', import.meta.env.VITE_API_URL);
 
-// DESREGISTRAR Service Worker problemático
+// SERVICE WORKER DISABLED - Fix deployment issues
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // Desregistrar todos los service workers existentes
+      // Only clear existing service workers, don't register new ones
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (const registration of registrations) {
         console.log('Unregistering SW:', registration);
@@ -30,18 +30,7 @@ if ('serviceWorker' in navigator) {
         await caches.delete(cacheName);
       }
       
-      console.log('All service workers and caches cleared');
-      
-      // Opcional: registrar uno nuevo y simple después de un delay
-      setTimeout(() => {
-        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-          .then((registration) => {
-            console.log('New minimal SW registered:', registration);
-          })
-          .catch((error) => {
-            console.log('SW registration failed:', error);
-          });
-      }, 1000);
+      console.log('All service workers and caches cleared - PWA disabled');
       
     } catch (error) {
       console.error('Error clearing service workers:', error);
