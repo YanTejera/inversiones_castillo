@@ -9,9 +9,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) => {
-          // Preserve _redirects file name
-          if (assetInfo.name === '_redirects') {
-            return '_redirects'
+          // Preserve PWA and static files without hash
+          if (assetInfo.name === '_redirects' || 
+              assetInfo.name === '_headers' ||
+              assetInfo.name === 'manifest.json' ||
+              assetInfo.name === 'sw.js' ||
+              assetInfo.name === 'logo.png' ||
+              assetInfo.name === 'browserconfig.xml') {
+            return '[name][extname]'
           }
           return `assets/[name]-[hash][extname]`
         }
