@@ -47,11 +47,11 @@ dist/
 build/
 
 # Environment variables
-.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+# Note: backend/.env is included for Render deployment (contains production config)
 
 # IDE
 .vscode/
