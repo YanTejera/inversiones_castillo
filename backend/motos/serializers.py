@@ -52,7 +52,8 @@ class MotoInventarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = MotoInventario
         fields = ['id', 'color', 'chasis', 'cantidad_stock', 'descuento_porcentaje', 
-                 'precio_con_descuento', 'fecha_ingreso']
+                 'precio_con_descuento', 'fecha_ingreso', 'precio_compra_individual', 
+                 'tasa_dolar', 'fecha_compra']
 
 class MotoModeloSerializer(serializers.ModelSerializer):
     inventario = MotoInventarioSerializer(many=True, read_only=True)
@@ -199,7 +200,8 @@ class MotoModeloCreateSerializer(serializers.ModelSerializer):
                 if isinstance(item_data, dict):
                     # Limpiar campos que no pertenecen al modelo MotoInventario
                     clean_item_data = {}
-                    valid_fields = ['color', 'chasis', 'cantidad_stock', 'descuento_porcentaje']
+                    valid_fields = ['color', 'chasis', 'cantidad_stock', 'descuento_porcentaje', 
+                                  'precio_compra_individual', 'tasa_dolar', 'fecha_compra']
                     for field in valid_fields:
                         if field in item_data:
                             clean_item_data[field] = item_data[field]
@@ -249,7 +251,8 @@ class MotoModeloCreateSerializer(serializers.ModelSerializer):
                     if isinstance(item_data, dict):
                         # Limpiar campos que no pertenecen al modelo MotoInventario
                         clean_item_data = {}
-                        valid_fields = ['color', 'chasis', 'cantidad_stock', 'descuento_porcentaje']
+                        valid_fields = ['color', 'chasis', 'cantidad_stock', 'descuento_porcentaje', 
+                                      'precio_compra_individual', 'tasa_dolar', 'fecha_compra']
                         for field in valid_fields:
                             if field in item_data:
                                 clean_item_data[field] = item_data[field]

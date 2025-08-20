@@ -223,6 +223,27 @@ class MotoInventario(models.Model):
     descuento_porcentaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Descuento en porcentaje para este color específico")
     fecha_ingreso = models.DateTimeField(auto_now_add=True)
     
+    # Nuevos campos para gestión de precios por lote
+    precio_compra_individual = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        blank=True, 
+        null=True,
+        help_text="Precio de compra específico para este lote/color (si es diferente al precio base del modelo)"
+    )
+    tasa_dolar = models.DecimalField(
+        max_digits=8, 
+        decimal_places=2, 
+        blank=True, 
+        null=True,
+        help_text="Tasa del dólar al momento de la compra de este lote"
+    )
+    fecha_compra = models.DateField(
+        blank=True, 
+        null=True,
+        help_text="Fecha específica de compra de este lote"
+    )
+    
     class Meta:
         verbose_name = 'Inventario de Moto'
         verbose_name_plural = 'Inventario de Motos'

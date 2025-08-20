@@ -97,7 +97,11 @@ const Layout: React.FC = () => {
       <div className={`fixed inset-y-0 left-0 z-50 w-64 sm:w-72 bg-gray-800 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:w-64`}>
         <div className="flex items-center justify-between h-16 bg-gray-900 px-4">
           <div className="flex items-center min-w-0">
-            <Bike className="h-8 w-8 text-white flex-shrink-0" />
+            <img 
+              src="/logo.png" 
+              alt="Inversiones C&C Logo" 
+              className="h-8 w-8 flex-shrink-0 rounded-full bg-white p-1 object-contain" 
+            />
             <span className="ml-2 text-white text-base sm:text-lg font-semibold truncate">Inversiones C&C</span>
           </div>
           <button
@@ -162,8 +166,15 @@ const Layout: React.FC = () => {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <div className="text-base sm:text-lg font-semibold text-gray-900 truncate">
-              Inversiones C&C
+            <div className="flex items-center">
+              <img 
+                src="/logo.png" 
+                alt="Inversiones C&C Logo" 
+                className="h-6 w-6 mr-2 flex-shrink-0 object-contain" 
+              />
+              <span className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+                Inversiones C&C
+              </span>
             </div>
             <div className="flex-shrink-0">
               <NotificacionesBell />
@@ -174,8 +185,15 @@ const Layout: React.FC = () => {
         {/* Top bar - Desktop */}
         <header className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-6">
-            <div className="text-lg font-semibold text-gray-900">
-              Sistema de Gestión - Inversiones C&C
+            <div className="flex items-center">
+              <img 
+                src="/logo.png" 
+                alt="Inversiones C&C Logo" 
+                className="h-8 w-8 mr-3 flex-shrink-0 object-contain" 
+              />
+              <span className="text-lg font-semibold text-gray-900">
+                Sistema de Gestión - Inversiones C&C
+              </span>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-600">

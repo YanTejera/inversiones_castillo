@@ -8,7 +8,8 @@ import {
   Trash2, 
   Palette,
   Package,
-  Camera 
+  Camera,
+  Wand2 
 } from 'lucide-react';
 import { motoModeloService } from '../services/motoModeloService';
 import type { MotoModelo } from '../types';
@@ -25,6 +26,9 @@ interface ColorInventario {
   cantidad_stock: number;
   descuento_porcentaje: number;
   chasis: string[]; // Array de chasis, uno por cada unidad
+  precio_compra_individual?: number; // Precio de compra específico para este color/chasis
+  tasa_dolar?: number; // Tasa del dólar al momento de la compra
+  fecha_compra?: string; // Fecha de compra de este stock específico
 }
 
 interface FormData {
@@ -69,7 +73,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       descuento_porcentaje: inv.descuento_porcentaje || 0,
       chasis: inv.chasis && inv.chasis.trim() 
         ? [inv.chasis] 
-        : Array(inv.cantidad_stock || 1).fill('')
+        : Array(inv.cantidad_stock || 1).fill(''),
+      precio_compra_individual: inv.precio_compra_individual || undefined,
+      tasa_dolar: inv.tasa_dolar || undefined,
+      fecha_compra: inv.fecha_compra || new Date().toISOString().split('T')[0]
     })) || [],
     // Especificaciones técnicas
     cilindraje: modelo?.cilindraje?.toString() || '',
@@ -148,8 +155,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         if (!color.color.trim()) {
           newErrors[`color_${index}`] = 'El color es requerido';
         }
-        if (color.cantidad_stock < 1) {
-          newErrors[`cantidad_${index}`] = 'La cantidad debe ser mayor a 0';
+        if (color.cantidad_stock < 0) {
+          newErrors[`cantidad_${index}`] = 'La cantidad no puede ser negativa';
         }
         if (color.descuento_porcentaje < 0 || color.descuento_porcentaje > 100) {
           newErrors[`descuento_${index}`] = 'El descuento debe estar entre 0 y 100%';
@@ -210,7 +217,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           cantidad_stock: color.cantidad_stock,
           descuento_porcentaje: color.descuento_porcentaje || 0,
           chasis: Array.isArray(color.chasis) ? color.chasis[0] || undefined : color.chasis || undefined,
-          chasis_list: Array.isArray(color.chasis) ? color.chasis : [color.chasis || '']
+          chasis_list: Array.isArray(color.chasis) ? color.chasis : [color.chasis || ''],
+          precio_compra_individual: color.precio_compra_individual || null,
+          tasa_dolar: color.tasa_dolar || null,
+          fecha_compra: color.fecha_compra || null
         }))
       };
 
@@ -317,7 +327,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           color: '', 
           cantidad_stock: 1, 
           descuento_porcentaje: 0, 
-          chasis: [''] 
+          chasis: [''],
+          precio_compra_individual: undefined,
+          tasa_dolar: undefined,
+          fecha_compra: new Date().toISOString().split('T')[0]
         };
         const newColores = [...prev.colores, newColor];
         console.log(`Colores: ${prev.colores.length} -> ${newColores.length}`);
@@ -351,25 +364,113 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           
           // Si se cambió la cantidad, ajustar el array de chasis
           if (field === 'cantidad_stock') {
-            const newQuantity = parseInt(value) || 1;
+            const newQuantity = parseInt(value) || 0;
             const currentChasis = color.chasis || [];
             console.log(`📦 Cantidad: ${currentChasis.length} -> ${newQuantity} chasis`);
             
             if (newQuantity > currentChasis.length) {
-              // Agregar campos vacíos para los nuevos chasis (manual)
+              // Agregar campos vacíos para los nuevos chasis
               updatedColor.chasis = [
                 ...currentChasis,
                 ...Array(newQuantity - currentChasis.length).fill('')
               ];
               console.log('✅ Chasis agregados:', updatedColor.chasis.length);
-            } else if (newQuantity < currentChasis.length) {
+            } else if (newQuantity < currentChasis.length && newQuantity >= 0) {
               // Recortar el array si la cantidad disminuye
               updatedColor.chasis = currentChasis.slice(0, newQuantity);
               console.log('🔄 Chasis recortados:', updatedColor.chasis.length);
             }
+            
+            // Si la cantidad es 0, limpiar todos los chasis
+            if (newQuantity === 0) {
+              updatedColor.chasis = [];
+            }
           }
           
           return updatedColor;
+        }
+        return color;
+      })
+    }));
+  };
+
+  // Función para extraer prefijo y detectar patrón de chasis
+  const extractChasisPattern = (chasisInput: string) => {
+    if (!chasisInput || chasisInput.length < 8) return null;
+    
+    // Buscar donde terminan las letras y empiezan solo números
+    const match = chasisInput.match(/^([A-Z0-9]+?)(\d{4,})$/);
+    if (match) {
+      return {
+        prefix: match[1],
+        suffix: match[2],
+        suffixLength: match[2].length
+      };
+    }
+    
+    // Fallback: tomar los primeros 8-12 caracteres como prefijo
+    for (let i = 8; i <= Math.min(12, chasisInput.length); i++) {
+      const prefix = chasisInput.substring(0, i);
+      const suffix = chasisInput.substring(i);
+      if (/^\d+$/.test(suffix) && suffix.length >= 3) {
+        return {
+          prefix,
+          suffix,
+          suffixLength: suffix.length
+        };
+      }
+    }
+    
+    return null;
+  };
+
+  // Función para generar sugerencias de chasis
+  const generateChasisSuggestions = (colorIndex: number) => {
+    const color = formData.colores[colorIndex];
+    if (!color || color.chasis.length === 0) return [];
+    
+    const firstChasis = color.chasis[0];
+    if (!firstChasis || firstChasis.trim() === '') return [];
+    
+    const pattern = extractChasisPattern(firstChasis.trim());
+    if (!pattern) return [];
+    
+    const suggestions = [];
+    const startNumber = parseInt(pattern.suffix);
+    
+    for (let i = 1; i < color.cantidad_stock; i++) {
+      if (i < color.chasis.length && color.chasis[i].trim() !== '') {
+        continue; // Skip if already filled
+      }
+      
+      const nextNumber = startNumber + i;
+      const paddedNumber = nextNumber.toString().padStart(pattern.suffixLength, '0');
+      suggestions.push(pattern.prefix + paddedNumber);
+    }
+    
+    return suggestions;
+  };
+
+  // Función para aplicar auto-completado
+  const applyChasisAutoFill = (colorIndex: number) => {
+    const suggestions = generateChasisSuggestions(colorIndex);
+    if (suggestions.length === 0) return;
+    
+    setFormData(prev => ({
+      ...prev,
+      colores: prev.colores.map((color, i) => {
+        if (i === colorIndex) {
+          const newChasis = [...color.chasis];
+          let suggestionIndex = 0;
+          
+          for (let j = 1; j < newChasis.length; j++) {
+            if (newChasis[j].trim() === '' && suggestionIndex < suggestions.length) {
+              newChasis[j] = suggestions[suggestionIndex];
+              suggestionIndex++;
+            }
+          }
+          
+          return { ...color, chasis: newChasis };
         }
         return color;
       })
@@ -1067,7 +1168,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Información básica del color */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">Color *</label>
                           <input
@@ -1089,10 +1191,22 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
                           <input
                             type="number"
-                            min="1"
+                            min="0"
                             value={color.cantidad_stock}
-                            onChange={(e) => updateColor(index, 'cantidad_stock', parseInt(e.target.value) || 1)}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Permitir campo vacío para que el usuario pueda editarlo libremente
+                              if (value === '') {
+                                updateColor(index, 'cantidad_stock', 0);
+                              } else {
+                                const numValue = parseInt(value);
+                                if (!isNaN(numValue) && numValue >= 0) {
+                                  updateColor(index, 'cantidad_stock', numValue);
+                                }
+                              }
+                            }}
                             readOnly={isReadOnly}
+                            placeholder="Cantidad de motos"
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                               errors[`cantidad_${index}`] ? 'border-red-500' : 'border-gray-300'
                             } ${isReadOnly ? 'bg-gray-50' : 'bg-white'}`}
@@ -1121,31 +1235,154 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           )}
                         </div>
 
-                        <div className="md:col-span-2 lg:col-span-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                      </div>
+
+                      {/* Información de compra específica */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <h5 className="text-sm font-semibold text-blue-900 mb-3 flex items-center">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Información de Compra Específica (Opcional)
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Precio Compra Individual
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={color.precio_compra_individual || ''}
+                              onChange={(e) => updateColor(index, 'precio_compra_individual', e.target.value ? parseFloat(e.target.value) : undefined)}
+                              readOnly={isReadOnly}
+                              placeholder="Precio específico de este lote"
+                              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                isReadOnly ? 'bg-gray-50' : 'bg-white'
+                              }`}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Si es diferente al precio base del modelo
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Tasa del Dólar
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={color.tasa_dolar || ''}
+                              onChange={(e) => updateColor(index, 'tasa_dolar', e.target.value ? parseFloat(e.target.value) : undefined)}
+                              readOnly={isReadOnly}
+                              placeholder="Ej: 58.50"
+                              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                isReadOnly ? 'bg-gray-50' : 'bg-white'
+                              }`}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Tasa al momento de la compra
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Fecha de Compra
+                            </label>
+                            <input
+                              type="date"
+                              value={color.fecha_compra || ''}
+                              onChange={(e) => updateColor(index, 'fecha_compra', e.target.value)}
+                              readOnly={isReadOnly}
+                              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                isReadOnly ? 'bg-gray-50' : 'bg-white'
+                              }`}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Fecha de compra de este stock
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Cálculo de precio en pesos */}
+                        {color.precio_compra_individual && color.tasa_dolar && (
+                          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                            <div className="text-sm">
+                              <span className="text-green-700 font-medium">
+                                Precio en RD$: {(color.precio_compra_individual * color.tasa_dolar).toLocaleString('es-DO', {
+                                  style: 'currency',
+                                  currency: 'DOP',
+                                  minimumFractionDigits: 0
+                                })}
+                              </span>
+                              <span className="text-gray-500 text-xs ml-2">
+                                (${color.precio_compra_individual} × RD${color.tasa_dolar})
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Números de Chasis */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-sm font-medium text-gray-700">
                             Números de Chasis *
                           </label>
-                          <p className="text-xs text-gray-500 mb-2">
-                            Se requiere un número de chasis único para cada unidad ({color.cantidad_stock} unidades)
-                          </p>
+                          {!isReadOnly && color.cantidad_stock > 1 && color.chasis[0]?.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => applyChasisAutoFill(index)}
+                              className="flex items-center px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                              title="Auto-completar chasis basado en el primer número"
+                            >
+                              <Wand2 className="h-3 w-3 mr-1" />
+                              Auto-completar
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">
+                          Se requiere un número de chasis único para cada unidad ({color.cantidad_stock} unidades)
+                        </p>
+                        {color.chasis[0]?.trim() && color.cantidad_stock > 1 && (
+                          <div className="text-xs text-blue-600 mb-2 p-2 bg-blue-50 rounded border border-blue-200">
+                            💡 <strong>Tip:</strong> Ingresa el primer chasis completo y usa "Auto-completar" para generar los siguientes automáticamente
+                          </div>
+                        )}
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {color.chasis.map((chasis, chasisIndex) => (
-                              <div key={chasisIndex}>
-                                <input
-                                  type="text"
-                                  value={chasis}
-                                  onChange={(e) => updateChasis(index, chasisIndex, e.target.value)}
-                                  readOnly={isReadOnly}
-                                  placeholder={`Chasis ${chasisIndex + 1}...`}
-                                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                    isReadOnly ? 'bg-gray-50' : 'bg-white'
-                                  } ${!chasis.trim() ? 'border-red-300 bg-red-50' : ''}`}
-                                />
-                                {!chasis.trim() && (
-                                  <p className="text-red-500 text-xs mt-1">Chasis requerido</p>
-                                )}
-                              </div>
-                            ))}
+                            {color.chasis.map((chasis, chasisIndex) => {
+                              const isFirstChasis = chasisIndex === 0;
+                              const pattern = isFirstChasis && chasis.trim() ? extractChasisPattern(chasis.trim()) : null;
+                              
+                              return (
+                                <div key={chasisIndex} className={isFirstChasis ? 'md:col-span-2 lg:col-span-3' : ''}>
+                                  {isFirstChasis && (
+                                    <label className="text-xs font-medium text-blue-600 mb-1 block">
+                                      Chasis Base (usado para generar los siguientes)
+                                    </label>
+                                  )}
+                                  <input
+                                    type="text"
+                                    value={chasis}
+                                    onChange={(e) => updateChasis(index, chasisIndex, e.target.value)}
+                                    readOnly={isReadOnly}
+                                    placeholder={isFirstChasis ? "Ej: TBLPCL4A02B002222" : `Chasis ${chasisIndex + 1}...`}
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                      isReadOnly ? 'bg-gray-50' : 'bg-white'
+                                    } ${!chasis.trim() ? 'border-red-300 bg-red-50' : isFirstChasis ? 'border-blue-300 bg-blue-50' : 'border-gray-300'}`}
+                                  />
+                                  {pattern && (
+                                    <div className="text-xs text-green-600 mt-1">
+                                      ✅ Patrón detectado: <code className="bg-green-100 px-1 rounded">{pattern.prefix}</code> + números secuenciales
+                                    </div>
+                                  )}
+                                  {!chasis.trim() && (
+                                    <p className="text-red-500 text-xs mt-1">Chasis requerido</p>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                           {/* Errores de validación de chasis */}
                           {errors[`chasis_${index}`] && (
@@ -1154,7 +1391,6 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           {errors[`chasis_duplicados_${index}`] && (
                             <p className="text-red-500 text-sm mt-2">{errors[`chasis_duplicados_${index}`]}</p>
                           )}
-                        </div>
                       </div>
 
                       {/* Precio con descuento */}

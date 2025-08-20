@@ -13,7 +13,8 @@ import {
   CheckCircle,
   XCircle,
   ShoppingCart,
-  Palette,
+  Circle,
+  Grid3X3,
   Info,
   X,
   Filter,
@@ -27,6 +28,9 @@ import { motoModeloService } from '../services/motoModeloService';
 import MotoForm from '../components/MotoForm';
 import MotoModeloForm from '../components/MotoModeloForm';
 import MotoModeloDetalle from '../components/MotoModeloDetalle';
+import NewVentaForm from '../components/NewVentaForm';
+// import ResumenModelo from '../components/ResumenModelo';
+// import EspecificacionesTecnicas from '../components/EspecificacionesTecnicas';
 import ViewToggle from '../components/common/ViewToggle';
 import type { Moto, MotoModelo } from '../types';
 
@@ -223,27 +227,24 @@ const Motocicletas: React.FC = () => {
     setShowVentaDirecta(true);
   };
 
+  const handleVentaSuccess = () => {
+    setShowVentaDirecta(false);
+    // Recargar datos después de una venta exitosa
+    loadModelos(currentPage, searchTerm);
+  };
+
   const [estadisticasModelo, setEstadisticasModelo] = useState<any>(null);
   const [modeloEspecificaciones, setModeloEspecificaciones] = useState<MotoModelo | null>(null);
 
   const handleResumenModelo = async (modelo: MotoModelo) => {
-    try {
-      // Obtener las estadísticas detalladas del modelo
-      const estadisticas = await motoModeloService.getEstadisticasModelo(modelo.id);
-      setEstadisticasModelo(estadisticas);
-      setSelectedModelo(modelo);
-      setShowResumenModelo(true);
-    } catch (err) {
-      console.error('Error loading modelo statistics:', err);
-      setEstadisticasModelo(null);
-      setSelectedModelo(modelo);
-      setShowResumenModelo(true);
-    }
+    setSelectedModelo(modelo);
+    setShowDetalleModelo(true);
   };
 
   const handleVerEspecificaciones = (modelo: MotoModelo) => {
-    setModeloEspecificaciones(modelo);
-    setShowEspecificaciones(true);
+    // Temporarily disabled - EspecificacionesTecnicas component doesn't exist  
+    console.log('Ver especificaciones clicked for:', modelo.marca, modelo.modelo);
+    alert('Funcionalidad de especificaciones temporalmente desactivada');
   };
 
   const formatCurrency = (amount: number) => {
@@ -262,6 +263,43 @@ const Motocicletas: React.FC = () => {
       case 'COP': return '$';
       default: return '$';
     }
+  };
+
+  const getColorStyle = (colorName: string) => {
+    const colorMap: Record<string, string> = {
+      // Colores básicos
+      'rojo': '#ef4444',
+      'azul': '#3b82f6',
+      'verde': '#22c55e',
+      'amarillo': '#eab308',
+      'negro': '#1f2937',
+      'blanco': '#f8fafc',
+      'gris': '#6b7280',
+      'naranja': '#f97316',
+      'morado': '#8b5cf6',
+      'rosa': '#ec4899',
+      'violeta': '#7c3aed',
+      'celeste': '#0ea5e9',
+      'dorado': '#fbbf24',
+      'plateado': '#9ca3af',
+      'café': '#92400e',
+      'marrón': '#92400e',
+      'beige': '#d6d3d1',
+      'crema': '#fef7cd',
+      // Variantes
+      'rojo oscuro': '#dc2626',
+      'azul oscuro': '#1d4ed8',
+      'verde oscuro': '#16a34a',
+      'gris oscuro': '#374151',
+      'azul claro': '#60a5fa',
+      'verde claro': '#4ade80',
+      'rojo claro': '#f87171',
+      // Default
+      'default': '#6b7280'
+    };
+    
+    const normalizedColor = colorName.toLowerCase().trim();
+    return colorMap[normalizedColor] || colorMap['default'];
   };
 
   const formatCurrencyWithSymbol = (amount: number, currency: string) => {
@@ -369,14 +407,27 @@ const Motocicletas: React.FC = () => {
         filteredData = filteredData.filter((modelo: MotoModelo) =>
           modelo.marca.toLowerCase().includes(search) ||
           modelo.modelo.toLowerCase().includes(search) ||
-          modelo.ano.toString().includes(search)
+          modelo.ano.toString().includes(search) ||
+          // Buscar en inventario de cada modelo (chasis, color)
+          (modelo.inventario && modelo.inventario.some(item => 
+            (item.chasis && (
+              item.chasis.toLowerCase().includes(search) ||
+              item.chasis.slice(-4).toLowerCase() === search.slice(-4) // Últimos 4 dígitos
+            )) ||
+            (item.color && item.color.toLowerCase().includes(search))
+          ))
         );
       } else {
         filteredData = filteredData.filter((moto: Moto) =>
           moto.marca.toLowerCase().includes(search) ||
           moto.modelo.toLowerCase().includes(search) ||
           moto.ano.toString().includes(search) ||
-          (moto.color && moto.color.toLowerCase().includes(search))
+          (moto.color && moto.color.toLowerCase().includes(search)) ||
+          // Buscar por chasis completo o últimos 4 dígitos
+          (moto.chasis && (
+            moto.chasis.toLowerCase().includes(search) ||
+            moto.chasis.slice(-4).toLowerCase() === search.slice(-4)
+          ))
         );
       }
     }
@@ -384,8 +435,92 @@ const Motocicletas: React.FC = () => {
     return filteredData;
   };
 
+  // Función para obtener todas las unidades individuales de inventario
+  const getAllInventoryUnits = () => {
+    const allUnits: any[] = [];
+    
+    modelos.forEach(modelo => {
+      if (modelo.inventario && modelo.inventario.length > 0) {
+        modelo.inventario.forEach(item => {
+          // Si hay múltiples chasis en el item, crear una entrada por cada chasis
+          if (item.chasis_list && Array.isArray(item.chasis_list)) {
+            item.chasis_list.forEach((chasisNum, index) => {
+              if (chasisNum && chasisNum.trim()) {
+                allUnits.push({
+                  id: `${modelo.id}-${item.id}-${index}`,
+                  marca: modelo.marca,
+                  modelo: modelo.modelo,
+                  ano: modelo.ano,
+                  condicion: modelo.condicion,
+                  color: item.color,
+                  chasis: chasisNum,
+                  fecha_ingreso: item.fecha_ingreso,
+                  fecha_compra: item.fecha_compra,
+                  precio_compra_individual: item.precio_compra_individual || modelo.precio_compra,
+                  precio_venta: modelo.precio_venta,
+                  moneda_compra: modelo.moneda_compra,
+                  moneda_venta: modelo.moneda_venta,
+                  tasa_dolar: item.tasa_dolar,
+                  descuento_porcentaje: item.descuento_porcentaje || 0,
+                  imagen: modelo.imagen,
+                  activa: modelo.activa
+                });
+              }
+            });
+          } else if (item.chasis) {
+            // Chasis único
+            allUnits.push({
+              id: `${modelo.id}-${item.id}`,
+              marca: modelo.marca,
+              modelo: modelo.modelo,
+              ano: modelo.ano,
+              condicion: modelo.condicion,
+              color: item.color,
+              chasis: item.chasis,
+              fecha_ingreso: item.fecha_ingreso,
+              fecha_compra: item.fecha_compra,
+              precio_compra_individual: item.precio_compra_individual || modelo.precio_compra,
+              precio_venta: modelo.precio_venta,
+              moneda_compra: modelo.moneda_compra,
+              moneda_venta: modelo.moneda_venta,
+              tasa_dolar: item.tasa_dolar,
+              descuento_porcentaje: item.descuento_porcentaje || 0,
+              imagen: modelo.imagen,
+              activa: modelo.activa
+            });
+          } else {
+            // Si no tiene chasis específico, crear entradas según cantidad
+            for (let i = 0; i < item.cantidad_stock; i++) {
+              allUnits.push({
+                id: `${modelo.id}-${item.id}-${i}`,
+                marca: modelo.marca,
+                modelo: modelo.modelo,
+                ano: modelo.ano,
+                condicion: modelo.condicion,
+                color: item.color,
+                chasis: `Sin asignar ${i + 1}`,
+                fecha_ingreso: item.fecha_ingreso,
+                fecha_compra: item.fecha_compra,
+                precio_compra_individual: item.precio_compra_individual || modelo.precio_compra,
+                precio_venta: modelo.precio_venta,
+                moneda_compra: modelo.moneda_compra,
+                moneda_venta: modelo.moneda_venta,
+                tasa_dolar: item.tasa_dolar,
+                descuento_porcentaje: item.descuento_porcentaje || 0,
+                imagen: modelo.imagen,
+                activa: modelo.activa
+              });
+            }
+          }
+        });
+      }
+    });
+
+    return allUnits;
+  };
+
   const getGroupedByBrand = () => {
-    const filteredData = getFilteredData();
+    const filteredData = viewMode === 'individual' ? getAllInventoryUnits() : getFilteredData();
     if (!groupByBrand) return { 'Todas las marcas': filteredData };
 
     const grouped = filteredData.reduce((acc: any, item: any) => {
@@ -453,8 +588,8 @@ const Motocicletas: React.FC = () => {
               }`}
             >
               <div className="flex items-center">
-                <Palette className="h-4 w-4 mr-2" />
-                Modelos con Colores
+                <Grid3X3 className="h-4 w-4 mr-2" />
+                Catálogo
               </div>
             </button>
             <button
@@ -466,8 +601,8 @@ const Motocicletas: React.FC = () => {
               }`}
             >
               <div className="flex items-center">
-                <Bike className="h-4 w-4 mr-2" />
-                Vista Individual
+                <Package className="h-4 w-4 mr-2" />
+                Ver Inventario
               </div>
             </button>
           </nav>
@@ -920,239 +1055,149 @@ const Motocicletas: React.FC = () => {
           ))}
         </div>
       ) : (
-        /* Vista Individual con Filtros y Agrupación */
+        /* Vista de Inventario Individual por Chasis */
         <div className="space-y-6">
-          {Object.entries(getGroupedByBrand()).map(([brand, items]: [string, any[]]) => (
+          {Object.entries(getGroupedByBrand()).map(([brand, units]: [string, any[]]) => (
             <div key={brand} className="space-y-4">
               {/* Header de marca */}
               {groupByBrand && (
                 <div className="flex items-center gap-3 border-b border-gray-200 pb-2">
                   <Building className="h-5 w-5 text-gray-600" />
                   <h2 className="text-lg font-semibold text-gray-900">{brand}</h2>
-                  <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full">
-                    {items.length} {items.length === 1 ? 'moto' : 'motos'}
+                  <span className="bg-blue-100 text-blue-600 text-sm px-2 py-1 rounded-full">
+                    {units.length} {units.length === 1 ? 'unidad' : 'unidades'}
                   </span>
                 </div>
               )}
               
-              {/* Grid de elementos */}
-              <div className={`
-                ${displayMode === 'grid' 
-                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                  : 'space-y-4'
-                }
-              `}>
-                {items.map((moto) => (
-                  displayMode === 'grid' ? (
-                    /* Vista en grilla */
-                    <div key={moto.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                      {/* Imagen */}
-                      <div className="h-48 bg-gray-200 relative">
-                        {moto.imagen ? (
-                          <img
-                            src={moto.imagen}
-                            alt={`${moto.marca} ${moto.modelo}${moto.color ? ` ${moto.color}` : ''}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Bike className="h-16 w-16 text-gray-400" />
-                          </div>
-                        )}
+              {/* Tabla de inventario individual */}
+              <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Motocicleta
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Color
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Chasis
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Fecha Ingreso
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Fecha Compra
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Precio Compra
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tasa Dólar
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Precio Venta
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ganancia
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {units.map((unit) => {
+                        const ganancia = unit.tasa_dolar && unit.precio_compra_individual 
+                          ? unit.precio_venta - (unit.precio_compra_individual * unit.tasa_dolar)
+                          : unit.precio_venta - unit.precio_compra_individual;
                         
-                        {/* Status Badge */}
-                        <div className="absolute top-2 right-2">
-                          {moto.disponible ? (
-                            <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
-                              Disponible
-                            </span>
-                          ) : (
-                            <span className="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">
-                              No Disponible
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Content */}
-                      <div className="p-6">
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {moto.marca} {moto.modelo}
-                              {moto.color && <span className="text-blue-600"> - {moto.color}</span>}
-                            </h3>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              moto.condicion?.toLowerCase()?.trim() === 'nueva' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {moto.condicion?.toLowerCase()?.trim() === 'nueva' ? 'Nueva' : 'Usada'}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-500">Año {moto.ano}</p>
-                          {moto.chasis && (
-                            <p className="text-xs text-gray-400">Chasis: {moto.chasis}</p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Compra:</span>
-                            <span className="font-semibold text-orange-600">
-                              {formatCurrencyWithSymbol(moto.precio_compra, moto.moneda_compra || 'COP')}
-                            </span>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Venta:</span>
-                            <span className="font-semibold text-green-600">
-                              {formatCurrencyWithSymbol(moto.precio_venta, moto.moneda_venta || 'COP')}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Stock:</span>
-                            <div className={`flex items-center gap-1 ${getStockStatusColor(moto.cantidad_stock)}`}>
-                              {getStockStatusIcon(moto.cantidad_stock)}
-                              <span className="font-semibold">{moto.cantidad_stock}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            Ingreso: {new Date(moto.fecha_ingreso).toLocaleDateString('es-CO')}
-                          </div>
-                        </div>
-
-                        {moto.descripcion && (
-                          <div className="mb-4">
-                            <p className="text-sm text-gray-600 line-clamp-2">{moto.descripcion}</p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => openModal('view', moto)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                            title="Ver detalles"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => openModal('edit', moto)}
-                            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
-                            title="Editar"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(moto)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Vista en lista */
-                    <div key={moto.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                      <div className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            {/* Imagen pequeña */}
-                            <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                              {moto.imagen ? (
-                                <img
-                                  src={moto.imagen}
-                                  alt={`${moto.marca} ${moto.modelo}${moto.color ? ` ${moto.color}` : ''}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Bike className="h-8 w-8 text-gray-400" />
+                        return (
+                          <tr key={unit.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="h-10 w-10 flex-shrink-0">
+                                  {unit.imagen ? (
+                                    <img
+                                      className="h-10 w-10 rounded-lg object-cover"
+                                      src={unit.imagen}
+                                      alt={`${unit.marca} ${unit.modelo}`}
+                                    />
+                                  ) : (
+                                    <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                                      <Bike className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                            
-                            {/* Información básica */}
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                  {moto.marca} {moto.modelo}
-                                  {moto.color && <span className="text-blue-600"> - {moto.color}</span>}
-                                </h3>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                  moto.condicion === 'nueva' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-yellow-100 text-yellow-800'
-                                }`}>
-                                  {moto.condicion === 'nueva' ? 'Nueva' : 'Usada'}
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {unit.marca} {unit.modelo}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {unit.ano} • {unit.condicion === 'nueva' ? 'Nueva' : 'Usada'}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <Circle 
+                                  className={`h-4 w-4 mr-2 fill-current ${unit.color.toLowerCase().includes('blanco') || unit.color.toLowerCase().includes('crema') ? 'border border-gray-300 rounded-full' : ''}`}
+                                  style={{ color: getColorStyle(unit.color) }}
+                                />
+                                <span className="text-sm font-medium text-gray-700">{unit.color}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-sm font-mono text-gray-900">{unit.chasis}</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(unit.fecha_ingreso).toLocaleDateString('es-CO')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {unit.fecha_compra 
+                                ? new Date(unit.fecha_compra).toLocaleDateString('es-CO')
+                                : '-'
+                              }
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm">
+                                <div className="font-medium text-orange-600">
+                                  {getCurrencySymbol(unit.moneda_compra || 'USD')} {unit.precio_compra_individual?.toLocaleString()}
+                                </div>
+                                {unit.tasa_dolar && (
+                                  <div className="text-xs text-gray-500">
+                                    RD${(unit.precio_compra_individual * unit.tasa_dolar).toLocaleString()}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {unit.tasa_dolar ? (
+                                <span className="text-sm font-medium text-green-600">
+                                  RD${unit.tasa_dolar}
                                 </span>
-                              </div>
-                              <p className="text-sm text-gray-500">Año {moto.ano}</p>
-                              {moto.chasis && (
-                                <p className="text-xs text-gray-400">Chasis: {moto.chasis}</p>
+                              ) : (
+                                <span className="text-sm text-gray-400">-</span>
                               )}
-                            </div>
-                          </div>
-                          
-                          {/* Información de precio y stock */}
-                          <div className="flex items-center space-x-6">
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">Compra</p>
-                              <p className="font-semibold text-orange-600">{formatCurrencyWithSymbol(moto.precio_compra, moto.moneda_compra || 'COP')}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">Venta</p>
-                              <p className="font-semibold text-green-600">{formatCurrencyWithSymbol(moto.precio_venta, moto.moneda_venta || 'COP')}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">Stock</p>
-                              <div className={`flex items-center justify-end gap-1 ${getStockStatusColor(moto.cantidad_stock)}`}>
-                                {getStockStatusIcon(moto.cantidad_stock)}
-                                <span className="font-semibold">{moto.cantidad_stock}</span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">Estado</p>
-                              <div className={`text-xs font-medium ${moto.disponible ? 'text-green-600' : 'text-red-600'}`}>
-                                {moto.disponible ? 'Disponible' : 'No Disponible'}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Acciones */}
-                          <div className="flex items-center space-x-1 ml-4">
-                            <button
-                              onClick={() => openModal('view', moto)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title="Ver detalles"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => openModal('edit', moto)}
-                              className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
-                              title="Editar"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(moto)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                ))}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="text-sm font-medium text-green-600">
+                                {getCurrencySymbol(unit.moneda_venta || 'RD')} {unit.precio_venta?.toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`text-sm font-medium ${
+                                ganancia > 0 ? 'text-green-600' : 'text-red-600'
+                              }`}>
+                                {getCurrencySymbol(unit.moneda_venta || 'RD')} {ganancia?.toLocaleString()}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           ))}
@@ -1160,15 +1205,15 @@ const Motocicletas: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {((viewMode === 'modelos' && modelos.length === 0) || (viewMode === 'individual' && motos.length === 0)) && !loading && (
+      {((viewMode === 'modelos' && modelos.length === 0) || (viewMode === 'individual' && getAllInventoryUnits().length === 0)) && !loading && (
         <div className="text-center py-12">
-          <Bike className="mx-auto h-12 w-12 text-gray-400" />
+          <Package className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">
-            {viewMode === 'modelos' ? 'No hay modelos de motocicletas' : 'No hay motocicletas'}
+            {viewMode === 'modelos' ? 'No hay modelos de motocicletas' : 'No hay unidades en inventario'}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
             {searchTerm 
-              ? `No se encontraron ${viewMode === 'modelos' ? 'modelos' : 'motos'} con esa búsqueda.` 
+              ? `No se encontraron ${viewMode === 'modelos' ? 'modelos' : 'unidades'} con esa búsqueda.` 
               : `Comienza agregando tu primer${viewMode === 'modelos' ? ' modelo de' : 'a'} motocicleta.`
             }
           </p>
@@ -1176,62 +1221,22 @@ const Motocicletas: React.FC = () => {
             <div className="mt-6">
               <button
                 onClick={() => openModal('create')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                <Plus className="h-4 w-4" />
-                {viewMode === 'modelos' ? 'Nuevo Modelo' : 'Nueva Moto'}
+                <Plus className="h-4 w-4 mr-2" />
+                {viewMode === 'modelos' ? 'Agregar Modelo' : 'Agregar Motocicleta'}
               </button>
             </div>
           )}
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex justify-center">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const page = currentPage <= 3 ? i + 1 : currentPage - 2 + i;
-              if (page > totalPages) return null;
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    currentPage === page
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {page}
-                </button>
-              );
-            })}
-            
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Form Modals */}
+      {/* Modals */}
       {showModal && viewMode === 'modelos' && (
         <MotoModeloForm
           modelo={selectedModelo}
           mode={modalMode}
+          isReadOnly={modalMode === 'view'}
           onClose={closeModal}
           onSave={handleFormSave}
         />
@@ -1246,693 +1251,38 @@ const Motocicletas: React.FC = () => {
         />
       )}
 
-      {/* Modelo Detail Modal */}
       {showDetalleModelo && selectedModelo && (
         <MotoModeloDetalle
           modelo={selectedModelo}
-          onClose={() => {
-            setShowDetalleModelo(false);
-            setSelectedModelo(null);
-          }}
+          onClose={() => setShowDetalleModelo(false)}
           onVentaDirecta={handleVentaDirecta}
           onUpdate={handleUpdateModelo}
         />
       )}
 
-      {/* Venta Directa Modal */}
       {showVentaDirecta && selectedModelo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              Venta Directa - {selectedModelo.marca} {selectedModelo.modelo}
-            </h3>
-            
-            <div className="mb-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-blue-900 mb-2">Información del Modelo</h4>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <p><span className="font-medium">Modelo:</span> {selectedModelo.marca} {selectedModelo.modelo} {selectedModelo.ano}</p>
-                  <p><span className="font-medium">Compra:</span> {formatCurrencyWithSymbol(selectedModelo.precio_compra, selectedModelo.moneda_compra || 'COP')}</p>
-                  <p><span className="font-medium">Venta:</span> {formatCurrencyWithSymbol(selectedModelo.precio_venta, selectedModelo.moneda_venta || 'COP')}</p>
-                  <p><span className="font-medium">Stock Total:</span> {selectedModelo.total_stock} unidades</p>
-                </div>
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h4 className="font-medium text-yellow-900 mb-3">Colores Disponibles</h4>
-                <div className="space-y-2">
-                  {Object.entries(selectedModelo.colores_disponibles).map(([color, cantidad]) => (
-                    <div key={color} className="flex justify-between items-center p-2 bg-white rounded-lg border">
-                      <div className="flex items-center">
-                        <div 
-                          className="w-4 h-4 rounded-full mr-3 border border-gray-300"
-                          style={{ 
-                            backgroundColor: getColorCode(color),
-                            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
-                          }}
-                        ></div>
-                        <span className="text-yellow-700 font-medium">{color}</span>
-                      </div>
-                      <span className="text-yellow-700 font-bold bg-yellow-100 px-2 py-1 rounded-full text-xs">
-                        {cantidad} unidades
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex space-x-3">
-              <button
-                onClick={() => {
-                  setShowVentaDirecta(false);
-                  setSelectedModelo(null);
-                }}
-                className="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  // Redirigir al sistema de ventas con información pre-cargada
-                  const searchParams = new URLSearchParams({
-                    modelo_id: selectedModelo.id.toString(),
-                    marca: selectedModelo.marca,
-                    modelo: selectedModelo.modelo,
-                    ano: selectedModelo.ano.toString(),
-                    precio: selectedModelo.precio_venta.toString()
-                  });
-                  
-                  // Navegar a la página de ventas con parámetros
-                  window.location.href = `/ventas?${searchParams.toString()}`;
-                }}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 flex items-center justify-center"
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Ir a Ventas
-              </button>
-            </div>
-          </div>
-        </div>
+        <NewVentaForm
+          onClose={() => setShowVentaDirecta(false)}
+          preSelectedMoto={selectedModelo}
+          onSuccess={handleVentaSuccess}
+        />
       )}
 
-      {/* Resumen Modal */}
-      {showResumenModelo && selectedModelo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                <Info className="h-6 w-6 mr-3 text-blue-600" />
-                <div>
-                  <div className="text-xl font-bold">{selectedModelo.marca} {selectedModelo.modelo}</div>
-                  <div className="text-sm text-gray-600 font-normal">Año {selectedModelo.ano} • Detalles Completos y Estadísticas</div>
-                </div>
-              </h2>
-              <button 
-                onClick={() => {
-                  setShowResumenModelo(false);
-                  setSelectedModelo(null);
-                  setEstadisticasModelo(null);
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
+      {/* Temporarily disabled - components don't exist yet */}
+      {/*showResumenModelo && selectedModelo && (
+        <ResumenModelo
+          modelo={selectedModelo}
+          estadisticas={estadisticasModelo}
+          onClose={() => setShowResumenModelo(false)}
+        />
+      )*/}
 
-            {/* Content */}
-            <div className="p-6">
-              {estadisticasModelo ? (
-                <div className="space-y-6">
-                  {/* Información Básica y Estado */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Imagen y Info Básica */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                      <div className="aspect-w-16 aspect-h-12 mb-4">
-                        {selectedModelo.imagen ? (
-                          <img
-                            src={selectedModelo.imagen}
-                            alt={`${selectedModelo.marca} ${selectedModelo.modelo}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
-                        ) : (
-                          <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <Bike className="h-12 w-12 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-gray-900">{selectedModelo.marca} {selectedModelo.modelo}</h3>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Año:</span>
-                          <span className="font-medium">{selectedModelo.ano}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Condición:</span>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            selectedModelo.condicion === 'nueva' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {selectedModelo.condicion === 'nueva' ? 'Nueva' : 'Usada'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Estado:</span>
-                          <span className={`font-medium ${
-                            estadisticasModelo.modelo_info.activa ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {estadisticasModelo.modelo_info.activa ? 'Activo' : 'Inactivo'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Información de Precios */}
-                    <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-lg p-4 shadow-sm">
-                      <h3 className="text-lg font-semibold text-orange-900 mb-3 flex items-center">
-                        <DollarSign className="h-5 w-5 mr-2" />
-                        Información Financiera
-                      </h3>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-orange-700 text-sm">Precio de Compra:</span>
-                          <span className="font-bold text-orange-900">
-                            {formatCurrencyWithSymbol(estadisticasModelo.modelo_info.precio_compra, selectedModelo.moneda_compra || 'COP')}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-green-700 text-sm">Precio de Venta:</span>
-                          <span className="font-bold text-green-900">
-                            {formatCurrencyWithSymbol(estadisticasModelo.modelo_info.precio_venta, selectedModelo.moneda_venta || 'COP')}
-                          </span>
-                        </div>
-                        <div className="border-t pt-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-blue-700 text-sm font-medium">Ganancia por Unidad:</span>
-                            <span className="font-bold text-blue-900 text-lg">
-                              {formatCurrency(estadisticasModelo.modelo_info.ganancia_por_unidad)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Stock Rápido */}
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 shadow-sm">
-                      <h3 className="text-lg font-semibold text-green-900 mb-3 flex items-center">
-                        <Package className="h-5 w-5 mr-2" />
-                        Stock Actual
-                      </h3>
-                      <div className="text-center mb-3">
-                        <div className="text-3xl font-bold text-green-900">{estadisticasModelo.inventario_actual.stock_total}</div>
-                        <div className="text-sm text-green-700">unidades disponibles</div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-green-700">Valor del Inventario:</span>
-                          <span className="font-semibold text-green-900">
-                            {formatCurrency(estadisticasModelo.resumen.valor_inventario_actual)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-green-700">Ganancia Potencial:</span>
-                          <span className="font-semibold text-green-600">
-                            {formatCurrency(estadisticasModelo.inventario_actual.ganancia_total_stock)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sección detallada */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Colores Disponibles Detallado */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-                      <Palette className="h-5 w-5 mr-2" />
-                      Colores Disponibles en Inventario
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {Object.entries(estadisticasModelo.inventario_actual.por_color).map(([color, info]: [string, any]) => (
-                        <div key={color} className="bg-white rounded-lg border border-blue-200 p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center">
-                              <div 
-                                className="w-5 h-5 rounded-full mr-3 border-2 border-white shadow-md"
-                                style={{ 
-                                  backgroundColor: getColorCode(color),
-                                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.1)'
-                                }}
-                              ></div>
-                              <span className="font-semibold text-blue-900 capitalize">{color}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-blue-900 text-lg">{info.stock}</div>
-                              <div className="text-xs text-blue-600">unidades</div>
-                            </div>
-                          </div>
-                          
-                          {/* Información de chasis */}
-                          {info.chasis_list && info.chasis_list.length > 0 && (
-                            <div className="mt-3 border-t pt-2">
-                              <div className="text-xs font-medium text-blue-700 mb-1">Números de Chasis:</div>
-                              <div className="space-y-1">
-                                {info.chasis_list.map((chasisInfo: any, index: number) => (
-                                  <div key={index} className="flex justify-between items-center bg-blue-50 px-2 py-1 rounded text-xs">
-                                    <span className="font-mono text-blue-800">{chasisInfo.chasis}</span>
-                                    <div className="text-right">
-                                      <div className="text-blue-600 font-medium">{chasisInfo.cantidad} unid.</div>
-                                      <div className="text-blue-500 text-xs">
-                                        {new Date(chasisInfo.fecha_ingreso).toLocaleDateString('es-CO')}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {info.descuento > 0 && (
-                            <div className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full text-center font-medium mt-2">
-                              {info.descuento}% descuento aplicado
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {Object.keys(estadisticasModelo.inventario_actual.por_color).length === 0 && (
-                        <div className="col-span-2 text-center text-blue-500 italic py-8">
-                          <Palette className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          No hay colores registrados en el inventario
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Historial de Ventas Mejorado */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center">
-                      <ShoppingCart className="h-5 w-5 mr-2" />
-                      Historial de Ventas y Rendimiento
-                    </h3>
-                    
-                    {/* Resumen rápido */}
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                      <div className="text-center bg-white rounded-lg p-3 border border-purple-200">
-                        <div className="text-2xl font-bold text-purple-900">{estadisticasModelo.ventas_historicas.total_vendidas}</div>
-                        <div className="text-sm text-purple-600">Unidades Vendidas</div>
-                      </div>
-                      <div className="text-center bg-white rounded-lg p-3 border border-purple-200">
-                        <div className="text-xl font-bold text-green-600">{formatCurrency(estadisticasModelo.ventas_historicas.total_ingresos)}</div>
-                        <div className="text-sm text-purple-600">Ingresos Totales</div>
-                      </div>
-                      <div className="text-center bg-white rounded-lg p-3 border border-purple-200">
-                        <div className="text-xl font-bold text-blue-600">{formatCurrency(estadisticasModelo.resumen.precio_promedio_venta)}</div>
-                        <div className="text-sm text-purple-600">Precio Promedio</div>
-                      </div>
-                    </div>
-
-                    {/* Ventas por color */}
-                    {Object.keys(estadisticasModelo.ventas_historicas.por_color).length > 0 ? (
-                      <div>
-                        <h4 className="font-medium text-purple-900 mb-3">Ventas por Color:</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {Object.entries(estadisticasModelo.ventas_historicas.por_color).map(([color, cantidad]: [string, any]) => (
-                            <div key={color} className="bg-white rounded-lg border border-purple-200 p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <div 
-                                    className="w-4 h-4 rounded-full mr-3 border-2 border-white shadow-sm"
-                                    style={{ backgroundColor: getColorCode(color) }}
-                                  ></div>
-                                  <span className="font-medium text-purple-900 capitalize">{color}</span>
-                                </div>
-                                <div className="text-right">
-                                  <div className="font-bold text-purple-900">{cantidad}</div>
-                                  <div className="text-xs text-purple-600">vendidas</div>
-                                </div>
-                              </div>
-                              <div className="mt-2 text-center">
-                                <div className="text-sm font-medium text-green-600">
-                                  {formatCurrency(estadisticasModelo.ventas_historicas.ingresos_por_color[color] || 0)}
-                                </div>
-                                <div className="text-xs text-purple-500">ingresos generados</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center text-purple-500 italic py-8">
-                        <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        No hay ventas registradas aún para este modelo
-                      </div>
-                    )}
-                  </div>
-
-                  </div>
-
-                  {/* Análisis y Resumen Final */}
-                  <div className="bg-gradient-to-br from-slate-50 to-gray-100 border border-gray-300 rounded-lg p-6 shadow-lg">
-                    <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-                      <DollarSign className="h-6 w-6 mr-3 text-green-600" />
-                      Análisis Financiero y Rendimiento
-                    </h3>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Resumen de Ganancias */}
-                      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                        <h4 className="font-semibold text-gray-800 mb-4 text-center">Resumen de Ganancias</h4>
-                        <div className="space-y-4">
-                          <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                            <div className="text-2xl font-bold text-green-700">
-                              {formatCurrency(estadisticasModelo.inventario_actual.ganancia_total_stock)}
-                            </div>
-                            <div className="text-sm text-green-600 font-medium">Ganancia Potencial</div>
-                            <div className="text-xs text-gray-500 mt-1">(Stock actual)</div>
-                          </div>
-                          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div className="text-2xl font-bold text-blue-700">
-                              {formatCurrency(estadisticasModelo.ventas_historicas.ganancia_total_ventas)}
-                            </div>
-                            <div className="text-sm text-blue-600 font-medium">Ganancia Realizada</div>
-                            <div className="text-xs text-gray-500 mt-1">(Ventas históricas)</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Métricas Clave */}
-                      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                        <h4 className="font-semibold text-gray-800 mb-4 text-center">Métricas Clave</h4>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-600">Rotación de Stock:</span>
-                            <span className="font-bold text-gray-800">{estadisticasModelo.resumen.rotacion_stock.toFixed(1)}%</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-600">Margen de Ganancia:</span>
-                            <span className="font-bold text-green-600">
-                              {((estadisticasModelo.modelo_info.ganancia_por_unidad / estadisticasModelo.modelo_info.precio_venta) * 100).toFixed(1)}%
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-600">Colores Disponibles:</span>
-                            <span className="font-bold text-blue-600">{Object.keys(estadisticasModelo.inventario_actual.por_color).length}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-600">Precio Promedio Venta:</span>
-                            <span className="font-bold text-purple-600">{formatCurrency(estadisticasModelo.resumen.precio_promedio_venta)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Estado y Acciones */}
-                      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                        <h4 className="font-semibold text-gray-800 mb-4 text-center">Estado y Acciones</h4>
-                        <div className="space-y-4">
-                          <div className={`text-center p-4 rounded-lg border-2 ${
-                            estadisticasModelo.modelo_info.activa 
-                              ? 'bg-green-50 border-green-200 text-green-800' 
-                              : 'bg-red-50 border-red-200 text-red-800'
-                          }`}>
-                            <div className="font-bold text-lg">
-                              {estadisticasModelo.modelo_info.activa ? '✓ ACTIVO' : '✗ INACTIVO'}
-                            </div>
-                            <div className="text-sm opacity-75">Estado del modelo</div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            {selectedModelo.disponible && (
-                              <button
-                                onClick={() => {
-                                  setShowResumenModelo(false);
-                                  handleVentaDirecta(selectedModelo);
-                                }}
-                                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                              >
-                                <ShoppingCart className="h-4 w-4 mr-2" />
-                                Iniciar Venta
-                              </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                setShowResumenModelo(false);
-                                openModal('edit', null, selectedModelo);
-                              }}
-                              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Editar Modelo
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">Cargando estadísticas...</p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end p-6 border-t">
-              <button
-                onClick={() => {
-                  setShowResumenModelo(false);
-                  setSelectedModelo(null);
-                  setEstadisticasModelo(null);
-                }}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Especificaciones Técnicas */}
-      {showEspecificaciones && modeloEspecificaciones && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-gray-50 to-slate-100">
-              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                <Bike className="h-6 w-6 mr-3 text-blue-600" />
-                <div>
-                  <div className="text-xl font-bold">{modeloEspecificaciones.marca} {modeloEspecificaciones.modelo}</div>
-                  <div className="text-sm text-gray-600 font-normal">Año {modeloEspecificaciones.ano} • Especificaciones Técnicas</div>
-                </div>
-              </h2>
-              <button 
-                onClick={() => {
-                  setShowEspecificaciones(false);
-                  setModeloEspecificaciones(null);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Imagen Principal */}
-                <div className="space-y-6">
-                  <div className="aspect-w-16 aspect-h-12">
-                    {modeloEspecificaciones.imagen ? (
-                      <img
-                        src={modeloEspecificaciones.imagen}
-                        alt={`${modeloEspecificaciones.marca} ${modeloEspecificaciones.modelo}`}
-                        className="w-full h-64 object-cover rounded-lg shadow-md"
-                      />
-                    ) : (
-                      <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Bike className="h-24 w-24 text-gray-400" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Información General */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-blue-900 mb-3">Información General</h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Marca:</span>
-                        <span className="font-medium text-blue-900">{modeloEspecificaciones.marca}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Modelo:</span>
-                        <span className="font-medium text-blue-900">{modeloEspecificaciones.modelo}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Año:</span>
-                        <span className="font-medium text-blue-900">{modeloEspecificaciones.ano}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-blue-700">Condición:</span>
-                        <span className={`font-medium ${
-                          modeloEspecificaciones.condicion === 'nueva' ? 'text-green-600' : 'text-yellow-600'
-                        }`}>
-                          {modeloEspecificaciones.condicion === 'nueva' ? 'Nueva' : 'Usada'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Precios */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-green-900 mb-3">Información de Precios</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-green-700">Precio de Compra:</span>
-                        <span className="font-bold text-orange-600">
-                          {formatCurrencyWithSymbol(modeloEspecificaciones.precio_compra, 'COP')}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-green-700">Precio de Venta:</span>
-                        <span className="font-bold text-green-600">
-                          {formatCurrencyWithSymbol(modeloEspecificaciones.precio_venta, 'COP')}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-t pt-2">
-                        <span className="text-green-700 font-medium">Ganancia por Unidad:</span>
-                        <span className="font-bold text-blue-600">
-                          {formatCurrency(modeloEspecificaciones.precio_venta - modeloEspecificaciones.precio_compra)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Especificaciones Técnicas */}
-                <div className="space-y-6">
-                  {/* Motor */}
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-red-900 mb-3 flex items-center">
-                      <DollarSign className="h-5 w-5 mr-2" />
-                      Especificaciones del Motor
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      {modeloEspecificaciones.cilindraje && (
-                        <div className="flex justify-between">
-                          <span className="text-red-700">Cilindraje:</span>
-                          <span className="font-medium text-red-900">{modeloEspecificaciones.cilindraje} CC</span>
-                        </div>
-                      )}
-                      {modeloEspecificaciones.tipo_motor && (
-                        <div className="flex justify-between">
-                          <span className="text-red-700">Tipo de Motor:</span>
-                          <span className="font-medium text-red-900">{modeloEspecificaciones.tipo_motor}</span>
-                        </div>
-                      )}
-                      {modeloEspecificaciones.potencia && (
-                        <div className="flex justify-between">
-                          <span className="text-red-700">Potencia:</span>
-                          <span className="font-medium text-red-900">{modeloEspecificaciones.potencia}</span>
-                        </div>
-                      )}
-                      {modeloEspecificaciones.torque && (
-                        <div className="flex justify-between">
-                          <span className="text-red-700">Torque:</span>
-                          <span className="font-medium text-red-900">{modeloEspecificaciones.torque}</span>
-                        </div>
-                      )}
-                      {modeloEspecificaciones.combustible && (
-                        <div className="flex justify-between">
-                          <span className="text-red-700">Combustible:</span>
-                          <span className="font-medium text-red-900">{modeloEspecificaciones.combustible}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Transmisión y Peso */}
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-purple-900 mb-3 flex items-center">
-                      <Package className="h-5 w-5 mr-2" />
-                      Transmisión y Características
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      {modeloEspecificaciones.transmision && (
-                        <div className="flex justify-between">
-                          <span className="text-purple-700">Transmisión:</span>
-                          <span className="font-medium text-purple-900">{modeloEspecificaciones.transmision}</span>
-                        </div>
-                      )}
-                      {modeloEspecificaciones.peso && (
-                        <div className="flex justify-between">
-                          <span className="text-purple-700">Peso:</span>
-                          <span className="font-medium text-purple-900">{modeloEspecificaciones.peso} kg</span>
-                        </div>
-                      )}
-                      {modeloEspecificaciones.capacidad_tanque && (
-                        <div className="flex justify-between">
-                          <span className="text-purple-700">Capacidad del Tanque:</span>
-                          <span className="font-medium text-purple-900">{modeloEspecificaciones.capacidad_tanque} L</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Descripción */}
-                  {modeloEspecificaciones.descripcion && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-gray-900 mb-3">Descripción Adicional</h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {modeloEspecificaciones.descripcion}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Estado */}
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-yellow-900 mb-3">Estado del Modelo</h3>
-                    <div className="space-y-2">
-                      <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${
-                        modeloEspecificaciones.activa 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {modeloEspecificaciones.activa ? '✓ Modelo Activo' : '✗ Modelo Inactivo'}
-                      </div>
-                      <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ml-2 ${
-                        modeloEspecificaciones.disponible 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {modeloEspecificaciones.disponible ? '📦 Stock Disponible' : '📭 Sin Stock'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end p-6 border-t bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowEspecificaciones(false);
-                  setModeloEspecificaciones(null);
-                }}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/*showEspecificaciones && modeloEspecificaciones && (
+        <EspecificacionesTecnicas
+          modelo={modeloEspecificaciones}
+          onClose={() => setShowEspecificaciones(false)}
+        />
+      )*/}
     </div>
   );
 };
