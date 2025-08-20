@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from django.db import models
-from .models import Moto, MotoModelo, MotoInventario
+from .models import Moto, MotoModelo, MotoInventario, Proveedor
 from .serializers import (
     MotoSerializer, MotoDisponibleSerializer, 
-    MotoModeloSerializer, MotoModeloCreateSerializer, MotoInventarioSerializer
+    MotoModeloSerializer, MotoModeloCreateSerializer, MotoInventarioSerializer,
+    ProveedorSerializer, ProveedorCreateSerializer, ProveedorListSerializer
 )
 
 class MotoListCreateView(generics.ListCreateAPIView):

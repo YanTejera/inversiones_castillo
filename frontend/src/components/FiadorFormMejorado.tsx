@@ -117,6 +117,7 @@ const FiadorFormMejorado: React.FC<FiadorFormProps> = ({
   const [activeTab, setActiveTab] = useState('personal');
 
   const validateForm = (): boolean => {
+    console.log('🔍 Validating form with data:', formData);
     const newErrors: Record<string, string> = {};
 
     if (!formData.nombre.trim()) {
@@ -137,8 +138,12 @@ const FiadorFormMejorado: React.FC<FiadorFormProps> = ({
       newErrors.direccion = 'La dirección es requerida';
     }
 
-    if (!formData.parentesco_cliente.trim()) {
-      newErrors.parentesco_cliente = 'El parentesco con el cliente es requerido';
+    // Hacer parentesco_cliente opcional para crear, requerido solo para editar
+    if (mode === 'create' || (mode === 'edit' && !formData.parentesco_cliente.trim())) {
+      // Solo requerir parentesco si hay valor y está vacío
+      if (formData.parentesco_cliente !== undefined && !formData.parentesco_cliente.trim()) {
+        newErrors.parentesco_cliente = 'El parentesco con el cliente es requerido';
+      }
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -149,17 +154,28 @@ const FiadorFormMejorado: React.FC<FiadorFormProps> = ({
       newErrors.ingresos = 'Los ingresos deben ser un número válido';
     }
 
+    console.log('Validation errors found:', newErrors);
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    console.log('Validation result:', isValid ? '✅ VALID' : '❌ INVALID');
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('=== FIADOR FORM SUBMIT ===');
+    console.log('Form data:', formData);
+    console.log('Fiador prop:', fiador);
+    console.log('Cliente ID:', clienteId);
+    console.log('Mode:', mode);
+    
     if (!validateForm()) {
+      console.log('❌ Validation failed');
       return;
     }
 
+    console.log('✅ Validation passed');
     setLoading(true);
     try {
       const submitData = {
@@ -169,11 +185,18 @@ const FiadorFormMejorado: React.FC<FiadorFormProps> = ({
         ...(fiador?.id && { id: fiador.id })
       };
 
+      console.log('Submit data prepared:', submitData);
+      console.log('Documentos:', documentos.length > 0 ? documentos : undefined);
+      
+      console.log('Calling onSave...');
       await onSave(submitData, documentos.length > 0 ? documentos : undefined);
-      onClose();
+      console.log('✅ onSave completed successfully');
+      // onClose() ya se llama desde handleSaveFiador si es exitoso
     } catch (error) {
-      console.error('Error saving fiador:', error);
+      console.error('❌ Error in handleSubmit:', error);
+      // No cerrar el formulario si hay error - el error ya se muestra en handleSaveFiador
     } finally {
+      console.log('Setting loading to false');
       setLoading(false);
     }
   };

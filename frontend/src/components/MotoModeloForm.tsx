@@ -448,85 +448,88 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 truncate pr-4">
             {mode === 'create' && 'Registrar Nueva Motocicleta'}
             {mode === 'edit' && 'Editar Motocicleta'}
             {mode === 'view' && 'Detalles de la Motocicleta'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0">
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 overflow-x-auto">
           <nav className="flex">
             <button
               onClick={() => setActiveTab('basico')}
-              className={`py-3 px-6 text-sm font-medium border-b-2 ${
+              className={`py-3 px-3 sm:px-6 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
                 activeTab === 'basico'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               <div className="flex items-center">
-                <Bike className="h-4 w-4 mr-2" />
-                Información Básica
+                <Bike className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Información Básica</span>
+                <span className="sm:hidden">Básico</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('colores')}
-              className={`py-3 px-6 text-sm font-medium border-b-2 ${
+              className={`py-3 px-3 sm:px-6 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
                 activeTab === 'colores'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               <div className="flex items-center">
-                <Palette className="h-4 w-4 mr-2" />
-                Colores y Chasis ({formData.colores.length})
+                <Palette className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Colores y Chasis ({formData.colores.length})</span>
+                <span className="sm:hidden">Colores ({formData.colores.length})</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('tecnicas')}
-              className={`py-3 px-6 text-sm font-medium border-b-2 ${
+              className={`py-3 px-3 sm:px-6 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
                 activeTab === 'tecnicas'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               <div className="flex items-center">
-                <Package className="h-4 w-4 mr-2" />
-                Especificaciones Técnicas
+                <Package className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Especificaciones Técnicas</span>
+                <span className="sm:hidden">Técnicas</span>
               </div>
             </button>
           </nav>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6">
           {/* Server Error */}
           {serverError && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            <div className="mb-4 sm:mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
               {serverError}
             </div>
           )}
 
           {/* Tab Básico */}
           {activeTab === 'basico' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Información Básica */}
-              <div className="lg:col-span-2 space-y-6">
-                <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                  <Bike className="h-5 w-5 mr-2" />
+              <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
+                  <Bike className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                   Información del Modelo
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Marca *</label>
                     <input

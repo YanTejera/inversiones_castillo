@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Moto, MotoModelo, MotoInventario
+from .models import Moto, MotoModelo, MotoInventario, Proveedor
 
 class MotoSerializer(serializers.ModelSerializer):
     ganancia = serializers.ReadOnlyField()
@@ -59,11 +59,12 @@ class MotoModeloSerializer(serializers.ModelSerializer):
     ganancia = serializers.ReadOnlyField()
     total_stock = serializers.ReadOnlyField()
     disponible = serializers.ReadOnlyField()
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre_completo', read_only=True)
     
     class Meta:
         model = MotoModelo
         fields = ['id', 'marca', 'modelo', 'ano', 'condicion', 'descripcion', 'imagen', 
-                 'precio_compra', 'precio_venta', 'moneda_compra', 'moneda_venta', 'ganancia', 'activa', 
+                 'precio_compra', 'precio_venta', 'moneda_compra', 'moneda_venta', 'proveedor', 'proveedor_nombre', 'ganancia', 'activa', 
                  'fecha_creacion', 'total_stock', 'disponible', 'inventario', 'cilindraje', 'tipo_motor',
                  'potencia', 'torque', 'combustible', 'transmision', 'peso', 'capacidad_tanque']
     
@@ -100,7 +101,7 @@ class MotoModeloCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MotoModelo
         fields = ['marca', 'modelo', 'ano', 'condicion', 'descripcion', 'imagen', 
-                 'precio_compra', 'precio_venta', 'moneda_compra', 'moneda_venta', 'activa', 'inventario_data', 'cilindraje', 'tipo_motor',
+                 'precio_compra', 'precio_venta', 'moneda_compra', 'moneda_venta', 'proveedor', 'activa', 'inventario_data', 'cilindraje', 'tipo_motor',
                  'potencia', 'torque', 'combustible', 'transmision', 'peso', 'capacidad_tanque']
     
     def validate(self, data):
@@ -264,3 +265,85 @@ class MotoModeloCreateSerializer(serializers.ModelSerializer):
                 raise
         
         return instance
+
+class ProveedorSerializer(serializers.ModelSerializer):
+    nombre_completo = serializers.ReadOnlyField()
+    contacto_principal = serializers.ReadOnlyField()
+    telefono_principal = serializers.ReadOnlyField()
+    email_principal = serializers.ReadOnlyField()
+    esta_activo = serializers.ReadOnlyField()
+    total_compras = serializers.SerializerMethodField()
+    total_motocicletas = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Proveedor
+        fields = [
+            'id', 'nombre', 'nombre_comercial', 'tipo_proveedor', 'ruc', 'cedula', 
+            'registro_mercantil', 'telefono', 'telefono2', 'email', 'sitio_web',
+            'direccion', 'ciudad', 'provincia', 'pais', 'codigo_postal',
+            'persona_contacto', 'cargo_contacto', 'telefono_contacto', 'email_contacto',
+            'moneda_preferida', 'terminos_pago', 'limite_credito', 'descuento_general',
+            'estado', 'fecha_inicio_relacion', 'notas', 'fecha_creacion', 'fecha_actualizacion',
+            'creado_por', 'nombre_completo', 'contacto_principal', 'telefono_principal',
+            'email_principal', 'esta_activo', 'total_compras', 'total_motocicletas'
+        ]
+        read_only_fields = ['fecha_creacion', 'fecha_actualizacion', 'creado_por']
+    
+    def get_total_compras(self, obj):
+        return obj.total_compras()
+    
+    def get_total_motocicletas(self, obj):
+        return obj.total_motocicletas()
+
+class ProveedorCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Proveedor
+        fields = [
+            'nombre', 'nombre_comercial', 'tipo_proveedor', 'ruc', 'cedula',
+            'registro_mercantil', 'telefono', 'telefono2', 'email', 'sitio_web',
+            'direccion', 'ciudad', 'provincia', 'pais', 'codigo_postal',
+            'persona_contacto', 'cargo_contacto', 'telefono_contacto', 'email_contacto',
+            'moneda_preferida', 'terminos_pago', 'limite_credito', 'descuento_general',
+            'estado', 'fecha_inicio_relacion', 'notas'
+        ]
+    
+    def validate(self, data):
+        # Validar que al menos RUC o cédula esté presente
+        if not data.get('ruc') and not data.get('cedula'):
+            raise serializers.ValidationError({
+                'non_field_errors': ['Debe proporcionar al menos RUC o cédula del proveedor.']
+            })
+        
+        # Validar que la dirección esté presente
+        if not data.get('direccion'):
+            raise serializers.ValidationError({
+                'direccion': ['La dirección es requerida.']
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        # Asignar el usuario que crea el proveedor
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['creado_por'] = request.user
+        
+        return super().create(validated_data)
+
+class ProveedorListSerializer(serializers.ModelSerializer):
+    nombre_completo = serializers.ReadOnlyField()
+    esta_activo = serializers.ReadOnlyField()
+    contacto_principal = serializers.ReadOnlyField()
+    telefono_principal = serializers.ReadOnlyField()
+    total_motocicletas = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Proveedor
+        fields = [
+            'id', 'nombre_completo', 'tipo_proveedor', 'ciudad', 'pais',
+            'contacto_principal', 'telefono_principal', 'email', 'estado',
+            'esta_activo', 'total_motocicletas', 'fecha_creacion'
+        ]
+    
+    def get_total_motocicletas(self, obj):
+        return obj.total_motocicletas()

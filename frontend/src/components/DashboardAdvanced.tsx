@@ -126,21 +126,21 @@ const DashboardAdvanced: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Inteligente</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Inteligente</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
             Análisis completo y predicciones empresariales
           </p>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
           {/* Period Selector */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 rounded-lg p-1 overflow-x-auto">
             {(['hoy', 'semana', 'mes', 'año'] as const).map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   selectedPeriod === period
                     ? 'bg-white shadow-sm text-blue-600'
                     : 'text-gray-600 hover:text-blue-600'
@@ -154,37 +154,37 @@ const DashboardAdvanced: React.FC = () => {
           {/* Refresh Button */}
           <button
             onClick={loadDashboardData}
-            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Actualizar</span>
           </button>
         </div>
       </div>
 
       {/* Métricas Principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <ShoppingCart className="h-6 w-6 text-blue-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center min-w-0 flex-1">
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
+                <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Ventas del Mes</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <div className="ml-3 sm:ml-4 min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-500">Ventas del Mes</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                   {formatCurrency(data.metricas_principales.ventas_mes.total)}
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="flex items-center">
+            <div className="text-right flex-shrink-0 ml-2">
+              <div className="flex items-center justify-end">
                 {getTrendIcon(data.metricas_principales.ventas_mes.crecimiento_porcentual)}
-                <span className={`text-sm font-medium ${getTrendColor(data.metricas_principales.ventas_mes.crecimiento_porcentual)}`}>
+                <span className={`text-xs sm:text-sm font-medium ml-1 ${getTrendColor(data.metricas_principales.ventas_mes.crecimiento_porcentual)}`}>
                   {formatPercentage(data.metricas_principales.ventas_mes.crecimiento_porcentual)}
                 </span>
               </div>
-              <p className="text-xs text-gray-500">{data.metricas_principales.ventas_mes.count} ventas</p>
+              <p className="text-xs text-gray-500 mt-1">{data.metricas_principales.ventas_mes.count} ventas</p>
             </div>
           </div>
         </div>
@@ -279,38 +279,44 @@ const DashboardAdvanced: React.FC = () => {
       )}
 
       {/* Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Columna Izquierda - Análisis de Ventas */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           
           {/* Gráfico de Ventas por Día */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Tendencia de Ventas</h3>
-              <Link to="/reportes" className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Tendencia de Ventas</h3>
+              <Link to="/reportes" className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium">
                 Ver detalles →
               </Link>
             </div>
-            <VentasTrendChart data={data.analisis_ventas.ventas_por_dia} height={280} />
+            <div className="overflow-x-auto">
+              <VentasTrendChart data={data.analisis_ventas.ventas_por_dia} height={250} />
+            </div>
           </div>
 
           {/* Top Productos - Gráfico de Barras */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Productos Vendidos</h3>
-            <TopProductosChart data={data.analisis_ventas.top_productos.slice(0, 5)} height={300} />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Top Productos Vendidos</h3>
+            <div className="overflow-x-auto">
+              <TopProductosChart data={data.analisis_ventas.top_productos.slice(0, 5)} height={280} />
+            </div>
           </div>
 
           {/* Distribución Tipo de Venta */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribución de Ventas</h3>
-            <DistribucionVentasChart data={data.analisis_ventas.distribucion_tipo_venta} height={300} />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Distribución de Ventas</h3>
+            <div className="overflow-x-auto">
+              <DistribucionVentasChart data={data.analisis_ventas.distribucion_tipo_venta} height={280} />
+            </div>
           </div>
 
         </div>
 
         {/* Columna Derecha - KPIs y Salud Financiera */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           
           {/* Resumen de Cobros */}
           <ResumenCobrosDashboard />

@@ -6,6 +6,12 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import Motocicletas from './pages/Motocicletas';
+import Proveedores from './pages/Proveedores';
+import ProveedorNuevo from './pages/ProveedorNuevo';
+import ProveedorDetalle from './pages/ProveedorDetalle';
+import ProveedorEditar from './pages/ProveedorEditar';
+import ProveedorDashboardPage from './pages/ProveedorDashboardPage';
+import ProveedorReportsPage from './pages/ProveedorReportsPage';
 import Ventas from './pages/Ventas';
 import Pagos from './pages/Pagos';
 import CobrosPendientes from './pages/CobrosPendientes';
@@ -30,6 +36,12 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="motos" element={<Motocicletas />} />
+            <Route path="proveedores" element={<Proveedores />} />
+            <Route path="proveedores/dashboard" element={<ProveedorDashboardPage />} />
+            <Route path="proveedores/reportes" element={<ProveedorReportsPage />} />
+            <Route path="proveedores/nuevo" element={<ProveedorNuevo />} />
+            <Route path="proveedores/:id" element={<ProveedorDetalle />} />
+            <Route path="proveedores/:id/editar" element={<ProveedorEditar />} />
             <Route path="clientes" element={<Clientes />} />
             <Route path="ventas" element={<Ventas />} />
             <Route path="pagos" element={<Pagos />} />

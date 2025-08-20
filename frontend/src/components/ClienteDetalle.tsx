@@ -111,19 +111,61 @@ const ClienteDetalle: React.FC<ClienteDetalleProps> = ({ cliente, onBack }) => {
   };
 
   const handleSaveFiador = async (fiadorData: Partial<Fiador>, documentos?: Array<{tipo_documento: string, descripcion: string, archivo?: File}>) => {
+    console.log('=== HANDLE SAVE FIADOR ===');
+    console.log('fiadorData received:', fiadorData);
+    console.log('documentos received:', documentos);
+    console.log('formMode:', formMode);
+    
     try {
       if (formMode === 'create') {
+        console.log('🆕 Creating new fiador...');
         if (documentos && documentos.length > 0) {
+          console.log('Creating with documents...');
           await fiadorService.createFiadorWithDocuments(fiadorData as any, documentos);
         } else {
+          console.log('Creating without documents...');
           await fiadorService.createFiador(fiadorData as any);
         }
       } else if (formMode === 'edit' && fiadorData.id) {
+        console.log('✏️ Updating existing fiador with ID:', fiadorData.id);
         await fiadorService.updateFiador(fiadorData as any);
       }
+      console.log('✅ Fiador operation completed, reloading data...');
       await loadData();
-    } catch (error) {
+      console.log('✅ Data reloaded, closing form...');
+      setShowFiadorForm(false); // Cerrar el formulario después de guardar exitosamente
+      console.log('✅ Form closed successfully');
+    } catch (error: any) {
       console.error('Error saving fiador:', error);
+      
+      // Mostrar el error al usuario
+      let errorMessage = 'Error al guardar el fiador';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.non_field_errors) {
+          errorMessage = error.response.data.non_field_errors[0];
+        } else {
+          // Mostrar errores de campo específico
+          const fieldErrors = Object.entries(error.response.data)
+            .map(([field, errors]: [string, any]) => {
+              if (Array.isArray(errors)) {
+                return `${field}: ${errors[0]}`;
+              }
+              return `${field}: ${errors}`;
+            })
+            .join(', ');
+          if (fieldErrors) {
+            errorMessage = fieldErrors;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
       throw error;
     }
   };

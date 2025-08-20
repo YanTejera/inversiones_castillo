@@ -28,8 +28,17 @@ export const fiadorService = {
   },
 
   async createFiador(data: FiadorCreateData): Promise<Fiador> {
-    const response = await api.post('/usuarios/fiadores/', data);
-    return response.data as Fiador;
+    console.log('🔗 fiadorService.createFiador called with:', data);
+    try {
+      const response = await api.post('/usuarios/fiadores/', data);
+      console.log('✅ fiadorService.createFiador success:', response.data);
+      return response.data as Fiador;
+    } catch (error: any) {
+      console.error('❌ fiadorService.createFiador error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      throw error;
+    }
   },
 
   async createFiadorWithDocuments(fiadorData: FiadorCreateData, documentos?: Array<{tipo_documento: string, descripcion: string, archivo?: File}>): Promise<Fiador> {
@@ -56,9 +65,20 @@ export const fiadorService = {
   },
 
   async updateFiador(data: FiadorUpdateData): Promise<Fiador> {
-    const { id, ...updateData } = data;
-    const response = await api.put(`/usuarios/fiadores/${id}/`, updateData);
-    return response.data as Fiador;
+    console.log('🔗 fiadorService.updateFiador called with:', data);
+    try {
+      const { id, ...updateData } = data;
+      console.log('Update data (without ID):', updateData);
+      console.log('Updating fiador ID:', id);
+      const response = await api.put(`/usuarios/fiadores/${id}/`, updateData);
+      console.log('✅ fiadorService.updateFiador success:', response.data);
+      return response.data as Fiador;
+    } catch (error: any) {
+      console.error('❌ fiadorService.updateFiador error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      throw error;
+    }
   },
 
   async deleteFiador(id: number): Promise<void> {

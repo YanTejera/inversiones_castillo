@@ -10,6 +10,7 @@ import {
   Area,
   AreaChart
 } from 'recharts';
+import { useWindowSize } from '../../hooks/useWindowSize';
 
 interface VentasTrendChartProps {
   data: Array<{ fecha: string; total: number; cantidad: number }>;
@@ -17,6 +18,8 @@ interface VentasTrendChartProps {
 }
 
 const VentasTrendChart: React.FC<VentasTrendChartProps> = ({ data, height = 300 }) => {
+  const { isMobile } = useWindowSize();
+  
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -52,7 +55,15 @@ const VentasTrendChart: React.FC<VentasTrendChartProps> = ({ data, height = 300 
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+      <AreaChart 
+        data={data} 
+        margin={{ 
+          top: 10, 
+          right: isMobile ? 10 : 30, 
+          left: isMobile ? 0 : 10, 
+          bottom: 0 
+        }}
+      >
         <defs>
           <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
@@ -64,17 +75,24 @@ const VentasTrendChart: React.FC<VentasTrendChartProps> = ({ data, height = 300 
           dataKey="fecha" 
           tickFormatter={formatDate}
           className="text-xs"
+          tick={{ fontSize: isMobile ? 10 : 12 }}
+          interval={isMobile ? 1 : 0}
         />
         <YAxis 
-          tickFormatter={(value) => `$${(value / 1000000).toFixed(1)}M`}
+          tickFormatter={(value) => isMobile 
+            ? `$${(value / 1000000).toFixed(0)}M`
+            : `$${(value / 1000000).toFixed(1)}M`
+          }
           className="text-xs"
+          tick={{ fontSize: isMobile ? 10 : 12 }}
+          width={isMobile ? 50 : 60}
         />
         <Tooltip content={<CustomTooltip />} />
         <Area
           type="monotone"
           dataKey="total"
           stroke="#3B82F6"
-          strokeWidth={2}
+          strokeWidth={isMobile ? 1.5 : 2}
           fillOpacity={1}
           fill="url(#colorVentas)"
         />

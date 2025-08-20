@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import proveedor_views
 
 app_name = 'motos'
 
@@ -17,4 +18,10 @@ urlpatterns = [
     path('modelos/<int:modelo_id>/inventario/', views.MotoInventarioListCreateView.as_view(), name='inventario-list-create'),
     path('inventario/<int:pk>/', views.MotoInventarioDetailView.as_view(), name='inventario-detail'),
     path('venta-directa/', views.VentaDirectaView.as_view(), name='venta-directa'),
+    
+    # URLs para gestión de proveedores
+    path('proveedores/', proveedor_views.ProveedorListCreateView.as_view(), name='proveedor-list-create'),
+    path('proveedores/<int:pk>/', proveedor_views.ProveedorDetailView.as_view(), name='proveedor-detail'),
+    path('proveedores/<int:proveedor_id>/estadisticas/', proveedor_views.ProveedorEstadisticasView.as_view(), name='proveedor-estadisticas'),
+    path('proveedores/<int:proveedor_id>/motocicletas/', proveedor_views.ProveedorMotocicletasView.as_view(), name='proveedor-motocicletas'),
 ]

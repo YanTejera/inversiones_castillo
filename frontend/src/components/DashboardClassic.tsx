@@ -92,34 +92,34 @@ const DashboardClassic: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Clásico</h1>
-          <p className="text-gray-600">Resumen ejecutivo de la empresa</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Clásico</h1>
+          <p className="text-gray-600 text-sm sm:text-base">Resumen ejecutivo de la empresa</p>
         </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={loadDashboardData}
-            className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Actualizar</span>
           </button>
         </div>
       </div>
 
       {/* Métricas Principales - Grid más simple */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         
         {/* Ventas de Hoy */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <ShoppingCart className="h-6 w-6 text-blue-600" />
+            <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
             </div>
-            <div className="ml-4 flex-1">
-              <p className="text-sm font-medium text-gray-500">Ventas Hoy</p>
-              <p className="text-xl font-bold text-gray-900">
+            <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-gray-500">Ventas Hoy</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">
                 {formatCurrency(data.ventas_hoy?.total || 0)}
               </p>
               <p className="text-xs text-gray-500">{data.ventas_hoy?.count || 0} operaciones</p>

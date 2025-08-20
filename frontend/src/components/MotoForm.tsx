@@ -1,7 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Bike, DollarSign, Package, Camera, CalendarDays, FileText } from 'lucide-react';
+import { X, Save, Bike, DollarSign, Package, Camera, CalendarDays, FileText, Building } from 'lucide-react';
 import { motoService } from '../services/motoService';
+import { proveedorService } from '../services/proveedorService';
 import type { Moto } from '../types';
+
+interface ProveedorListItem {
+  id: number;
+  nombre_completo: string;
+  tipo_proveedor: string;
+  ciudad: string;
+  pais: string;
+  contacto_principal: string;
+  telefono_principal: string;
+  email: string;
+  estado: string;
+  esta_activo: boolean;
+  total_motocicletas: number;
+  fecha_creacion: string;
+}
 
 interface MotoFormProps {
   moto?: Moto | null;
@@ -21,6 +37,7 @@ interface FormData {
   precio_venta: string;
   moneda_compra: 'USD' | 'RD' | 'EUR' | 'COP';
   moneda_venta: 'USD' | 'RD' | 'EUR' | 'COP';
+  proveedor: string;
   cantidad_stock: string;
   descripcion: string;
   activa: boolean;
@@ -48,6 +65,7 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
     precio_venta: '',
     moneda_compra: 'USD',
     moneda_venta: 'RD',
+    proveedor: '',
     cantidad_stock: '',
     descripcion: '',
     activa: true,
@@ -66,7 +84,13 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string>('');
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [proveedores, setProveedores] = useState<ProveedorListItem[]>([]);
+  const [loadingProveedores, setLoadingProveedores] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    loadProveedores();
+  }, []);
 
   useEffect(() => {
     if (moto) {
@@ -81,6 +105,7 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
         precio_venta: moto.precio_venta?.toString() || '',
         moneda_compra: moto.moneda_compra || 'USD',
         moneda_venta: moto.moneda_venta || 'RD',
+        proveedor: moto.proveedor?.toString() || '',
         cantidad_stock: moto.cantidad_stock?.toString() || '',
         descripcion: moto.descripcion || '',
         activa: moto.activa ?? true,
@@ -100,6 +125,18 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
       }
     }
   }, [moto]);
+
+  const loadProveedores = async () => {
+    try {
+      setLoadingProveedores(true);
+      const response = await proveedorService.getProveedores({ activo: true });
+      setProveedores(response.results);
+    } catch (error) {
+      console.error('Error loading proveedores:', error);
+    } finally {
+      setLoadingProveedores(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -213,6 +250,7 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
         precio_venta: Number(formData.precio_venta),
         moneda_compra: formData.moneda_compra,
         moneda_venta: formData.moneda_venta,
+        proveedor: formData.proveedor ? Number(formData.proveedor) : null,
         cantidad_stock: Number(formData.cantidad_stock),
         descripcion: formData.descripcion,
         activa: formData.activa,
@@ -638,6 +676,43 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
                   />
                   <p className="text-xs text-gray-500 mt-1">Capacidad del tanque de combustible</p>
                 </div>
+              </div>
+
+              {/* Proveedor */}
+              <h3 className="text-lg font-medium text-gray-900 flex items-center mt-6">
+                <Building className="h-5 w-5 mr-2" />
+                Información del Proveedor
+              </h3>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Proveedor
+                </label>
+                {loadingProveedores ? (
+                  <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
+                    Cargando proveedores...
+                  </div>
+                ) : (
+                  <select
+                    name="proveedor"
+                    value={formData.proveedor}
+                    onChange={handleChange}
+                    disabled={isReadOnly}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50' : ''
+                    }`}
+                  >
+                    <option value="">Seleccionar proveedor...</option>
+                    {proveedores.map((proveedor) => (
+                      <option key={proveedor.id} value={proveedor.id}>
+                        {proveedor.nombre_completo} - {proveedor.ciudad}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Selecciona el proveedor que suministra esta motocicleta
+                </p>
               </div>
 
               {/* Precios */}

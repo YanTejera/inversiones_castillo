@@ -13,7 +13,7 @@ interface LoginCredentials {
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const response = await api.post('/auth/login/', credentials);
+    const response = await api.post('/usuarios/login/', credentials);
     const data = response.data as LoginResponse;
     const { token, user } = data;
     
@@ -26,7 +26,7 @@ export const authService = {
 
   async logout(): Promise<void> {
     try {
-      await api.post('/auth/logout/');
+      await api.post('/usuarios/logout/');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
