@@ -210,6 +210,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5182",
     "https://inversiones-castillo1.onrender.com",  # Frontend production URL
     "https://concesionario-frontend-free.onrender.com",  # Alternative frontend URL
+    "https://inversiones-castillo.onrender.com",  # Primary production URL
+    "https://inversiones-castillo-frontend.onrender.com",  # Alternative frontend URL
 ]
 
 # Add frontend domain for production
