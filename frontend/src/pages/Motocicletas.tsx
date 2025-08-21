@@ -29,8 +29,8 @@ import MotoForm from '../components/MotoForm';
 import MotoModeloForm from '../components/MotoModeloForm';
 import MotoModeloDetalle from '../components/MotoModeloDetalle';
 import NewVentaForm from '../components/NewVentaForm';
+import EspecificacionesTecnicas from '../components/EspecificacionesTecnicas';
 // import ResumenModelo from '../components/ResumenModelo';
-// import EspecificacionesTecnicas from '../components/EspecificacionesTecnicas';
 import ViewToggle from '../components/common/ViewToggle';
 import type { Moto, MotoModelo } from '../types';
 
@@ -242,9 +242,8 @@ const Motocicletas: React.FC = () => {
   };
 
   const handleVerEspecificaciones = (modelo: MotoModelo) => {
-    // Temporarily disabled - EspecificacionesTecnicas component doesn't exist  
-    console.log('Ver especificaciones clicked for:', modelo.marca, modelo.modelo);
-    alert('Funcionalidad de especificaciones temporalmente desactivada');
+    setModeloEspecificaciones(modelo);
+    setShowEspecificaciones(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -1268,7 +1267,7 @@ const Motocicletas: React.FC = () => {
         />
       )}
 
-      {/* Temporarily disabled - components don't exist yet */}
+      {/* Temporarily disabled - ResumenModelo component doesn't exist yet */}
       {/*showResumenModelo && selectedModelo && (
         <ResumenModelo
           modelo={selectedModelo}
@@ -1277,12 +1276,12 @@ const Motocicletas: React.FC = () => {
         />
       )*/}
 
-      {/*showEspecificaciones && modeloEspecificaciones && (
+      {showEspecificaciones && modeloEspecificaciones && (
         <EspecificacionesTecnicas
           modelo={modeloEspecificaciones}
           onClose={() => setShowEspecificaciones(false)}
         />
-      )*/}
+      )}
     </div>
   );
 };

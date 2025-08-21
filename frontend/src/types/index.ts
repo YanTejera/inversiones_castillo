@@ -122,6 +122,38 @@ export interface MotoInventario {
   fecha_ingreso: string;
 }
 
+export interface EspecificacionesTecnicas {
+  // Motor
+  tipo_motor?: string;
+  cilindrada?: string;
+  potencia?: string;
+  refrigeracion?: string;
+  arranque?: string;
+  transmision?: string;
+  
+  // Dimensiones
+  dimensiones?: string;
+  distancia_ejes?: string;
+  altura_asiento?: string;
+  peso_seco?: string;
+  tanque_combustible?: string;
+  capacidad_carga?: string;
+  
+  // Frenos y Suspensión
+  freno_delantero?: string;
+  freno_trasero?: string;
+  llanta_delantera?: string;
+  llanta_trasera?: string;
+  suspension_delantera?: string;
+  suspension_trasera?: string;
+  
+  // Rendimiento
+  consumo?: string;
+  velocidad_maxima?: string;
+  autonomia?: string;
+  emisiones?: string;
+}
+
 export interface MotoModelo {
   id: number;
   marca: string;
@@ -137,11 +169,13 @@ export interface MotoModelo {
   ganancia: number;
   activa: boolean;
   fecha_creacion: string;
+  fecha_actualizacion: string;
   total_stock: number;
   disponible: boolean;
   nombre_completo: string;
   inventario: MotoInventario[];
   colores_disponibles: { [color: string]: number };
+  especificaciones?: EspecificacionesTecnicas;
 }
 
 export interface Venta {
