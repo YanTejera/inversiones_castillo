@@ -1,0 +1,23 @@
+{
+  "name": "Inversiones C&C - Sistema de Gestión",
+  "short_name": "Inversiones C&C",
+  "description": "Sistema de gestión para concesionario de motocicletas Inversiones C&C",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e40af",
+  "scope": "/",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
