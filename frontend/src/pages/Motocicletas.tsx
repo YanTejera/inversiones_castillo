@@ -930,11 +930,13 @@ const Motocicletas: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    /* Vista en lista */
+                    /* Vista en lista - Responsive */
                     <div key={modelo.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                       <div className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
+                        {/* Layout móvil/desktop adaptativo */}
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                          {/* Sección principal: Imagen + Info básica */}
+                          <div className="flex items-center space-x-4 flex-1 min-w-0">
                             {/* Imagen pequeña */}
                             <div 
                               className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer hover:opacity-75 transition-opacity"
@@ -955,12 +957,15 @@ const Motocicletas: React.FC = () => {
                             </div>
                             
                             {/* Información básica */}
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                  {modelo.marca} {modelo.modelo}
-                                </h3>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="text-lg font-semibold text-gray-900 truncate">
+                                    {modelo.marca} {modelo.modelo}
+                                  </h3>
+                                  <p className="text-sm text-gray-500">Año {modelo.ano}</p>
+                                </div>
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
                                   modelo.condicion === 'nueva' 
                                     ? 'bg-green-100 text-green-800' 
                                     : 'bg-yellow-100 text-yellow-800'
@@ -968,10 +973,9 @@ const Motocicletas: React.FC = () => {
                                   {modelo.condicion === 'nueva' ? 'Nueva' : 'Usada'}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-500">Año {modelo.ano}</p>
                               
-                              {/* Colores en línea */}
-                              <div className="flex items-center gap-2 mt-1">
+                              {/* Colores - Solo en desktop */}
+                              <div className="hidden lg:flex items-center gap-2 mt-1">
                                 <span className="text-xs text-gray-400">Colores:</span>
                                 <div className="flex gap-1">
                                   {Object.entries(modelo.colores_disponibles).slice(0, 4).map(([color, cantidad]) => (
@@ -990,59 +994,81 @@ const Motocicletas: React.FC = () => {
                             </div>
                           </div>
                           
-                          {/* Información de precio y stock */}
-                          <div className="flex items-center space-x-6">
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">Compra</p>
-                              <p className="font-semibold text-orange-600">{formatCurrencyWithSymbol(modelo.precio_compra, modelo.moneda_compra || 'COP')}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">Venta</p>
-                              <p className="font-semibold text-green-600">{formatCurrencyWithSymbol(modelo.precio_venta, modelo.moneda_venta || 'COP')}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-600">Stock</p>
-                              <div className={`flex items-center justify-end gap-1 ${getStockStatusColor(modelo.total_stock)}`}>
-                                {getStockStatusIcon(modelo.total_stock)}
-                                <span className="font-semibold">{modelo.total_stock}</span>
+                          {/* Información de precio y stock - Responsive */}
+                          <div className="flex justify-between lg:justify-end lg:flex-row lg:space-x-6 lg:space-y-0 space-y-0">
+                            <div className="grid grid-cols-3 gap-4 lg:flex lg:items-center lg:space-x-6 flex-1 lg:flex-initial">
+                              <div className="text-center lg:text-right">
+                                <p className="text-xs lg:text-sm text-gray-600">Compra</p>
+                                <p className="font-semibold text-orange-600 text-sm lg:text-base truncate">
+                                  {formatCurrencyWithSymbol(modelo.precio_compra, modelo.moneda_compra || 'COP')}
+                                </p>
+                              </div>
+                              <div className="text-center lg:text-right">
+                                <p className="text-xs lg:text-sm text-gray-600">Venta</p>
+                                <p className="font-semibold text-green-600 text-sm lg:text-base truncate">
+                                  {formatCurrencyWithSymbol(modelo.precio_venta, modelo.moneda_venta || 'COP')}
+                                </p>
+                              </div>
+                              <div className="text-center lg:text-right">
+                                <p className="text-xs lg:text-sm text-gray-600">Stock</p>
+                                <div className={`flex items-center justify-center lg:justify-end gap-1 ${getStockStatusColor(modelo.total_stock)}`}>
+                                  {getStockStatusIcon(modelo.total_stock)}
+                                  <span className="font-semibold text-sm lg:text-base">{modelo.total_stock}</span>
+                                </div>
                               </div>
                             </div>
                           </div>
                           
-                          {/* Acciones */}
-                          <div className="flex items-center space-x-1 ml-4">
+                          {/* Acciones - Responsive */}
+                          <div className="flex items-center justify-center lg:justify-end space-x-1 flex-wrap gap-1">
                             <button
                               onClick={() => openModal('edit', null, modelo)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg flex-shrink-0"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteModelo(modelo)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0"
                               title="Eliminar"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleResumenModelo(modelo)}
-                              className="flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                              className="flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 flex-shrink-0"
                               title="Ver detalles completos"
                             >
                               <Info className="h-3 w-3 mr-1" />
-                              Ver Detalles
+                              <span className="hidden sm:inline">Ver Detalles</span>
+                              <span className="sm:hidden">Detalles</span>
                             </button>
                             {modelo.disponible && (
                               <button
                                 onClick={() => handleVentaDirecta(modelo)}
-                                className="flex items-center px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                                className="flex items-center px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex-shrink-0"
                                 title="Vender"
                               >
                                 <ShoppingCart className="h-3 w-3 mr-1" />
-                                Vender
+                                <span className="hidden sm:inline">Vender</span>
                               </button>
                             )}
+                          </div>
+                        </div>
+                        
+                        {/* Colores - Solo en móvil */}
+                        <div className="lg:hidden flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                          <span className="text-xs text-gray-400">Colores:</span>
+                          <div className="flex gap-1 flex-wrap">
+                            {Object.entries(modelo.colores_disponibles).map(([color, cantidad]) => (
+                              <div 
+                                key={color}
+                                className="w-4 h-4 rounded-full border border-gray-300"
+                                style={{ backgroundColor: getColorCode(color) }}
+                                title={`${color}: ${cantidad} unidades`}
+                              ></div>
+                            ))}
                           </div>
                         </div>
                       </div>
