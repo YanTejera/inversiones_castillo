@@ -515,6 +515,10 @@ const Motocicletas: React.FC = () => {
       }
     });
 
+    console.log('DEBUG getAllInventoryUnits - resultado final:', {
+      total_units: allUnits.length,
+      units: allUnits
+    });
     return allUnits;
   };
 
@@ -535,12 +539,28 @@ const Motocicletas: React.FC = () => {
   };
 
   const getFilterStats = () => {
-    const allData = viewMode === 'modelos' ? modelos : motos;
+    let allData: any[];
+    
+    if (viewMode === 'modelos') {
+      allData = modelos;
+    } else {
+      // En vista individual, usar las unidades de inventario
+      allData = getAllInventoryUnits();
+    }
+    
     const newCount = allData.filter(item => item.condicion === 'nueva').length;
     const usedCount = allData.filter(item => item.condicion === 'usada').length;
     const outOfStockCount = viewMode === 'modelos' 
       ? modelos.filter(modelo => modelo.total_stock === 0).length
-      : motos.filter(moto => moto.cantidad_stock === 0).length;
+      : allData.filter(item => item.cantidad_stock === 0).length;
+
+    console.log('DEBUG getFilterStats:', {
+      viewMode,
+      allData_length: allData.length,
+      newCount,
+      usedCount,
+      outOfStockCount
+    });
 
     return { newCount, usedCount, outOfStockCount, total: allData.length };
   };
