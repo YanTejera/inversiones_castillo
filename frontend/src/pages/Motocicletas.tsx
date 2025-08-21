@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { 
   Plus, 
   Search, 
@@ -25,11 +25,12 @@ import {
 } from 'lucide-react';
 import { motoService } from '../services/motoService';
 import { motoModeloService } from '../services/motoModeloService';
-import MotoForm from '../components/MotoForm';
-import MotoModeloForm from '../components/MotoModeloForm';
-import MotoModeloDetalle from '../components/MotoModeloDetalle';
-import NewVentaForm from '../components/NewVentaForm';
-import EspecificacionesTecnicas from '../components/EspecificacionesTecnicas';
+// Lazy load heavy components that are not always used
+const MotoForm = lazy(() => import('../components/MotoForm'));
+const MotoModeloForm = lazy(() => import('../components/MotoModeloForm'));
+const MotoModeloDetalle = lazy(() => import('../components/MotoModeloDetalle'));
+const NewVentaForm = lazy(() => import('../components/NewVentaForm'));
+const EspecificacionesTecnicas = lazy(() => import('../components/EspecificacionesTecnicas'));
 // import ResumenModelo from '../components/ResumenModelo';
 import ViewToggle from '../components/common/ViewToggle';
 import type { Moto, MotoModelo } from '../types';
@@ -67,20 +68,20 @@ const Motocicletas: React.FC = () => {
   });
 
   // Funciones wrapper para persistir configuración
-  const handleFilterTypeChange = (newFilterType: 'all' | 'new' | 'used' | 'out_of_stock') => {
+  const handleFilterTypeChange = useCallback((newFilterType: 'all' | 'new' | 'used' | 'out_of_stock') => {
     setFilterType(newFilterType);
     localStorage.setItem('motocicletas_filter_type', newFilterType);
-  };
+  }, []); // No dependencies, function is stable
 
-  const handleGroupByBrandChange = (newGroupByBrand: boolean) => {
+  const handleGroupByBrandChange = useCallback((newGroupByBrand: boolean) => {
     setGroupByBrand(newGroupByBrand);
     localStorage.setItem('motocicletas_group_by_brand', newGroupByBrand.toString());
-  };
+  }, []);
 
-  const handleDisplayModeChange = (newDisplayMode: 'grid' | 'list') => {
+  const handleDisplayModeChange = useCallback((newDisplayMode: 'grid' | 'list') => {
     setDisplayMode(newDisplayMode);
     localStorage.setItem('motocicletas_display_mode', newDisplayMode);
-  };
+  }, []);
 
   const loadMotos = async (page = 1, search = '') => {
     try {
@@ -101,15 +102,9 @@ const Motocicletas: React.FC = () => {
     try {
       setLoading(true);
       const response = await motoModeloService.getModelos(page, search);
-      console.log('Modelos cargados (DETALLE):');
+      // console.log('Modelos cargados (DETALLE):');
       response.results.forEach((m, index) => {
-        console.log(`=== MODELO ${index + 1} DETALLE ===`);
-        console.log('ID:', m.id);
-        console.log('Marca:', m.marca);
-        console.log('Modelo:', m.modelo);
-        console.log('Total Stock:', m.total_stock);
-        console.log('Inventario Length:', m.inventario?.length);
-        console.log('Inventario COMPLETO:', JSON.stringify(m.inventario, null, 2));
+        // Debug logs removed for performance
         console.log(`Modelo ${index + 1}:`, {
           id: m.id,
           marca: m.marca,
@@ -441,8 +436,8 @@ const Motocicletas: React.FC = () => {
     return filteredData;
   };
 
-  // Función para obtener todas las unidades individuales de inventario
-  const getAllInventoryUnits = () => {
+  // Función memoizada para obtener todas las unidades individuales de inventario
+  const getAllInventoryUnits = useMemo(() => {
     const allUnits: any[] = [];
     
     modelos.forEach(modelo => {
@@ -475,7 +470,7 @@ const Motocicletas: React.FC = () => {
             });
           } else if (item.chasis) {
             // Chasis con cantidad_stock - crear una unidad por cada cantidad
-            console.log(`DEBUG - Procesando chasis ${item.chasis} con cantidad_stock: ${item.cantidad_stock}`);
+            // console.log(`DEBUG - Procesando chasis ${item.chasis} con cantidad_stock: ${item.cantidad_stock}`);
             for (let i = 0; i < item.cantidad_stock; i++) {
               allUnits.push({
                 id: `${modelo.id}-${item.id}-${i}`,
@@ -526,22 +521,13 @@ const Motocicletas: React.FC = () => {
       }
     });
 
-    console.log('DEBUG getAllInventoryUnits - TOTAL UNIDADES:', allUnits.length);
-    console.log('DEBUG getAllInventoryUnits - UNIDADES COMPLETAS:', JSON.stringify(allUnits, null, 2));
-    allUnits.forEach((unit, index) => {
-      console.log(`DEBUG - Unidad ${index + 1}:`, {
-        marca: unit.marca,
-        modelo: unit.modelo,
-        color: unit.color,
-        chasis: unit.chasis,
-        cantidad_stock: unit.cantidad_stock
-      });
-    });
+    // Debug logs removed for performance
+    // console.log('DEBUG getAllInventoryUnits - TOTAL UNIDADES:', allUnits.length);
     return allUnits;
-  };
+  }, [modelos]); // Memo dependency: recalcular solo cuando modelos cambie
 
   const getGroupedByBrand = () => {
-    const filteredData = viewMode === 'individual' ? getAllInventoryUnits() : getFilteredData();
+    const filteredData = viewMode === 'individual' ? getAllInventoryUnits : getFilteredData();
     if (!groupByBrand) return { 'Todas las marcas': filteredData };
 
     const grouped = filteredData.reduce((acc: any, item: any) => {
@@ -556,14 +542,14 @@ const Motocicletas: React.FC = () => {
     return grouped;
   };
 
-  const getFilterStats = () => {
+  const getFilterStats = useMemo(() => {
     let allData: any[];
     
     if (viewMode === 'modelos') {
       allData = modelos;
     } else {
       // En vista individual, usar las unidades de inventario
-      allData = getAllInventoryUnits();
+      allData = getAllInventoryUnits;
     }
     
     const newCount = allData.filter(item => item.condicion === 'nueva').length;
@@ -572,16 +558,11 @@ const Motocicletas: React.FC = () => {
       ? modelos.filter(modelo => modelo.total_stock === 0).length
       : allData.filter(item => item.cantidad_stock === 0).length;
 
-    console.log('DEBUG getFilterStats:', {
-      viewMode,
-      allData_length: allData.length,
-      newCount,
-      usedCount,
-      outOfStockCount
-    });
+    // Debug logs removed for performance
+    // console.log('DEBUG getFilterStats:', { viewMode, total: allData.length, newCount, usedCount, outOfStockCount });
 
     return { newCount, usedCount, outOfStockCount, total: allData.length };
-  };
+  }, [viewMode, modelos, getAllInventoryUnits]); // Memoizar basado en dependencias relevantes
 
   if (loading && (viewMode === 'modelos' ? modelos.length === 0 : motos.length === 0)) {
     return (
@@ -651,7 +632,7 @@ const Motocicletas: React.FC = () => {
         {/* Estadísticas rápidas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {(() => {
-            const stats = getFilterStats();
+            const stats = getFilterStats;
             return (
               <>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -1268,7 +1249,7 @@ const Motocicletas: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {((viewMode === 'modelos' && modelos.length === 0) || (viewMode === 'individual' && getAllInventoryUnits().length === 0)) && !loading && (
+      {((viewMode === 'modelos' && modelos.length === 0) || (viewMode === 'individual' && getAllInventoryUnits.length === 0)) && !loading && (
         <div className="text-center py-12">
           <Package className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">
