@@ -103,6 +103,13 @@ const Motocicletas: React.FC = () => {
       const response = await motoModeloService.getModelos(page, search);
       console.log('Modelos cargados (DETALLE):');
       response.results.forEach((m, index) => {
+        console.log(`=== MODELO ${index + 1} DETALLE ===`);
+        console.log('ID:', m.id);
+        console.log('Marca:', m.marca);
+        console.log('Modelo:', m.modelo);
+        console.log('Total Stock:', m.total_stock);
+        console.log('Inventario Length:', m.inventario?.length);
+        console.log('Inventario COMPLETO:', JSON.stringify(m.inventario, null, 2));
         console.log(`Modelo ${index + 1}:`, {
           id: m.id,
           marca: m.marca,
@@ -467,26 +474,30 @@ const Motocicletas: React.FC = () => {
               }
             });
           } else if (item.chasis) {
-            // Chasis único
-            allUnits.push({
-              id: `${modelo.id}-${item.id}`,
-              marca: modelo.marca,
-              modelo: modelo.modelo,
-              ano: modelo.ano,
-              condicion: modelo.condicion,
-              color: item.color,
-              chasis: item.chasis,
-              fecha_ingreso: item.fecha_ingreso,
-              fecha_compra: item.fecha_compra,
-              precio_compra_individual: item.precio_compra_individual || modelo.precio_compra,
-              precio_venta: modelo.precio_venta,
-              moneda_compra: modelo.moneda_compra,
-              moneda_venta: modelo.moneda_venta,
-              tasa_dolar: item.tasa_dolar,
-              descuento_porcentaje: item.descuento_porcentaje || 0,
-              imagen: modelo.imagen,
-              activa: modelo.activa
-            });
+            // Chasis con cantidad_stock - crear una unidad por cada cantidad
+            console.log(`DEBUG - Procesando chasis ${item.chasis} con cantidad_stock: ${item.cantidad_stock}`);
+            for (let i = 0; i < item.cantidad_stock; i++) {
+              allUnits.push({
+                id: `${modelo.id}-${item.id}-${i}`,
+                marca: modelo.marca,
+                modelo: modelo.modelo,
+                ano: modelo.ano,
+                condicion: modelo.condicion,
+                color: item.color,
+                chasis: item.cantidad_stock > 1 ? `${item.chasis}-U${i + 1}` : item.chasis,
+                fecha_ingreso: item.fecha_ingreso,
+                fecha_compra: item.fecha_compra,
+                precio_compra_individual: item.precio_compra_individual || modelo.precio_compra,
+                precio_venta: modelo.precio_venta,
+                moneda_compra: modelo.moneda_compra,
+                moneda_venta: modelo.moneda_venta,
+                tasa_dolar: item.tasa_dolar,
+                descuento_porcentaje: item.descuento_porcentaje || 0,
+                imagen: modelo.imagen,
+                activa: modelo.activa,
+                cantidad_stock: 1
+              });
+            }
           } else {
             // Si no tiene chasis específico, crear entradas según cantidad
             for (let i = 0; i < item.cantidad_stock; i++) {
@@ -515,9 +526,16 @@ const Motocicletas: React.FC = () => {
       }
     });
 
-    console.log('DEBUG getAllInventoryUnits - resultado final:', {
-      total_units: allUnits.length,
-      units: allUnits
+    console.log('DEBUG getAllInventoryUnits - TOTAL UNIDADES:', allUnits.length);
+    console.log('DEBUG getAllInventoryUnits - UNIDADES COMPLETAS:', JSON.stringify(allUnits, null, 2));
+    allUnits.forEach((unit, index) => {
+      console.log(`DEBUG - Unidad ${index + 1}:`, {
+        marca: unit.marca,
+        modelo: unit.modelo,
+        color: unit.color,
+        chasis: unit.chasis,
+        cantidad_stock: unit.cantidad_stock
+      });
     });
     return allUnits;
   };
