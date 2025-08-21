@@ -271,6 +271,7 @@ const MotoModeloDetalle: React.FC<MotoModeloDetalleProps> = ({
                 <div className="space-y-3">
                   {modelo.inventario.map((item) => (
                     <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                      {/* Primera fila: Información básica y botón eliminar */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div className={`flex items-center ${getStockStatusColor(item.cantidad_stock)}`}>
@@ -305,36 +306,7 @@ const MotoModeloDetalle: React.FC<MotoModeloDetalleProps> = ({
                           )}
                         </div>
                         
-                        {/* Resumen financiero por lote */}
-                        {(item.precio_compra_individual && item.tasa_dolar) && (
-                          <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                            <h5 className="text-sm font-medium text-gray-900 mb-2">Resumen Financiero de este Lote</h5>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                              <div>
-                                <span className="text-gray-500">Precio USD:</span>
-                                <div className="font-medium text-blue-600">${item.precio_compra_individual}</div>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Precio RD$:</span>
-                                <div className="font-medium text-green-600">
-                                  RD${(item.precio_compra_individual * item.tasa_dolar).toLocaleString()}
-                                </div>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Precio Venta:</span>
-                                <div className="font-medium text-purple-600">RD${modelo.precio_venta.toLocaleString()}</div>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Ganancia:</span>
-                                <div className={`font-medium ${(modelo.precio_venta - (item.precio_compra_individual * item.tasa_dolar)) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  RD${((modelo.precio_venta - (item.precio_compra_individual * item.tasa_dolar)) * item.cantidad_stock).toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center space-x-2 mt-3">
+                        <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEliminarInventario(item.id)}
                             className="p-1 text-red-600 hover:bg-red-50 rounded"
@@ -344,6 +316,35 @@ const MotoModeloDetalle: React.FC<MotoModeloDetalleProps> = ({
                           </button>
                         </div>
                       </div>
+                      
+                      {/* Segunda fila: Resumen financiero por lote (si existe) */}
+                      {(item.precio_compra_individual && item.tasa_dolar) && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                          <h5 className="text-sm font-medium text-gray-900 mb-2">Resumen Financiero de este Lote</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                            <div>
+                              <span className="text-gray-500">Precio USD:</span>
+                              <div className="font-medium text-blue-600">${item.precio_compra_individual}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Precio RD$:</span>
+                              <div className="font-medium text-green-600">
+                                RD${(item.precio_compra_individual * item.tasa_dolar).toLocaleString()}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Precio Venta:</span>
+                              <div className="font-medium text-purple-600">RD${modelo.precio_venta.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Ganancia:</span>
+                              <div className={`font-medium ${(modelo.precio_venta - (item.precio_compra_individual * item.tasa_dolar)) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                RD${((modelo.precio_venta - (item.precio_compra_individual * item.tasa_dolar)) * item.cantidad_stock).toLocaleString()}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                   
