@@ -135,7 +135,7 @@ const Layout: React.FC = () => {
           </div>
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 iphone-bottom-fix">
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-2 iphone-bottom-fix">
           <div className="flex items-center text-white text-sm mb-4">
             <div className="bg-gray-600 rounded-full p-2 mr-3 flex-shrink-0">
               <Settings className="h-4 w-4" />
@@ -206,8 +206,8 @@ const Layout: React.FC = () => {
 
         {/* Page content */}
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
-          <div className="py-4 sm:py-6 pb-32 lg:pb-6 safe-x">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-safe-or-8">
+          <div className="py-4 sm:py-6 pb-20 lg:pb-6 safe-x">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <Outlet />
             </div>
           </div>
