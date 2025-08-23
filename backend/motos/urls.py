@@ -16,7 +16,9 @@ urlpatterns = [
     path('modelos/<int:pk>/', views.MotoModeloDetailView.as_view(), name='modelo-detail'),
     path('modelos/<int:modelo_id>/estadisticas/', views.MotoModeloEstadisticasView.as_view(), name='modelo-estadisticas'),
     path('modelos/<int:modelo_id>/inventario/', views.MotoInventarioListCreateView.as_view(), name='inventario-list-create'),
+    path('modelos/<int:modelo_id>/chasis/<str:color>/', views.ChasisByColorView.as_view(), name='chasis-by-color'),
     path('inventario/<int:pk>/', views.MotoInventarioDetailView.as_view(), name='inventario-detail'),
+    path('test-image/<int:modelo_id>/', views.TestImageView.as_view(), name='test-image'),
     path('venta-directa/', views.VentaDirectaView.as_view(), name='venta-directa'),
     
     # URLs para gestión de proveedores

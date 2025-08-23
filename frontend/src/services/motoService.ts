@@ -65,8 +65,9 @@ export const motoService = {
 
     const response = await api.post('/motos/', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': undefined, // Let browser set it automatically with boundary
       },
+      transformRequest: [(data) => data], // Don't transform FormData
     });
     return response.data as Moto;
   },
@@ -87,8 +88,9 @@ export const motoService = {
 
     const response = await api.patch(`/motos/${id}/`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': undefined, // Let browser set it automatically with boundary
       },
+      transformRequest: [(data) => data], // Don't transform FormData
     });
     return response.data as Moto;
   },

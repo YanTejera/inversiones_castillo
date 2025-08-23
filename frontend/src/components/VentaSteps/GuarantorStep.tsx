@@ -76,31 +76,42 @@ const GuarantorStep: React.FC<GuarantorStepProps> = ({ data, onUpdate, errors })
   const validateGuarantor = (): boolean => {
     if (!data.needsGuarantor) return true;
 
+    // Si el garante ya existe (tiene ID), solo validar campos básicos
+    const isExistingGuarantor = data.guarantor && data.guarantor.id;
+
     const errors: Record<string, string> = {};
 
-    if (!guarantorData.nombre.trim()) {
-      errors.nombre = 'El nombre del garante es requerido';
-    }
-    if (!guarantorData.apellido.trim()) {
-      errors.apellido = 'El apellido del garante es requerido';
-    }
-    if (!guarantorData.cedula.trim()) {
-      errors.cedula = 'La cédula del garante es requerida';
-    }
-    if (!guarantorData.direccion.trim()) {
-      errors.direccion = 'La dirección del garante es requerida';
-    }
-    if (!guarantorData.telefono.trim() && !guarantorData.celular.trim()) {
-      errors.telefono = 'Debe proporcionar al menos un número de teléfono del garante';
-    }
-    if (!guarantorData.ocupacion.trim()) {
-      errors.ocupacion = 'La ocupación del garante es requerida';
-    }
-    if (!guarantorData.parentesco_cliente.trim()) {
-      errors.parentesco_cliente = 'El parentesco con el cliente es requerido';
-    }
-    if (guarantorData.email && !/\S+@\S+\.\S+/.test(guarantorData.email)) {
-      errors.email = 'El email del garante no es válido';
+    if (isExistingGuarantor) {
+      // Para garantes existentes, solo validar que esté seleccionado
+      if (!data.guarantor || !data.guarantor.id) {
+        errors.guarantor = 'Debe seleccionar un garante registrado';
+      }
+    } else {
+      // Para garantes nuevos, validar campos completos
+      if (!guarantorData.nombre.trim()) {
+        errors.nombre = 'El nombre del garante es requerido';
+      }
+      if (!guarantorData.apellido.trim()) {
+        errors.apellido = 'El apellido del garante es requerido';
+      }
+      if (!guarantorData.cedula.trim()) {
+        errors.cedula = 'La cédula del garante es requerida';
+      }
+      if (!guarantorData.direccion.trim()) {
+        errors.direccion = 'La dirección del garante es requerida';
+      }
+      if (!guarantorData.telefono.trim() && !guarantorData.celular.trim()) {
+        errors.telefono = 'Debe proporcionar al menos un número de teléfono del garante';
+      }
+      if (!guarantorData.ocupacion.trim()) {
+        errors.ocupacion = 'La ocupación del garante es requerida';
+      }
+      if (!guarantorData.parentesco_cliente.trim()) {
+        errors.parentesco_cliente = 'El parentesco con el cliente es requerido';
+      }
+      if (guarantorData.email && !/\S+@\S+\.\S+/.test(guarantorData.email)) {
+        errors.email = 'El email del garante no es válido';
+      }
     }
 
     setGuarantorErrors(errors);

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Save } from 'lucide-react';
+import { useToast } from './Toast';
 
 interface CancelarPagoModalProps {
   pago: any;
@@ -17,10 +18,20 @@ const MOTIVOS_CANCELACION = [
 ];
 
 const CancelarPagoModal: React.FC<CancelarPagoModalProps> = ({ pago, onClose, onConfirm }) => {
+  const { success, error: showError, warning } = useToast();
   const [motivoSeleccionado, setMotivoSeleccionado] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Auto-focus en el primer campo al abrir el modal
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const firstSelect = document.querySelector('#motivo-select') as HTMLSelectElement;
+      if (firstSelect) firstSelect.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -32,12 +43,16 @@ const CancelarPagoModal: React.FC<CancelarPagoModalProps> = ({ pago, onClose, on
 
   const handleConfirm = async () => {
     if (!motivoSeleccionado) {
-      setError('Debe seleccionar un motivo de cancelación');
+      const errorMsg = 'Debe seleccionar un motivo de cancelación';
+      setError(errorMsg);
+      showError(errorMsg);
       return;
     }
 
     if (motivoSeleccionado === 'otros' && !descripcion.trim()) {
-      setError('Debe proporcionar una descripción cuando selecciona "Otros"');
+      const errorMsg = 'Debe proporcionar una descripción cuando selecciona "Otros"';
+      setError(errorMsg);
+      showError(errorMsg);
       return;
     }
 
@@ -45,9 +60,12 @@ const CancelarPagoModal: React.FC<CancelarPagoModalProps> = ({ pago, onClose, on
       setLoading(true);
       setError('');
       await onConfirm(motivoSeleccionado, descripcion);
+      success('Pago cancelado exitosamente');
       onClose();
     } catch (error: any) {
-      setError(error.message || 'Error al cancelar el pago');
+      const errorMsg = error.message || 'Error al cancelar el pago';
+      setError(errorMsg);
+      showError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -56,15 +74,15 @@ const CancelarPagoModal: React.FC<CancelarPagoModalProps> = ({ pago, onClose, on
   const motivoDetalle = MOTIVOS_CANCELACION.find(m => m.value === motivoSeleccionado);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-red-500" />
             Cancelar Pago
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 btn-press micro-scale p-1 rounded-full hover:bg-gray-100">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -172,7 +190,7 @@ const CancelarPagoModal: React.FC<CancelarPagoModalProps> = ({ pago, onClose, on
         <div className="flex justify-end space-x-3 p-6 border-t bg-gray-50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 btn-press micro-scale"
             disabled={loading}
           >
             Cancelar
@@ -180,7 +198,7 @@ const CancelarPagoModal: React.FC<CancelarPagoModalProps> = ({ pago, onClose, on
           <button
             onClick={handleConfirm}
             disabled={loading || !motivoSeleccionado}
-            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center gap-2 btn-press micro-glow"
           >
             {loading ? (
               <>

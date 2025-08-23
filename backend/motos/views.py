@@ -234,6 +234,33 @@ class MotoModeloEstadisticasView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
+class TestImageView(APIView):
+    """Vista de test para depurar problemas con URLs de imágenes"""
+    
+    def get(self, request, modelo_id):
+        try:
+            from django.conf import settings
+            modelo = MotoModelo.objects.get(id=modelo_id)
+            serializer = MotoModeloSerializer(modelo)
+            
+            return Response({
+                'modelo_id': modelo_id,
+                'imagen_original': str(modelo.imagen) if modelo.imagen else None,
+                'imagen_serializada': serializer.data.get('imagen'),
+                'debug_info': {
+                    'settings_debug': settings.DEBUG,
+                    'media_root': settings.MEDIA_ROOT,
+                    'media_url': settings.MEDIA_URL,
+                }
+            })
+            
+        except MotoModelo.DoesNotExist:
+            return Response(
+                {'error': 'Modelo no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
 class MotoInventarioListCreateView(generics.ListCreateAPIView):
     serializer_class = MotoInventarioSerializer
     
@@ -302,4 +329,111 @@ class VentaDirectaView(APIView):
             return Response(
                 {'error': str(e)}, 
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class TestImageView(APIView):
+    """Vista de test para depurar problemas con URLs de imágenes"""
+    
+    def get(self, request, modelo_id):
+        try:
+            from django.conf import settings
+            modelo = MotoModelo.objects.get(id=modelo_id)
+            serializer = MotoModeloSerializer(modelo)
+            
+            return Response({
+                'modelo_id': modelo_id,
+                'imagen_original': str(modelo.imagen) if modelo.imagen else None,
+                'imagen_serializada': serializer.data.get('imagen'),
+                'debug_info': {
+                    'settings_debug': settings.DEBUG,
+                    'media_root': settings.MEDIA_ROOT,
+                    'media_url': settings.MEDIA_URL,
+                }
+            })
+            
+        except MotoModelo.DoesNotExist:
+            return Response(
+                {'error': 'Modelo no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class ChasisByColorView(APIView):
+    """Vista para obtener información específica de chasis por color y modelo"""
+    
+    def get(self, request, modelo_id, color):
+        try:
+            modelo = MotoModelo.objects.get(id=modelo_id)
+            
+            # Obtener inventario filtrado por color
+            inventario_items = modelo.inventario.filter(color=color)
+            
+            chasis_info = []
+            total_stock = 0
+            
+            for item in inventario_items:
+                chasis_data = {
+                    'id': item.id,
+                    'chasis': item.chasis,
+                    'stock': item.cantidad_stock,
+                    'precio': float(item.precio_con_descuento),
+                    'descuento': float(item.descuento_porcentaje),
+                    'fecha_ingreso': item.fecha_ingreso,
+                    'is_individual': bool(item.chasis),  # True si tiene chasis específico
+                    'allow_custom_chasis': not bool(item.chasis)  # True si no tiene chasis específico
+                }
+                
+                chasis_info.append(chasis_data)
+                total_stock += item.cantidad_stock
+            
+            return Response({
+                'modelo_id': modelo_id,
+                'modelo_info': {
+                    'marca': modelo.marca,
+                    'modelo': modelo.modelo,
+                    'ano': modelo.ano,
+                },
+                'color': color,
+                'total_stock': total_stock,
+                'chasis_available': chasis_info,
+                'base_price': float(modelo.precio_venta)
+            })
+            
+        except MotoModelo.DoesNotExist:
+            return Response(
+                {'error': 'Modelo no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class TestImageView(APIView):
+    """Vista de test para depurar problemas con URLs de imágenes"""
+    
+    def get(self, request, modelo_id):
+        try:
+            from django.conf import settings
+            modelo = MotoModelo.objects.get(id=modelo_id)
+            serializer = MotoModeloSerializer(modelo)
+            
+            return Response({
+                'modelo_id': modelo_id,
+                'imagen_original': str(modelo.imagen) if modelo.imagen else None,
+                'imagen_serializada': serializer.data.get('imagen'),
+                'debug_info': {
+                    'settings_debug': settings.DEBUG,
+                    'media_root': settings.MEDIA_ROOT,
+                    'media_url': settings.MEDIA_URL,
+                }
+            })
+            
+        except MotoModelo.DoesNotExist:
+            return Response(
+                {'error': 'Modelo no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
             )

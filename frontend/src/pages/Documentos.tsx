@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getAvailableVariables } from '../services/documentVariables';
 import ViewToggle from '../components/common/ViewToggle';
+import { useToast } from '../components/Toast';
 
 interface DocumentTemplate {
   id: string;
@@ -594,6 +595,7 @@ const CLIENT_DOCUMENTS: Omit<DocumentTemplate, 'lastModified' | 'createdBy'>[] =
 ];
 
 const Documentos: React.FC = () => {
+  const { success, error: showError, warning, info, ToastContainer } = useToast();
   const [activeTab, setActiveTab] = useState<'legal' | 'client'>('legal');
   const [documents, setDocuments] = useState<DocumentTemplate[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -660,6 +662,7 @@ const Documentos: React.FC = () => {
       ));
       setShowEditor(false);
       setSelectedDocument(null);
+      success('Documento guardado exitosamente');
     }
   };
 
@@ -690,20 +693,20 @@ const Documentos: React.FC = () => {
 
   const handleSendDocument = (document: DocumentTemplate) => {
     // Aquí iría la lógica para enviar el documento por email
-    alert(`Función de envío para ${document.name} (por implementar)`);
+    info(`Función de envío para ${document.name} (por implementar)`);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade-in">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center animate-fade-in-up">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Documentos</h1>
           <p className="mt-1 text-sm text-gray-500">
             Administra plantillas de documentos legales y para clientes
           </p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2">
+        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 btn-press micro-glow">
           <Plus className="h-4 w-4" />
           Nuevo Documento
         </button>
@@ -1186,6 +1189,9 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, onClose }) 
           </button>
         </div>
       </div>
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };

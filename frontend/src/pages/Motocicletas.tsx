@@ -33,16 +33,39 @@ const NewVentaForm = lazy(() => import('../components/NewVentaForm'));
 const EspecificacionesTecnicas = lazy(() => import('../components/EspecificacionesTecnicas'));
 // import ResumenModelo from '../components/ResumenModelo';
 import ViewToggle from '../components/common/ViewToggle';
+import { SkeletonCard, SkeletonList, SkeletonStats } from '../components/Skeleton';
+import { useToast } from '../components/Toast';
+import AdvancedSearch from '../components/AdvancedSearch';
+import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
+import { motocicletasFilters, getSearchPlaceholder } from '../config/searchFilters';
 import type { Moto, MotoModelo } from '../types';
 
+// Define SearchFilters locally to avoid import issues
+interface SearchFilters {
+  [key: string]: any;
+}
+
 const Motocicletas: React.FC = () => {
+  const { success, error: showError, warning, info, ToastContainer } = useToast();
   const [motos, setMotos] = useState<Moto[]>([]);
   const [modelos, setModelos] = useState<MotoModelo[]>([]);
   const [viewMode, setViewMode] = useState<'modelos' | 'individual'>('modelos');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Advanced search setup
+  const {
+    searchTerm,
+    filters: activeFilters,
+    setSearchTerm,
+    setFilters: setActiveFilters,
+    debouncedSearchTerm,
+    hasActiveFilters
+  } = useAdvancedSearch({
+    persistKey: 'motocicletas_search',
+    debounceMs: 300
+  });
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [selectedMoto, setSelectedMoto] = useState<Moto | null>(null);
@@ -52,6 +75,8 @@ const Motocicletas: React.FC = () => {
   const [showVentaDirecta, setShowVentaDirecta] = useState(false);
   const [showResumenModelo, setShowResumenModelo] = useState(false);
   const [showEspecificaciones, setShowEspecificaciones] = useState(false);
+  const [deletingModelo, setDeletingModelo] = useState<number | null>(null);
+  const [deletingMoto, setDeletingMoto] = useState<number | null>(null);
   
   // Nuevos estados para filtros y agrupación con persistencia
   const [filterType, setFilterType] = useState<'all' | 'new' | 'used' | 'out_of_stock'>(() => {
@@ -83,41 +108,129 @@ const Motocicletas: React.FC = () => {
     localStorage.setItem('motocicletas_display_mode', newDisplayMode);
   }, []);
 
-  const loadMotos = async (page = 1, search = '') => {
+  const loadMotos = async (page = 1, search = '', filters: SearchFilters = {}) => {
     try {
       setLoading(true);
-      const response = await motoService.getMotos(page, search);
-      console.log('Motos cargadas:', response.results.map(m => ({ id: m.id, marca: m.marca, modelo: m.modelo, condicion: m.condicion })));
+      
+      // Build API parameters from search term and filters
+      const params: any = {
+        page,
+        search: search || undefined,
+        marca: filters.marca || undefined,
+        condicion: filters.condicion || undefined,
+        estado_disponibilidad: filters.estado_disponibilidad || undefined
+      };
+      
+      // Handle number ranges
+      if (filters.precio_venta && Array.isArray(filters.precio_venta)) {
+        const [minPrecio, maxPrecio] = filters.precio_venta;
+        if (minPrecio) params.precio_min = minPrecio;
+        if (maxPrecio) params.precio_max = maxPrecio;
+      }
+      
+      if (filters.ano && Array.isArray(filters.ano)) {
+        const [minAno, maxAno] = filters.ano;
+        if (minAno) params.ano_min = minAno;
+        if (maxAno) params.ano_max = maxAno;
+      }
+      
+      if (filters.cilindraje && Array.isArray(filters.cilindraje)) {
+        const [minCilindraje, maxCilindraje] = filters.cilindraje;
+        if (minCilindraje) params.cilindraje_min = minCilindraje;
+        if (maxCilindraje) params.cilindraje_max = maxCilindraje;
+      }
+      
+      if (filters.cantidad_stock && Array.isArray(filters.cantidad_stock)) {
+        const [minStock, maxStock] = filters.cantidad_stock;
+        if (minStock) params.stock_min = minStock;
+        if (maxStock) params.stock_max = maxStock;
+      }
+      
+      // Remove undefined parameters
+      Object.keys(params).forEach(key => {
+        if (params[key] === undefined) {
+          delete params[key];
+        }
+      });
+      
+      const response = await motoService.getMotos(page, search, params);
+      // console.log('Motos cargadas:', response.results.map(m => ({ id: m.id, marca: m.marca, modelo: m.modelo, condicion: m.condicion })));
       setMotos(response.results);
       setTotalPages(Math.ceil(response.count / 20)); // Asumiendo 20 items por página
     } catch (err) {
-      setError('Error al cargar motocicletas');
+      const errorMsg = 'Error al cargar motocicletas';
+      setError(errorMsg);
+      showError(errorMsg);
       console.error('Error loading motos:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadModelos = async (page = 1, search = '') => {
+  const loadModelos = async (page = 1, search = '', filters: SearchFilters = {}) => {
     try {
       setLoading(true);
-      const response = await motoModeloService.getModelos(page, search);
-      // console.log('Modelos cargados (DETALLE):');
-      response.results.forEach((m, index) => {
-        // Debug logs removed for performance
-        console.log(`Modelo ${index + 1}:`, {
-          id: m.id,
-          marca: m.marca,
-          modelo: m.modelo,
-          condicion: m.condicion,
-          condicion_raw: JSON.stringify(m.condicion),
-          tipo_condicion: typeof m.condicion
-        });
+      
+      // Build API parameters from search term and filters
+      const params: any = {
+        page,
+        search: search || undefined,
+        marca: filters.marca || undefined,
+        condicion: filters.condicion || undefined,
+        estado_disponibilidad: filters.estado_disponibilidad || undefined
+      };
+      
+      // Handle number ranges
+      if (filters.precio_venta && Array.isArray(filters.precio_venta)) {
+        const [minPrecio, maxPrecio] = filters.precio_venta;
+        if (minPrecio) params.precio_min = minPrecio;
+        if (maxPrecio) params.precio_max = maxPrecio;
+      }
+      
+      if (filters.ano && Array.isArray(filters.ano)) {
+        const [minAno, maxAno] = filters.ano;
+        if (minAno) params.ano_min = minAno;
+        if (maxAno) params.ano_max = maxAno;
+      }
+      
+      if (filters.cilindraje && Array.isArray(filters.cilindraje)) {
+        const [minCilindraje, maxCilindraje] = filters.cilindraje;
+        if (minCilindraje) params.cilindraje_min = minCilindraje;
+        if (maxCilindraje) params.cilindraje_max = maxCilindraje;
+      }
+      
+      if (filters.cantidad_stock && Array.isArray(filters.cantidad_stock)) {
+        const [minStock, maxStock] = filters.cantidad_stock;
+        if (minStock) params.stock_min = minStock;
+        if (maxStock) params.stock_max = maxStock;
+      }
+      
+      // Remove undefined parameters
+      Object.keys(params).forEach(key => {
+        if (params[key] === undefined) {
+          delete params[key];
+        }
       });
+      
+      const response = await motoModeloService.getModelos(page, search, params);
+      // console.log('Modelos cargados (DETALLE):');
+      // Debug logs removed for performance
+      // response.results.forEach((m, index) => {
+      //   console.log(`Modelo ${index + 1}:`, {
+      //     id: m.id,
+      //     marca: m.marca,
+      //     modelo: m.modelo,
+      //     condicion: m.condicion,
+      //     condicion_raw: JSON.stringify(m.condicion),
+      //     tipo_condicion: typeof m.condicion
+      //   });
+      // });
       setModelos(response.results);
       setTotalPages(Math.ceil(response.count / 20));
     } catch (err) {
-      setError('Error al cargar modelos de motocicletas');
+      const errorMsg = 'Error al cargar modelos de motocicletas';
+      setError(errorMsg);
+      showError(errorMsg);
       console.error('Error loading modelos:', err);
     } finally {
       setLoading(false);
@@ -126,30 +239,36 @@ const Motocicletas: React.FC = () => {
 
   useEffect(() => {
     if (viewMode === 'modelos') {
-      loadModelos(currentPage, searchTerm);
+      loadModelos(currentPage, debouncedSearchTerm, activeFilters);
     } else {
-      loadMotos(currentPage, searchTerm);
+      loadMotos(currentPage, debouncedSearchTerm, activeFilters);
     }
-  }, [currentPage, viewMode]);
+  }, [currentPage, viewMode, debouncedSearchTerm, activeFilters]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFiltersChange = (newFilters: SearchFilters) => {
+    setActiveFilters(newFilters);
     setCurrentPage(1);
-    if (viewMode === 'modelos') {
-      loadModelos(1, searchTerm);
-    } else {
-      loadMotos(1, searchTerm);
-    }
+  };
+  
+  const handleSearchReset = () => {
+    setSearchTerm('');
+    setActiveFilters({});
+    setCurrentPage(1);
+    info('Búsqueda reiniciada');
   };
 
   const handleDelete = async (moto: Moto) => {
     if (window.confirm(`¿Estás seguro de eliminar la moto ${moto.marca} ${moto.modelo}${moto.color ? ` ${moto.color}` : ''}?`)) {
+      setDeletingMoto(moto.id);
       try {
         await motoService.deleteMoto(moto.id);
         loadMotos(currentPage, searchTerm);
+        success(`Motocicleta ${moto.marca} ${moto.modelo} eliminada correctamente`);
       } catch (err) {
-        alert('Error al eliminar moto');
+        showError('Error al eliminar moto');
         console.error('Error deleting moto:', err);
+      } finally {
+        setDeletingMoto(null);
       }
     }
   };
@@ -178,22 +297,36 @@ const Motocicletas: React.FC = () => {
         console.log('Recargando modelos...');
         console.log('Modelo editado ID:', editedModeloId);
         loadModelos(currentPage, searchTerm);
+        if (modalMode === 'create') {
+          success('Modelo de motocicleta creado exitosamente');
+        } else if (modalMode === 'edit') {
+          success('Modelo de motocicleta actualizado exitosamente');
+        }
       } else {
         console.log('Recargando motos...');
         console.log('Moto editada ID:', editedMotoId);
         loadMotos(currentPage, searchTerm);
+        if (modalMode === 'create') {
+          success('Motocicleta creada exitosamente');
+        } else if (modalMode === 'edit') {
+          success('Motocicleta actualizada exitosamente');
+        }
       }
     }, 100);
   };
 
   const handleDeleteModelo = async (modelo: MotoModelo) => {
     if (window.confirm(`¿Estás seguro de eliminar el modelo ${modelo.marca} ${modelo.modelo} ${modelo.ano}?`)) {
+      setDeletingModelo(modelo.id);
       try {
         await motoModeloService.deleteModelo(modelo.id);
         loadModelos(currentPage, searchTerm);
+        success(`Modelo ${modelo.marca} ${modelo.modelo} ${modelo.ano} eliminado correctamente`);
       } catch (err) {
-        alert('Error al eliminar modelo');
+        showError('Error al eliminar modelo');
         console.error('Error deleting modelo:', err);
+      } finally {
+        setDeletingModelo(null);
       }
     }
   };
@@ -233,6 +366,7 @@ const Motocicletas: React.FC = () => {
     setShowVentaDirecta(false);
     // Recargar datos después de una venta exitosa
     loadModelos(currentPage, searchTerm);
+    success('Venta procesada exitosamente');
   };
 
   const [estadisticasModelo, setEstadisticasModelo] = useState<any>(null);
@@ -371,29 +505,31 @@ const Motocicletas: React.FC = () => {
 
   // Nuevas funciones de filtrado y agrupación
   const getFilteredData = () => {
-    let filteredData = viewMode === 'modelos' ? modelos : motos;
+    let filteredData: any[];
+    
+    if (viewMode === 'modelos') {
+      filteredData = modelos;
+    } else if (viewMode === 'individual') {
+      // En modo individual, usar las unidades de inventario
+      filteredData = getAllInventoryUnits;
+    } else {
+      filteredData = motos;
+    }
     
     // Aplicar filtros según el tipo seleccionado
     switch (filterType) {
       case 'new':
-        if (viewMode === 'modelos') {
-          filteredData = modelos.filter(modelo => modelo.condicion === 'nueva');
-        } else {
-          filteredData = motos.filter(moto => moto.condicion === 'nueva');
-        }
+        filteredData = filteredData.filter(item => item.condicion === 'nueva');
         break;
       case 'used':
-        if (viewMode === 'modelos') {
-          filteredData = modelos.filter(modelo => modelo.condicion === 'usada');
-        } else {
-          filteredData = motos.filter(moto => moto.condicion === 'usada');
-        }
+        filteredData = filteredData.filter(item => item.condicion === 'usada');
         break;
       case 'out_of_stock':
         if (viewMode === 'modelos') {
-          filteredData = modelos.filter(modelo => modelo.total_stock === 0);
+          filteredData = filteredData.filter(item => item.total_stock === 0);
         } else {
-          filteredData = motos.filter(moto => moto.cantidad_stock === 0);
+          // Para individual y motos, filtrar por cantidad_stock
+          filteredData = filteredData.filter(item => item.cantidad_stock === 0);
         }
         break;
       default:
@@ -527,7 +663,7 @@ const Motocicletas: React.FC = () => {
   }, [modelos]); // Memo dependency: recalcular solo cuando modelos cambie
 
   const getGroupedByBrand = () => {
-    const filteredData = viewMode === 'individual' ? getAllInventoryUnits : getFilteredData();
+    const filteredData = getFilteredData();
     if (!groupByBrand) return { 'Todas las marcas': filteredData };
 
     const grouped = filteredData.reduce((acc: any, item: any) => {
@@ -566,14 +702,90 @@ const Motocicletas: React.FC = () => {
 
   if (loading && (viewMode === 'modelos' ? modelos.length === 0 : motos.length === 0)) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div>
+        {/* Header skeleton */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="h-10 w-40 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+        
+        {/* Tabs skeleton */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <div className="h-10 w-24 bg-gray-200 rounded-t animate-pulse"></div>
+              <div className="h-10 w-32 bg-gray-200 rounded-t animate-pulse"></div>
+            </nav>
+          </div>
+        </div>
+        
+        {/* Stats skeleton */}
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <SkeletonStats />
+            <SkeletonStats />
+            <SkeletonStats />
+            <SkeletonStats />
+          </div>
+          
+          {/* Controls skeleton */}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 bg-gray-300 rounded animate-pulse"></div>
+              <div className="h-4 w-20 bg-gray-300 rounded animate-pulse"></div>
+              <div className="flex gap-1">
+                <div className="h-6 w-16 bg-gray-300 rounded-full animate-pulse"></div>
+                <div className="h-6 w-16 bg-gray-300 rounded-full animate-pulse"></div>
+                <div className="h-6 w-16 bg-gray-300 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="h-4 w-32 bg-gray-300 rounded animate-pulse"></div>
+              <div className="h-8 w-20 bg-gray-300 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Search skeleton */}
+        <div className="mb-6">
+          <div className="flex gap-4">
+            <div className="flex-1 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div className="h-10 w-20 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        </div>
+        
+        {/* Content skeleton */}
+        <div className="space-y-6">
+          {viewMode === 'modelos' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <SkeletonList />
+              <SkeletonList />
+              <SkeletonList />
+              <SkeletonList />
+              <SkeletonList />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="page-fade-in">
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center">
@@ -585,7 +797,7 @@ const Motocicletas: React.FC = () => {
           </div>
           <button
             onClick={() => openModal('create')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             {viewMode === 'modelos' ? 'Nueva Motocicleta' : 'Nueva Moto'}
@@ -630,7 +842,7 @@ const Motocicletas: React.FC = () => {
       {/* Filtros y Controles */}
       <div className="mb-6 space-y-4">
         {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 staggered-fade-in">
           {(() => {
             const stats = getFilterStats;
             return (
@@ -685,7 +897,7 @@ const Motocicletas: React.FC = () => {
             <div className="flex gap-1">
               <button
                 onClick={() => handleFilterTypeChange('all')}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'all'
                     ? 'bg-blue-600 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -695,7 +907,7 @@ const Motocicletas: React.FC = () => {
               </button>
               <button
                 onClick={() => handleFilterTypeChange('new')}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'new'
                     ? 'bg-green-600 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -705,7 +917,7 @@ const Motocicletas: React.FC = () => {
               </button>
               <button
                 onClick={() => handleFilterTypeChange('used')}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'used'
                     ? 'bg-yellow-600 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -715,7 +927,7 @@ const Motocicletas: React.FC = () => {
               </button>
               <button
                 onClick={() => handleFilterTypeChange('out_of_stock')}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'out_of_stock'
                     ? 'bg-red-600 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
@@ -746,26 +958,19 @@ const Motocicletas: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Bar */}
+      {/* Advanced Search */}
       <div className="mb-6">
-        <form onSubmit={handleSearch} className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Buscar por marca, modelo o chasis..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <button
-            type="submit"
-            className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
-          >
-            Buscar
-          </button>
-        </form>
+        <AdvancedSearch
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={motocicletasFilters}
+          activeFilters={activeFilters}
+          onFiltersChange={handleFiltersChange}
+          placeholder={getSearchPlaceholder('motocicletas')}
+          onReset={handleSearchReset}
+          loading={loading}
+          className="animate-fade-in-up"
+        />
       </div>
 
       {error && (
@@ -793,6 +998,7 @@ const Motocicletas: React.FC = () => {
               
               {/* Grid de elementos */}
               <div className={`
+                transition-all duration-300 ease-in-out
                 ${displayMode === 'grid' 
                   ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
                   : 'space-y-4'
@@ -801,7 +1007,7 @@ const Motocicletas: React.FC = () => {
                 {items.map((modelo) => (
                   displayMode === 'grid' ? (
                     /* Vista en grilla */
-                    <div key={modelo.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                    <div key={modelo.id} className="bg-white rounded-lg shadow-md overflow-hidden card-hover animate-fade-in-up">
                       {/* Imagen */}
                       <div 
                         className="h-48 bg-gray-200 relative cursor-pointer hover:opacity-90 transition-opacity group"
@@ -813,12 +1019,28 @@ const Motocicletas: React.FC = () => {
                             src={modelo.imagen}
                             alt={`${modelo.marca} ${modelo.modelo} ${modelo.ano}`}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Hide broken image and show fallback
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                              if (fallback) {
+                                fallback.style.display = 'flex';
+                              }
+                            }}
+                            onLoad={(e) => {
+                              // Ensure fallback is hidden on successful load
+                              const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                              if (fallback) {
+                                fallback.style.display = 'none';
+                              }
+                            }}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Bike className="h-16 w-16 text-gray-400" />
-                          </div>
-                        )}
+                        ) : null}
+                        
+                        {/* Fallback icon - always present but hidden unless needed */}
+                        <div className="fallback-icon w-full h-full flex items-center justify-center" style={{ display: modelo.imagen ? 'none' : 'flex' }}>
+                          <Bike className="h-16 w-16 text-gray-400" />
+                        </div>
                         
                         {/* Overlay con ícono de información */}
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
@@ -912,24 +1134,29 @@ const Motocicletas: React.FC = () => {
                           <div className="flex space-x-1">
                             <button
                               onClick={() => openModal('edit', null, modelo)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transform hover:scale-110 transition-all duration-150 ease-in-out"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteModelo(modelo)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              disabled={deletingModelo === modelo.id}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transform hover:scale-110 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                               title="Eliminar"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {deletingModelo === modelo.id ? (
+                                <div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                           
                           <div className="flex space-x-2">
                             <button
                               onClick={() => handleResumenModelo(modelo)}
-                              className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                              className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transform hover:scale-105 transition-all duration-150 ease-in-out"
                               title="Ver detalles completos y estadísticas"
                             >
                               <Info className="h-4 w-4 mr-1" />
@@ -938,7 +1165,7 @@ const Motocicletas: React.FC = () => {
                             {modelo.disponible && (
                               <button
                                 onClick={() => handleVentaDirecta(modelo)}
-                                className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                                className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transform hover:scale-105 transition-all duration-150 ease-in-out"
                               >
                                 <ShoppingCart className="h-4 w-4 mr-1" />
                                 Vender
@@ -950,7 +1177,7 @@ const Motocicletas: React.FC = () => {
                     </div>
                   ) : (
                     /* Vista en lista - Responsive */
-                    <div key={modelo.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                    <div key={modelo.id} className="bg-white rounded-lg shadow-sm border micro-lift animate-fade-in-left">
                       <div className="p-4">
                         {/* Layout móvil/desktop adaptativo */}
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -967,12 +1194,25 @@ const Motocicletas: React.FC = () => {
                                   src={modelo.imagen}
                                   alt={`${modelo.marca} ${modelo.modelo} ${modelo.ano}`}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                    if (fallback) {
+                                      fallback.style.display = 'flex';
+                                    }
+                                  }}
+                                  onLoad={(e) => {
+                                    const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                    if (fallback) {
+                                      fallback.style.display = 'none';
+                                    }
+                                  }}
                                 />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Bike className="h-8 w-8 text-gray-400" />
-                                </div>
-                              )}
+                              ) : null}
+                              
+                              <div className="fallback-icon w-full h-full flex items-center justify-center" style={{ display: modelo.imagen ? 'none' : 'flex' }}>
+                                <Bike className="h-8 w-8 text-gray-400" />
+                              </div>
                             </div>
                             
                             {/* Información básica */}
@@ -1042,21 +1282,26 @@ const Motocicletas: React.FC = () => {
                           <div className="flex items-center justify-center lg:justify-end space-x-1 flex-wrap gap-1">
                             <button
                               onClick={() => openModal('edit', null, modelo)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg flex-shrink-0"
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg flex-shrink-0 transform hover:scale-110 transition-all duration-150 ease-in-out"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteModelo(modelo)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0"
+                              disabled={deletingModelo === modelo.id}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg flex-shrink-0 transform hover:scale-110 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                               title="Eliminar"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {deletingModelo === modelo.id ? (
+                                <div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </button>
                             <button
                               onClick={() => handleResumenModelo(modelo)}
-                              className="flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 flex-shrink-0"
+                              className="flex items-center px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 flex-shrink-0 transform hover:scale-105 transition-all duration-150 ease-in-out"
                               title="Ver detalles completos"
                             >
                               <Info className="h-3 w-3 mr-1" />
@@ -1066,7 +1311,7 @@ const Motocicletas: React.FC = () => {
                             {modelo.disponible && (
                               <button
                                 onClick={() => handleVentaDirecta(modelo)}
-                                className="flex items-center px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex-shrink-0"
+                                className="flex items-center px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex-shrink-0 transform hover:scale-105 transition-all duration-150 ease-in-out"
                                 title="Vender"
                               >
                                 <ShoppingCart className="h-3 w-3 mr-1" />
@@ -1165,12 +1410,25 @@ const Motocicletas: React.FC = () => {
                                       className="h-10 w-10 rounded-lg object-cover"
                                       src={unit.imagen}
                                       alt={`${unit.marca} ${unit.modelo}`}
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                        if (fallback) {
+                                          fallback.style.display = 'flex';
+                                        }
+                                      }}
+                                      onLoad={(e) => {
+                                        const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                        if (fallback) {
+                                          fallback.style.display = 'none';
+                                        }
+                                      }}
                                     />
-                                  ) : (
-                                    <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
-                                      <Bike className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                  )}
+                                  ) : null}
+                                  
+                                  <div className="fallback-icon h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center" style={{ display: unit.imagen ? 'none' : 'flex' }}>
+                                    <Bike className="h-5 w-5 text-gray-400" />
+                                  </div>
                                 </div>
                                 <div className="ml-4">
                                   <div className="text-sm font-medium text-gray-900">
@@ -1277,39 +1535,103 @@ const Motocicletas: React.FC = () => {
 
       {/* Modals */}
       {showModal && viewMode === 'modelos' && (
-        <MotoModeloForm
-          modelo={selectedModelo}
-          mode={modalMode}
-          isReadOnly={modalMode === 'view'}
-          onClose={closeModal}
-          onSave={handleFormSave}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6">
+                <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="space-y-4">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }>
+          <MotoModeloForm
+            modelo={selectedModelo}
+            mode={modalMode}
+            isReadOnly={modalMode === 'view'}
+            onClose={closeModal}
+            onSave={handleFormSave}
+          />
+        </Suspense>
       )}
       
       {showModal && viewMode === 'individual' && (
-        <MotoForm
-          moto={selectedMoto}
-          mode={modalMode}
-          onClose={closeModal}
-          onSave={handleFormSave}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6">
+                <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="space-y-4">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }>
+          <MotoForm
+            moto={selectedMoto}
+            mode={modalMode}
+            onClose={closeModal}
+            onSave={handleFormSave}
+          />
+        </Suspense>
       )}
 
       {showDetalleModelo && selectedModelo && (
-        <MotoModeloDetalle
-          modelo={selectedModelo}
-          onClose={() => setShowDetalleModelo(false)}
-          onVentaDirecta={handleVentaDirecta}
-          onUpdate={handleUpdateModelo}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6">
+                <div className="h-6 w-64 bg-gray-200 rounded animate-pulse mb-6"></div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }>
+          <MotoModeloDetalle
+            modelo={selectedModelo}
+            onClose={() => setShowDetalleModelo(false)}
+            onVentaDirecta={handleVentaDirecta}
+            onUpdate={handleUpdateModelo}
+          />
+        </Suspense>
       )}
 
       {showVentaDirecta && selectedModelo && (
-        <NewVentaForm
-          onClose={() => setShowVentaDirecta(false)}
-          preSelectedMoto={selectedModelo}
-          onSuccess={handleVentaSuccess}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6">
+                <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="space-y-4">
+                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-5/6 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }>
+          <NewVentaForm
+            onClose={() => setShowVentaDirecta(false)}
+            preSelectedMoto={selectedModelo}
+            onSuccess={handleVentaSuccess}
+          />
+        </Suspense>
       )}
 
       {/* Temporarily disabled - ResumenModelo component doesn't exist yet */}
@@ -1322,11 +1644,38 @@ const Motocicletas: React.FC = () => {
       )*/}
 
       {showEspecificaciones && modeloEspecificaciones && (
-        <EspecificacionesTecnicas
-          modelo={modeloEspecificaciones}
-          onClose={() => setShowEspecificaciones(false)}
-        />
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="p-6">
+                <div className="h-6 w-56 bg-gray-200 rounded animate-pulse mb-6"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="h-5 w-28 bg-gray-200 rounded animate-pulse mb-2"></div>
+                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }>
+          <EspecificacionesTecnicas
+            modelo={modeloEspecificaciones}
+            onClose={() => setShowEspecificaciones(false)}
+          />
+        </Suspense>
       )}
+      
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };

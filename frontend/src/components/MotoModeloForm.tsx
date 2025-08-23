@@ -271,7 +271,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           cantidad_stock: color.cantidad_stock,
           descuento_porcentaje: color.descuento_porcentaje || 0,
           chasis: Array.isArray(color.chasis) ? color.chasis[0] || undefined : color.chasis || undefined,
-          chasis_list: Array.isArray(color.chasis) ? color.chasis : [color.chasis || ''],
+          chasis_list: Array.isArray(color.chasis) ? color.chasis.filter(c => c.trim() !== '') : [color.chasis || ''].filter(c => c.trim() !== ''),
           precio_compra_individual: color.precio_compra_individual || null,
           tasa_dolar: color.tasa_dolar || null,
           fecha_compra: color.fecha_compra || null
@@ -332,6 +332,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       }
       
       console.log('✅ Respuesta del backend:', response);
+      console.log('🖼️ URL de imagen en respuesta:', response.imagen);
       console.log('🔄 Cerrando formulario y recargando...');
       
       onSave();

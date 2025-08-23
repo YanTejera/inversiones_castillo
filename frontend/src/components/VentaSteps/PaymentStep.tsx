@@ -39,6 +39,12 @@ const PaymentStep: React.FC<PaymentStepProps> = ({ data, onUpdate, errors }) => 
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
 
   const getTotalAmount = () => {
+    // Usar el array de motocicletas si está disponible, sino usar la motocicleta individual (compatibilidad)
+    if (data.selectedMotorcycles && data.selectedMotorcycles.length > 0) {
+      return data.selectedMotorcycles.reduce((total, moto) => 
+        total + (moto.precio_unitario * moto.cantidad), 0
+      );
+    }
     if (!data.selectedMotorcycle) return 0;
     return data.selectedMotorcycle.precio_unitario * data.selectedMotorcycle.cantidad;
   };
@@ -161,12 +167,14 @@ const PaymentStep: React.FC<PaymentStepProps> = ({ data, onUpdate, errors }) => 
     return downPayment + paymentSchedule.reduce((total, payment) => total + payment.amount, 0);
   };
 
-  if (!data.selectedMotorcycle) {
+  const hasMotorcycles = data.selectedMotorcycles?.length > 0 || data.selectedMotorcycle;
+  
+  if (!hasMotorcycles) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center">
         <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
         <span className="text-yellow-800">
-          Debe seleccionar una motocicleta antes de configurar el pago.
+          Debe seleccionar al menos una motocicleta antes de configurar el pago.
         </span>
       </div>
     );
@@ -183,35 +191,78 @@ const PaymentStep: React.FC<PaymentStepProps> = ({ data, onUpdate, errors }) => 
         </p>
       </div>
 
-      {/* Resumen de la motocicleta seleccionada */}
+      {/* Resumen de las motocicletas seleccionadas */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+        <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
           <DollarSign className="h-5 w-5 mr-2" />
           Resumen de la Compra
         </h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <span className="text-blue-700">Motocicleta:</span>
-            <p className="font-medium text-blue-900">
-              {data.selectedMotorcycle.tipo === 'modelo' 
-                ? `${data.selectedMotorcycle.modelo?.marca} ${data.selectedMotorcycle.modelo?.modelo}`
-                : `${data.selectedMotorcycle.moto?.marca} ${data.selectedMotorcycle.moto?.modelo}`
-              }
-            </p>
+        
+        {data.selectedMotorcycles && data.selectedMotorcycles.length > 0 ? (
+          <div className="space-y-3">
+            {data.selectedMotorcycles.map((moto, index) => (
+              <div key={index} className="bg-white border border-blue-200 rounded-lg p-3">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                  <div>
+                    <span className="text-blue-700">Motocicleta:</span>
+                    <p className="font-medium text-blue-900">
+                      {moto.tipo === 'modelo' 
+                        ? `${moto.modelo?.marca} ${moto.modelo?.modelo}`
+                        : `${moto.moto?.marca} ${moto.moto?.modelo}`
+                      }
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Color:</span>
+                    <p className="font-medium text-blue-900">{moto.color || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Cantidad:</span>
+                    <p className="font-medium text-blue-900">{moto.cantidad}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Precio Unit.:</span>
+                    <p className="font-medium text-blue-900">{formatCurrency(moto.precio_unitario)}</p>
+                  </div>
+                  <div>
+                    <span className="text-blue-700">Subtotal:</span>
+                    <p className="font-medium text-blue-900">{formatCurrency(moto.precio_unitario * moto.cantidad)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div className="border-t border-blue-300 pt-3 mt-3">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-blue-900">Total General:</span>
+                <span className="font-bold text-blue-900 text-xl">{formatCurrency(getTotalAmount())}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="text-blue-700">Cantidad:</span>
-            <p className="font-medium text-blue-900">{data.selectedMotorcycle.cantidad}</p>
+        ) : data.selectedMotorcycle ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="text-blue-700">Motocicleta:</span>
+              <p className="font-medium text-blue-900">
+                {data.selectedMotorcycle.tipo === 'modelo' 
+                  ? `${data.selectedMotorcycle.modelo?.marca} ${data.selectedMotorcycle.modelo?.modelo}`
+                  : `${data.selectedMotorcycle.moto?.marca} ${data.selectedMotorcycle.moto?.modelo}`
+                }
+              </p>
+            </div>
+            <div>
+              <span className="text-blue-700">Cantidad:</span>
+              <p className="font-medium text-blue-900">{data.selectedMotorcycle.cantidad}</p>
+            </div>
+            <div>
+              <span className="text-blue-700">Precio Unitario:</span>
+              <p className="font-medium text-blue-900">{formatCurrency(data.selectedMotorcycle.precio_unitario)}</p>
+            </div>
+            <div>
+              <span className="text-blue-700">Total:</span>
+              <p className="font-bold text-blue-900 text-lg">{formatCurrency(getTotalAmount())}</p>
+            </div>
           </div>
-          <div>
-            <span className="text-blue-700">Precio Unitario:</span>
-            <p className="font-medium text-blue-900">{formatCurrency(data.selectedMotorcycle.precio_unitario)}</p>
-          </div>
-          <div>
-            <span className="text-blue-700">Total:</span>
-            <p className="font-bold text-blue-900 text-lg">{formatCurrency(getTotalAmount())}</p>
-          </div>
-        </div>
+        ) : null}
       </div>
 
       {/* Selección de tipo de pago */}
@@ -304,8 +355,11 @@ const PaymentStep: React.FC<PaymentStepProps> = ({ data, onUpdate, errors }) => 
             <div className="mt-2">
               <input
                 type="number"
-                value={downPayment}
-                onChange={(e) => setDownPayment(Number(e.target.value))}
+                value={downPayment || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDownPayment(value === '' ? 0 : Number(value));
+                }}
                 min={0}
                 max={getTotalAmount()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -337,8 +391,11 @@ const PaymentStep: React.FC<PaymentStepProps> = ({ data, onUpdate, errors }) => 
             <div className="mt-2">
               <input
                 type="number"
-                value={interestRate}
-                onChange={(e) => setInterestRate(Number(e.target.value))}
+                value={interestRate || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setInterestRate(value === '' ? 0 : Number(value));
+                }}
                 min={0}
                 max={100}
                 step={0.1}
@@ -397,8 +454,11 @@ const PaymentStep: React.FC<PaymentStepProps> = ({ data, onUpdate, errors }) => 
             <div className="mt-2">
               <input
                 type="number"
-                value={numberOfPayments}
-                onChange={(e) => setNumberOfPayments(Number(e.target.value))}
+                value={numberOfPayments || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNumberOfPayments(value === '' ? 0 : Number(value));
+                }}
                 min={1}
                 max={120}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"

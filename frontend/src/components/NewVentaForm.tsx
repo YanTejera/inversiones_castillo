@@ -13,7 +13,8 @@ import {
   FileCheck,
   Receipt,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Save
 } from 'lucide-react';
 
 // Importar los sub-componentes que crearemos
@@ -39,7 +40,18 @@ export interface VentaFormData {
   // Documents
   uploadedDocuments: File[];
   
-  // Motorcycle Selection
+  // Motorcycle Selection (Ahora soporta múltiples motocicletas)
+  selectedMotorcycles: Array<{
+    tipo: 'modelo' | 'individual';
+    modelo?: MotoModelo;
+    moto?: Moto;
+    color?: string;
+    chasis?: string;
+    cantidad: number;
+    precio_unitario: number;
+  }>;
+  
+  // Para compatibilidad temporal (se eliminará después)
   selectedMotorcycle: {
     tipo: 'modelo' | 'individual';
     modelo?: MotoModelo;
@@ -79,11 +91,17 @@ export interface VentaFormData {
   
   // Final Information
   observations: string;
+  
+  // Draft Management
+  isDraft?: boolean;
+  draftId?: string;
+  lastSaved?: string;
 }
 
 interface NewVentaFormProps {
   onClose: () => void;
   onSave: (data: VentaFormData) => void;
+  onSaveDraft?: (data: VentaFormData) => void;
   initialData?: Partial<VentaFormData>;
 }
 
@@ -139,7 +157,7 @@ const STEPS = [
   }
 ];
 
-const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, initialData }) => {
+const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraft, initialData }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<VentaFormData>({
     customer: null,
@@ -147,6 +165,7 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, initialDat
     needsGuarantor: false,
     guarantor: null,
     uploadedDocuments: [],
+    selectedMotorcycles: [],
     selectedMotorcycle: null,
     paymentType: 'contado',
     downPayment: 0,
@@ -202,13 +221,24 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, initialDat
         return formData.customer !== null;
       
       case 'guarantor':
-        return !formData.needsGuarantor || formData.guarantor !== null;
+        if (!formData.needsGuarantor) {
+          return true; // No se necesita garante, paso completo
+        }
+        // Si se necesita garante, verificar si es existente (tiene ID) o si es nuevo con datos completos
+        if (formData.guarantor) {
+          if (formData.guarantor.id) {
+            return true; // Garante existente seleccionado
+          }
+          // Garante nuevo, verificar campos mínimos
+          return formData.guarantor.nombre && formData.guarantor.cedula && formData.guarantor.parentesco_cliente;
+        }
+        return false;
       
       case 'documents':
         return formData.uploadedDocuments.length > 0;
       
       case 'motorcycle':
-        return formData.selectedMotorcycle !== null;
+        return formData.selectedMotorcycles.length > 0 || formData.selectedMotorcycle !== null;
       
       case 'payment':
         return formData.paymentType === 'contado' || 
@@ -271,21 +301,63 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, initialDat
     }
   };
 
-  const handleSave = () => {
-    // Validar que todos los pasos requeridos estén completos
+  const handleSaveDraft = () => {
+    if (onSaveDraft) {
+      const draftData = {
+        ...formData,
+        isDraft: true,
+        draftId: formData.draftId || `draft_${Date.now()}`,
+        lastSaved: new Date().toISOString()
+      };
+      onSaveDraft(draftData);
+    }
+  };
+
+  const handleFinalizeSale = () => {
+    // Validar que todos los pasos requeridos estén completos SOLO para finalizar
     const incompleteSteps = STEPS.filter((step, index) => 
       step.required && !completedSteps.has(index)
     );
 
     if (incompleteSteps.length > 0) {
       setErrors({
-        form: `Por favor complete los siguientes pasos: ${incompleteSteps.map(s => s.title).join(', ')}`
+        form: `Para finalizar la venta, complete los siguientes pasos: ${incompleteSteps.map(s => s.title).join(', ')}`
       });
       return;
     }
 
-    onSave(formData);
+    // Validación mínima para finalizar venta
+    if (!formData.customer) {
+      setErrors({ form: 'Debe seleccionar un cliente para finalizar la venta' });
+      return;
+    }
+
+    if (!formData.selectedMotorcycles.length && !formData.selectedMotorcycle) {
+      setErrors({ form: 'Debe seleccionar al menos una motocicleta para finalizar la venta' });
+      return;
+    }
+
+    const finalData = {
+      ...formData,
+      isDraft: false,
+      lastSaved: new Date().toISOString()
+    };
+
+    onSave(finalData);
   };
+
+  // Guardado automático cada 30 segundos (solo si hay datos mínimos)
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      if (formData.customer && onSaveDraft) {
+        handleSaveDraft();
+      }
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(interval);
+  }, [formData, onSaveDraft]);
+
+  const handleSave = handleFinalizeSale;
 
   const renderStepContent = () => {
     const step = STEPS[currentStep];
@@ -366,12 +438,31 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, initialDat
       <div className="bg-white rounded-lg max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-          <div>
-            <h2 className="text-2xl font-bold">Nueva Venta</h2>
-            <p className="text-blue-100 mt-1">
-              Paso {currentStep + 1} de {STEPS.length}: {STEPS[currentStep].title}
-            </p>
+          <div className="flex-1">
+            <div className="flex items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  {formData.isDraft ? 'Venta en Borrador' : 'Nueva Venta'}
+                </h2>
+                <p className="text-blue-100 mt-1">
+                  Paso {currentStep + 1} de {STEPS.length}: {STEPS[currentStep].title}
+                </p>
+              </div>
+              
+              {/* Indicador de estado de borrador */}
+              {formData.isDraft && formData.lastSaved && (
+                <div className="bg-blue-800 bg-opacity-50 rounded-lg px-3 py-2">
+                  <p className="text-xs text-blue-100">
+                    Borrador guardado
+                  </p>
+                  <p className="text-xs text-blue-200">
+                    {new Date(formData.lastSaved).toLocaleString()}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
+          
           <button
             onClick={onClose}
             className="text-white hover:text-gray-200 transition-colors"
@@ -461,15 +552,38 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, initialDat
             Anterior
           </button>
 
-          <div className="flex items-center space-x-4">
-            {currentStep === STEPS.length - 1 ? (
+          <div className="flex items-center space-x-3">
+            {/* Botón de guardar borrador - siempre disponible si hay cliente */}
+            {formData.customer && onSaveDraft && (
               <button
-                onClick={handleSave}
-                className="flex items-center px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                onClick={handleSaveDraft}
+                className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm"
+                title="Guardar como borrador para continuar más tarde"
               >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Guardar Venta
+                <Save className="h-4 w-4 mr-2" />
+                Guardar Borrador
               </button>
+            )}
+
+            {currentStep === STEPS.length - 1 ? (
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleSaveDraft}
+                  className="flex items-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+                  title="Guardar sin finalizar (se puede completar después)"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Sin Finalizar
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex items-center px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  title="Finalizar venta completamente"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Finalizar Venta
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleNext}

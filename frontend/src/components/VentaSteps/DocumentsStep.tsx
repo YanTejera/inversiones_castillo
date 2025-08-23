@@ -275,7 +275,13 @@ const DocumentsStep: React.FC<DocumentsStepProps> = ({ data, onUpdate, errors })
 
       {/* Document Types */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {DOCUMENT_TYPES.map((documentType) => {
+        {DOCUMENT_TYPES.filter((documentType) => {
+          // Filtrar documentos del garante si no se necesita garante
+          if (documentType.id.includes('garante') && !data.needsGuarantor) {
+            return false;
+          }
+          return true;
+        }).map((documentType) => {
           const uploadedFiles = getUploadedFilesForType(documentType.id);
           const isRequired = documentType.required && 
             (!documentType.id.includes('garante') || data.needsGuarantor);

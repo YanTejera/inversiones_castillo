@@ -26,16 +26,17 @@ import {
 } from 'lucide-react';
 import { cuotaService } from '../services/cuotaService';
 import { pagoService } from '../services/pagoService';
+import { useToast } from './Toast';
 import type { ResumenCobros, ClienteFinanciado, CuotaVencimiento, AlertaPago } from '../types';
 
 const CobrosPendientes: React.FC = () => {
+  const { success, error: showError, warning, info, ToastContainer } = useToast();
   const [resumenCobros, setResumenCobros] = useState<ResumenCobros | null>(null);
   const [clientesFinanciados, setClientesFinanciados] = useState<ClienteFinanciado[]>([]);
   const [cuotasVencidas, setCuotasVencidas] = useState<CuotaVencimiento[]>([]);
   const [alertasActivas, setAlertasActivas] = useState<AlertaPago[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentView, setCurrentView] = useState<'dashboard' | 'clientes' | 'cuotas' | 'alertas'>('dashboard');
 
@@ -62,7 +63,9 @@ const CobrosPendientes: React.FC = () => {
 
     } catch (error: any) {
       console.error('Error loading cobros data:', error);
-      setError('Error al cargar los datos de cobros');
+      const errorMsg = 'Error al cargar los datos de cobros';
+      setError(errorMsg);
+      showError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -108,14 +111,14 @@ const CobrosPendientes: React.FC = () => {
   const handleGenerarAlertas = async () => {
     try {
       setError('');
-      setSuccessMessage('');
       await cuotaService.generarAlertasAutomaticas();
       await loadData();
-      setSuccessMessage('Alertas generadas exitosamente');
-      setTimeout(() => setSuccessMessage(''), 3000); // Limpiar mensaje después de 3 segundos
+      success('Alertas generadas exitosamente');
     } catch (error: any) {
       console.error('Error generando alertas:', error);
-      setError(error.response?.data?.error || error.message || 'Error al generar alertas automáticas');
+      const errorMsg = error.response?.data?.error || error.message || 'Error al generar alertas automáticas';
+      setError(errorMsg);
+      showError(errorMsg);
     }
   };
 
@@ -139,16 +142,50 @@ const CobrosPendientes: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="space-y-6 page-fade-in">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between animate-fade-in-up">
+          <div>
+            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="flex space-x-2">
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Nav tabs skeleton */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-10 w-24 bg-gray-200 rounded-t animate-pulse"></div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 staggered-fade-in">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="bg-white rounded-lg p-6 shadow-sm border shimmer">
+              <div className="flex items-center">
+                <div className="h-12 w-12 bg-gray-200 rounded animate-pulse mr-4"></div>
+                <div>
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-up">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Control de Cobros Pendientes</h1>
           <p className="text-gray-600">Seguimiento de saldos y notificaciones de vencimientos</p>
@@ -156,14 +193,14 @@ const CobrosPendientes: React.FC = () => {
         <div className="flex space-x-2">
           <button
             onClick={handleGenerarAlertas}
-            className="bg-orange-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-orange-700"
+            className="bg-orange-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-orange-700 btn-press micro-glow"
           >
             <Bell className="h-5 w-5" />
             <span>Generar Alertas</span>
           </button>
           <button
             onClick={loadData}
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-gray-200"
+            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-gray-200 btn-press micro-scale"
           >
             <RefreshCw className="h-5 w-5" />
             <span>Actualizar</span>
@@ -171,19 +208,6 @@ const CobrosPendientes: React.FC = () => {
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
-          <AlertCircle className="h-5 w-5 mr-2" />
-          {error}
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md flex items-center">
-          <CheckCircle className="h-5 w-5 mr-2" />
-          {successMessage}
-        </div>
-      )}
 
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200">
@@ -267,7 +291,7 @@ const CobrosPendientes: React.FC = () => {
           </div>
 
           {/* Gráficos y resúmenes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 staggered-fade-in">
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Resumen de Cobros por Estado</h3>
               <div className="space-y-3">
@@ -608,6 +632,9 @@ const CobrosPendientes: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };

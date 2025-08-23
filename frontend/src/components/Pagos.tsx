@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { 
   Search, 
   Plus, 
@@ -25,18 +25,40 @@ import { ventaService } from '../services/ventaService';
 import { cuotaService } from '../services/cuotaService';
 import PagoForm from './PagoForm';
 import CancelarPagoModal from './CancelarPagoModal';
+import { SkeletonCard, SkeletonList, SkeletonStats } from './Skeleton';
+import { useToast } from './Toast';
+import AdvancedSearch from './AdvancedSearch';
+import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
+import { pagosFilters, getSearchPlaceholder } from '../config/searchFilters';
 import type { Pago, Venta, ResumenCobros } from '../types';
 
+// Define SearchFilters locally to avoid import issues
+interface SearchFilters {
+  [key: string]: any;
+}
+
 const Pagos: React.FC = () => {
+  const { success, error: showError, warning, info, ToastContainer } = useToast();
   const [pagos, setPagos] = useState<Pago[]>([]);
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [showFilters, setShowFilters] = useState(false);
+  
+  // Advanced search setup
+  const {
+    searchTerm,
+    filters: activeFilters,
+    setSearchTerm,
+    setFilters: setActiveFilters,
+    debouncedSearchTerm,
+    hasActiveFilters
+  } = useAdvancedSearch({
+    persistKey: 'pagos_search',
+    debounceMs: 300
+  });
   const [resumenCobros, setResumenCobros] = useState<ResumenCobros | null>(null);
 
   // Form state
@@ -49,27 +71,63 @@ const Pagos: React.FC = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [pagoACancelar, setPagoACancelar] = useState<Pago | null>(null);
 
-  // Filter state
-  const [filters, setFilters] = useState({
-    venta_id: '',
-    fecha_desde: '',
-    fecha_hasta: '',
-    tipo_pago: ''
-  });
+  // Legacy compatibility - will be removed
+  const filters = {
+    venta_id: activeFilters.venta_id || '',
+    fecha_desde: activeFilters.fecha_pago?.[0] || '',
+    fecha_hasta: activeFilters.fecha_pago?.[1] || '',
+    tipo_pago: activeFilters.tipo_pago || ''
+  };
 
   const loadPagos = async () => {
     try {
       setLoading(true);
       setError('');
       
-      const ventaId = filters.venta_id ? parseInt(filters.venta_id) : undefined;
+      // Build API parameters from search term and filters
+      const params: any = {
+        page: currentPage,
+        search: debouncedSearchTerm || undefined,
+        tipo_pago: activeFilters.tipo_pago || undefined,
+        estado_pago: activeFilters.estado_pago || undefined,
+        cliente_nombre: activeFilters.cliente_nombre || undefined,
+        numero_recibo: activeFilters.numero_recibo || undefined
+      };
+      
+      // Handle venta_id filter
+      if (activeFilters.venta_id) {
+        params.venta_id = parseInt(activeFilters.venta_id);
+      }
+      
+      // Handle date ranges
+      if (activeFilters.fecha_pago && Array.isArray(activeFilters.fecha_pago)) {
+        const [startDate, endDate] = activeFilters.fecha_pago;
+        if (startDate) params.fecha_desde = startDate;
+        if (endDate) params.fecha_hasta = endDate;
+      }
+      
+      // Handle number ranges
+      if (activeFilters.monto_pagado && Array.isArray(activeFilters.monto_pagado)) {
+        const [minMonto, maxMonto] = activeFilters.monto_pagado;
+        if (minMonto) params.monto_min = minMonto;
+        if (maxMonto) params.monto_max = maxMonto;
+      }
+      
+      // Remove undefined parameters
+      Object.keys(params).forEach(key => {
+        if (params[key] === undefined) {
+          delete params[key];
+        }
+      });
+      
       const response = await pagoService.getPagos(
-        currentPage,
-        ventaId,
-        filters.fecha_desde || undefined,
-        filters.fecha_hasta || undefined,
-        filters.tipo_pago || undefined,
-        searchTerm || undefined
+        params.page,
+        params.venta_id,
+        params.fecha_desde,
+        params.fecha_hasta,
+        params.tipo_pago,
+        params.search,
+        params // Pass additional parameters
       );
       
       setPagos(response.results);
@@ -78,7 +136,9 @@ const Pagos: React.FC = () => {
       
     } catch (error: any) {
       console.error('Error loading pagos:', error);
-      setError('Error al cargar los pagos');
+      const errorMsg = 'Error al cargar los pagos';
+      setError(errorMsg);
+      showError(errorMsg);
       setPagos([]);
     } finally {
       setLoading(false);
@@ -91,6 +151,7 @@ const Pagos: React.FC = () => {
       setResumenCobros(resumen);
     } catch (error) {
       console.error('Error loading resumen:', error);
+      showError('Error al cargar el resumen de cobros');
     }
   };
 
@@ -106,21 +167,25 @@ const Pagos: React.FC = () => {
   useEffect(() => {
     loadPagos();
     loadResumenCobros();
-  }, [currentPage, filters, searchTerm]);
+  }, [currentPage, debouncedSearchTerm, activeFilters]);
 
   useEffect(() => {
     loadVentas();
   }, []);
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    // Reset to first page when searching
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
+  const handleFiltersChange = (newFilters: SearchFilters) => {
+    setActiveFilters(newFilters);
+    setCurrentPage(1);
+  };
+  
+  const handleSearchReset = () => {
+    setSearchTerm('');
+    setActiveFilters({});
+    setCurrentPage(1);
+    info('Búsqueda reiniciada');
   };
 
-  // Search and filtering is now handled on the server side
+  // All filtering is now handled on the server side through advanced search
   const filteredPagos = pagos;
 
   const handleCreatePago = (venta?: Venta) => {
@@ -221,35 +286,108 @@ const Pagos: React.FC = () => {
     }
   };
 
-  const clearFilters = () => {
-    setFilters({
-      venta_id: '',
-      fecha_desde: '',
-      fecha_hasta: '',
-      tipo_pago: ''
-    });
-    setCurrentPage(1);
-  };
 
   if (loading && pagos.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="space-y-6 page-fade-in">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between animate-fade-in-up">
+          <div>
+            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Resumen Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 staggered-fade-in">
+          {[...Array(5)].map((_, index) => (
+            <div key={index} className="bg-white border rounded-lg p-4 shimmer">
+              <div className="flex items-center">
+                <div className="h-8 w-8 bg-gray-200 rounded animate-pulse mr-3"></div>
+                <div>
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="h-6 w-12 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Search and Filters Skeleton */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Table Skeleton */}
+        <div className="bg-white rounded-lg border border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {[...Array(8)].map((_, index) => (
+                    <th key={index} className="px-6 py-3">
+                      <div className="h-4 w-16 bg-gray-200 rounded animate-pulse"></div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {[...Array(5)].map((_, index) => (
+                  <tr key={index} className="animate-pulse">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 w-16 bg-gray-200 rounded"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 w-32 bg-gray-200 rounded mb-1"></div>
+                      <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 w-16 bg-gray-200 rounded"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="h-4 w-16 bg-gray-200 rounded"></div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end space-x-2">
+                        <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                        <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-up">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Pagos</h1>
           <p className="text-gray-600">Administra los pagos y cobros del sistema</p>
         </div>
         <button
           onClick={() => handleCreatePago()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-blue-700 btn-press micro-glow"
         >
           <Plus className="h-5 w-5" />
           <span>Registrar Pago</span>
@@ -258,7 +396,7 @@ const Pagos: React.FC = () => {
 
       {/* Resumen de Cobros */}
       {resumenCobros && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 staggered-fade-in">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-center">
               <AlertTriangle className="h-8 w-8 text-red-600 mr-3" />
@@ -311,108 +449,36 @@ const Pagos: React.FC = () => {
         </div>
       )}
 
-      {/* Búsqueda y Filtros */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-
+      {/* Advanced Search */}
+      <div className="mb-6">
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md flex items-center">
             <AlertCircle className="h-5 w-5 mr-2" />
             {error}
           </div>
         )}
-        <div className="flex items-center space-x-4 mb-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              placeholder="Buscar por cliente, venta ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 border border-gray-300 rounded-md flex items-center space-x-2 hover:bg-gray-50"
-          >
-            <Filter className="h-5 w-5" />
-            <span>Filtros</span>
-          </button>
+        
+        <AdvancedSearch
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={pagosFilters}
+          activeFilters={activeFilters}
+          onFiltersChange={handleFiltersChange}
+          placeholder={getSearchPlaceholder('pagos')}
+          onReset={handleSearchReset}
+          loading={loading}
+          className="animate-fade-in-up"
+        />
+        
+        <div className="flex justify-end mt-4">
           <button
             onClick={loadPagos}
-            className="px-4 py-2 bg-gray-100 rounded-md flex items-center space-x-2 hover:bg-gray-200"
+            className="px-4 py-2 bg-gray-100 rounded-md flex items-center space-x-2 hover:bg-gray-200 btn-press micro-scale"
           >
             <RefreshCw className="h-5 w-5" />
             <span>Actualizar</span>
           </button>
         </div>
-
-        {/* Panel de Filtros */}
-        {showFilters && (
-          <div className="border-t pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha Desde
-                </label>
-                <input
-                  type="date"
-                  value={filters.fecha_desde}
-                  onChange={(e) => setFilters(prev => ({ ...prev, fecha_desde: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Fecha Hasta
-                </label>
-                <input
-                  type="date"
-                  value={filters.fecha_hasta}
-                  onChange={(e) => setFilters(prev => ({ ...prev, fecha_hasta: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Pago
-                </label>
-                <select
-                  value={filters.tipo_pago}
-                  onChange={(e) => setFilters(prev => ({ ...prev, tipo_pago: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Todos</option>
-                  <option value="efectivo">Efectivo</option>
-                  <option value="transferencia">Transferencia</option>
-                  <option value="tarjeta">Tarjeta</option>
-                  <option value="cheque">Cheque</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ID Venta
-                </label>
-                <input
-                  type="number"
-                  value={filters.venta_id}
-                  onChange={(e) => setFilters(prev => ({ ...prev, venta_id: e.target.value }))}
-                  placeholder="ID de venta"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center space-x-2"
-              >
-                <X className="h-4 w-4" />
-                <span>Limpiar Filtros</span>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Tabla de Pagos */}
@@ -449,14 +515,40 @@ const Pagos: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="ml-2 text-gray-600">Cargando pagos...</span>
-                    </div>
-                  </td>
-                </tr>
+                <>
+                  {[...Array(5)].map((_, index) => (
+                    <tr key={index} className="animate-pulse">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 w-16 bg-gray-200 rounded"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-32 bg-gray-200 rounded mb-1"></div>
+                        <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 w-16 bg-gray-200 rounded"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="h-4 w-16 bg-gray-200 rounded"></div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end space-x-2">
+                          <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                          <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </>
               ) : pagos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
@@ -626,6 +718,9 @@ const Pagos: React.FC = () => {
           onConfirm={handleConfirmarCancelacion}
         />
       )}
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };

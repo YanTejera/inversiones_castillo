@@ -913,6 +913,14 @@ const MotoForm: React.FC<MotoFormProps> = ({ moto, mode, onClose, onSave }) => {
                       src={imagePreview}
                       alt="Preview"
                       className="w-full h-48 object-cover rounded-lg border"
+                      onError={(e) => {
+                        // Hide broken preview and show error message
+                        e.currentTarget.style.display = 'none';
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'w-full h-48 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center text-red-600';
+                        errorDiv.innerHTML = '<div class="text-center"><div class="text-sm font-medium">Error al cargar imagen</div><div class="text-xs mt-1">Verifique el archivo seleccionado</div></div>';
+                        e.currentTarget.parentElement?.appendChild(errorDiv);
+                      }}
                     />
                     {!isReadOnly && (
                       <button

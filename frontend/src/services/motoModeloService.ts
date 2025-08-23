@@ -90,17 +90,33 @@ export const motoModeloService = {
     
     if (data.inventario_data) {
       console.log('Adding inventario_data:', data.inventario_data);
-      // Convert chasis_list to chasis for backend compatibility
-      const cleanedInventarioData = data.inventario_data.map(item => {
-        const { chasis_list, ...cleanItem } = item;
-        // Use first chasis from chasis_list if available, otherwise keep existing chasis
+      
+      // Expand chasis_list into separate inventory entries for each unique chasis
+      const expandedInventarioData: any[] = [];
+      
+      data.inventario_data.forEach(item => {
+        const { chasis_list, ...baseItem } = item;
+        
         if (chasis_list && chasis_list.length > 0) {
-          cleanItem.chasis = chasis_list[0];
+          // Create a separate inventory entry for each unique chasis
+          chasis_list.forEach(chasisNumber => {
+            expandedInventarioData.push({
+              ...baseItem,
+              chasis: chasisNumber,
+              cantidad_stock: 1 // Each chasis represents 1 individual motorcycle
+            });
+          });
+        } else if (baseItem.chasis) {
+          // Keep existing single chasis entry
+          expandedInventarioData.push(baseItem);
+        } else {
+          // No specific chasis, use the original item
+          expandedInventarioData.push(baseItem);
         }
-        return cleanItem;
       });
-      console.log('Cleaned inventario_data:', cleanedInventarioData);
-      formData.append('inventario_data', JSON.stringify(cleanedInventarioData));
+      
+      console.log('Expanded inventario_data with individual chasis entries:', expandedInventarioData);
+      formData.append('inventario_data', JSON.stringify(expandedInventarioData));
     }
 
     console.log('Making POST request to /motos/modelos/');
@@ -137,7 +153,33 @@ export const motoModeloService = {
           formData.append(key, value);
         } else if (key === 'inventario_data' && Array.isArray(value)) {
           console.log('📦 Agregando inventario_data:', value);
-          formData.append(key, JSON.stringify(value));
+          
+          // Expand chasis_list into separate inventory entries for each unique chasis
+          const expandedInventarioData: any[] = [];
+          
+          value.forEach(item => {
+            const { chasis_list, ...baseItem } = item;
+            
+            if (chasis_list && chasis_list.length > 0) {
+              // Create a separate inventory entry for each unique chasis
+              chasis_list.forEach(chasisNumber => {
+                expandedInventarioData.push({
+                  ...baseItem,
+                  chasis: chasisNumber,
+                  cantidad_stock: 1 // Each chasis represents 1 individual motorcycle
+                });
+              });
+            } else if (baseItem.chasis) {
+              // Keep existing single chasis entry
+              expandedInventarioData.push(baseItem);
+            } else {
+              // No specific chasis, use the original item
+              expandedInventarioData.push(baseItem);
+            }
+          });
+          
+          console.log('📦 Expanded inventario_data with individual chasis entries:', expandedInventarioData);
+          formData.append(key, JSON.stringify(expandedInventarioData));
         } else if (typeof value === 'boolean') {
           console.log(`✅ Agregando ${key}:`, value.toString());
           formData.append(key, value.toString());
@@ -210,6 +252,12 @@ export const motoModeloService = {
   // Estadísticas del modelo
   async getEstadisticasModelo(modeloId: number): Promise<any> {
     const response = await api.get(`/motos/modelos/${modeloId}/estadisticas/`);
+    return response.data;
+  },
+
+  // Obtener chasis disponibles por color
+  async getChasisByColor(modeloId: number, color: string): Promise<any> {
+    const response = await api.get(`/motos/modelos/${modeloId}/chasis/${encodeURIComponent(color)}/`);
     return response.data;
   }
 };

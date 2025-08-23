@@ -271,11 +271,15 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
     try {
       console.log('Saving venta data from client profile:', data);
       
-      if (!data.customer || !data.selectedMotorcycle) {
+      const hasMotorcycles = data.selectedMotorcycles?.length > 0 || data.selectedMotorcycle;
+      if (!data.customer || !hasMotorcycles) {
         throw new Error('Faltan datos requeridos para la venta');
       }
 
-      const totalAmount = data.selectedMotorcycle.precio_unitario * data.selectedMotorcycle.cantidad;
+      // Calcular total de todas las motocicletas
+      const totalAmount = data.selectedMotorcycles?.length > 0 
+        ? data.selectedMotorcycles.reduce((total, moto) => total + (moto.precio_unitario * moto.cantidad), 0)
+        : data.selectedMotorcycle ? data.selectedMotorcycle.precio_unitario * data.selectedMotorcycle.cantidad : 0;
 
       // Preparar datos para el nuevo servicio mejorado
       const ventaData = {
@@ -315,17 +319,16 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
       } catch (apiError) {
         console.log('New API method not available, falling back to old method');
         
-        // Fallback al método anterior para motos individuales
+        // Fallback mejorado que funciona tanto para motos individuales como modelos
+        let oldVentaData;
+        
         if (data.selectedMotorcycle.tipo === 'individual' && data.selectedMotorcycle.moto) {
-          const oldVentaData = {
+          // Para motos individuales existentes
+          oldVentaData = {
             cliente: data.customer.id,
             tipo_venta: data.paymentType,
             monto_total: totalAmount,
             monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
-            cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
-            tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
-            pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
-            monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount,
             detalles: [{
               moto: data.selectedMotorcycle.moto.id,
               cantidad: data.selectedMotorcycle.cantidad,
@@ -333,16 +336,46 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
             }]
           };
 
-          const newVenta = await ventaService.createVenta(oldVentaData);
-          console.log('Venta created with fallback method:', newVenta);
+          // Solo agregar campos de financiamiento si el tipo de venta es financiado
+          if (data.paymentType === 'financiado') {
+            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
+            oldVentaData.tasa_interes = data.financingDetails.interestRate;
+            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
+            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
+          }
           
-          setShowVentaForm(false);
-          showSuccessModal(`¡Venta #${newVenta.id} registrada exitosamente para ${cliente.nombre} ${cliente.apellido}!`);
+        } else if (data.selectedMotorcycle.tipo === 'modelo' && data.selectedMotorcycle.modelo) {
+          // Para modelos: crear una entrada de inventario temporal o usar el método existente
+          oldVentaData = {
+            cliente: data.customer.id,
+            tipo_venta: data.paymentType,
+            monto_total: totalAmount,
+            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
+            detalles: [{
+              // Si no hay moto específica, intentamos usar el primer item del inventario del modelo
+              moto: data.selectedMotorcycle.modelo.inventario?.[0]?.id || data.selectedMotorcycle.modelo.id,
+              cantidad: data.selectedMotorcycle.cantidad,
+              precio_unitario: data.selectedMotorcycle.precio_unitario
+            }]
+          };
+
+          // Solo agregar campos de financiamiento si el tipo de venta es financiado
+          if (data.paymentType === 'financiado') {
+            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
+            oldVentaData.tasa_interes = data.financingDetails.interestRate;
+            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
+            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
+          }
           
         } else {
-          // Para modelos, necesitamos el endpoint nuevo
-          throw new Error('La venta de modelos con selección de color requiere actualización del backend. Por favor, contacte al administrador del sistema.');
+          throw new Error('Datos de motocicleta incompletos para crear la venta.');
         }
+
+        const newVenta = await ventaService.createVenta(oldVentaData);
+        console.log('Venta created with fallback method:', newVenta);
+        
+        setShowVentaForm(false);
+        showSuccessModal(`¡Venta #${newVenta.id} registrada exitosamente para ${cliente.nombre} ${cliente.apellido}!`);
       }
       
     } catch (error) {

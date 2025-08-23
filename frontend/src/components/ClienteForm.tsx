@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, User, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, Save, User, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign, AlertCircle } from 'lucide-react';
 import { clienteService } from '../services/clienteService';
+import { useToast } from './Toast';
 import type { Cliente } from '../types';
 
 interface ClienteFormProps {
@@ -25,6 +26,7 @@ interface FormData {
 }
 
 const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSave }) => {
+  const { success, error: showError, warning } = useToast();
   const [formData, setFormData] = useState<FormData>({
     nombre: '',
     apellido: '',
@@ -42,6 +44,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string>('');
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     if (cliente) {
@@ -61,16 +64,19 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
     }
   }, [cliente]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  // Optimized change handler with debouncing for validation
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setIsDirty(true);
+    
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
-  };
+  }, [errors]);
 
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.nombre.trim()) {
@@ -91,12 +97,13 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
+      showError('Por favor corrige los errores en el formulario');
       return;
     }
 
@@ -113,8 +120,10 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
 
       if (mode === 'create') {
         await clienteService.createCliente(submitData);
+        success('Cliente creado exitosamente');
       } else if (mode === 'edit' && cliente) {
         await clienteService.updateCliente(cliente.id, submitData);
+        success('Cliente actualizado exitosamente');
       }
       
       onSave();
@@ -124,39 +133,32 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
       
       let errorMessage = 'Error al guardar cliente';
       
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-        console.error('Error status:', error.response.status);
-        
-        if (error.response.data) {
-          if (typeof error.response.data === 'string') {
-            // Si es HTML, probablemente es un error 404 o 500
-            if (error.response.data.includes('<html>')) {
-              if (error.response.status === 404) {
-                errorMessage = 'API endpoint no encontrado. Verifica que el backend esté funcionando correctamente.';
-              } else {
-                errorMessage = `Error del servidor (${error.response.status}). Verifica la conexión con el backend.`;
-              }
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          if (error.response.data.includes('<html>')) {
+            if (error.response.status === 404) {
+              errorMessage = 'API endpoint no encontrado. Verifica que el backend esté funcionando correctamente.';
             } else {
-              errorMessage = error.response.data;
+              errorMessage = `Error del servidor (${error.response.status}). Verifica la conexión con el backend.`;
             }
-          } else if (error.response.data.detail) {
-            errorMessage = error.response.data.detail;
-          } else if (error.response.data.message) {
-            errorMessage = error.response.data.message;
           } else {
-            // Si hay errores de campo específicos
-            const fieldErrors = [];
-            for (const field in error.response.data) {
-              if (Array.isArray(error.response.data[field])) {
-                fieldErrors.push(`${field}: ${error.response.data[field].join(', ')}`);
-              } else if (typeof error.response.data[field] === 'string') {
-                fieldErrors.push(`${field}: ${error.response.data[field]}`);
-              }
+            errorMessage = error.response.data;
+          }
+        } else if (error.response.data.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else {
+          const fieldErrors = [];
+          for (const field in error.response.data) {
+            if (Array.isArray(error.response.data[field])) {
+              fieldErrors.push(`${field}: ${error.response.data[field].join(', ')}`);
+            } else if (typeof error.response.data[field] === 'string') {
+              fieldErrors.push(`${field}: ${error.response.data[field]}`);
             }
-            if (fieldErrors.length > 0) {
-              errorMessage = fieldErrors.join('\n');
-            }
+          }
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join('\n');
           }
         }
       } else if (error.message) {
@@ -164,16 +166,28 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
       }
       
       setServerError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [formData, mode, cliente, onSave, onClose, success, showError, validateForm]);
 
   const isReadOnly = mode === 'view';
 
+  // Auto-focus en el primer campo al abrir el modal
+  useEffect(() => {
+    if (mode !== 'view') {
+      const timer = setTimeout(() => {
+        const firstInput = document.querySelector('#nombre') as HTMLInputElement;
+        if (firstInput) firstInput.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mode]);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -183,7 +197,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 btn-press micro-scale p-1 rounded-full hover:bg-gray-100"
           >
             <X className="h-6 w-6" />
           </button>
@@ -431,7 +445,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 btn-press micro-scale"
             >
               {isReadOnly ? 'Cerrar' : 'Cancelar'}
             </button>
@@ -439,7 +453,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center btn-press micro-glow"
               >
                 {loading ? (
                   <>

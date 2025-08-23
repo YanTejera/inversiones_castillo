@@ -20,6 +20,7 @@ import {
 import { proveedorService } from '../services/proveedorService';
 import { useWindowSize } from '../hooks/useWindowSize';
 import MobileTable from './MobileTable';
+import { useToast } from './Toast';
 
 interface ProveedorListItem {
   id: number;
@@ -52,6 +53,7 @@ const getEstados = () => [
 ];
 
 const ProveedoresList: React.FC = () => {
+  const { success, error: showError, warning, info, ToastContainer } = useToast();
   const [proveedores, setProveedores] = useState<ProveedorListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +78,9 @@ const ProveedoresList: React.FC = () => {
       });
       setProveedores(response.results);
     } catch (err) {
-      setError('Error al cargar proveedores');
+      const errorMsg = 'Error al cargar proveedores';
+      setError(errorMsg);
+      showError(errorMsg);
       console.error('Error loading proveedores:', err);
     } finally {
       setLoading(false);
@@ -92,8 +96,11 @@ const ProveedoresList: React.FC = () => {
       try {
         await proveedorService.deleteProveedor(id);
         await loadProveedores();
+        success('Proveedor eliminado exitosamente');
       } catch (err) {
-        setError('Error al eliminar proveedor');
+        const errorMsg = 'Error al eliminar proveedor';
+        setError(errorMsg);
+        showError(errorMsg);
         console.error('Error deleting proveedor:', err);
       }
     }
@@ -126,8 +133,53 @@ const ProveedoresList: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="space-y-6 page-fade-in">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center animate-fade-in-up">
+          <div>
+            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="flex space-x-2">
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-24 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Filters skeleton */}
+        <div className="flex items-center space-x-4">
+          <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+
+        {/* Table skeleton */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {[...Array(6)].map((_, index) => (
+                    <th key={index} className="px-6 py-3">
+                      <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {[...Array(5)].map((_, index) => (
+                  <tr key={index} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="h-4 w-32 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 w-20 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 w-16 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 w-12 bg-gray-200 rounded"></div></td>
+                    <td className="px-6 py-4"><div className="flex space-x-2"><div className="h-8 w-8 bg-gray-200 rounded"></div><div className="h-8 w-8 bg-gray-200 rounded"></div></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   }
@@ -224,9 +276,9 @@ const ProveedoresList: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between animate-fade-in-up">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Proveedores</h1>
           <p className="text-gray-600 mt-1">Administra la información de tus proveedores de motocicletas</p>
@@ -248,7 +300,7 @@ const ProveedoresList: React.FC = () => {
           </Link>
           <Link
             to="/proveedores/nuevo"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 btn-press micro-glow"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Proveedor
@@ -446,6 +498,9 @@ const ProveedoresList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };

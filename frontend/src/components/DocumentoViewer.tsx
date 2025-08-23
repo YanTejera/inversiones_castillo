@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Download } from 'lucide-react';
+import LazyImage from './LazyImage';
 
 interface DocumentoViewerProps {
   archivo: string;
@@ -47,14 +48,14 @@ const DocumentoViewer: React.FC<DocumentoViewerProps> = ({ archivo, titulo, onCl
         <div className="p-4 max-h-[calc(90vh-80px)] overflow-auto">
           {isImage ? (
             <div className="flex justify-center">
-              <img
+              <LazyImage
                 src={archivo}
                 alt={titulo}
                 className="max-w-full max-h-full object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f3f4f6"/><text x="100" y="100" text-anchor="middle" dy=".3em" fill="%236b7280">Error al cargar imagen</text></svg>';
-                }}
+                containerClassName="max-w-full max-h-full"
+                fallbackSrc="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'><rect width='200' height='200' fill='%23f3f4f6'/><text x='100' y='100' text-anchor='middle' dy='.3em' fill='%236b7280'>Error al cargar imagen</text></svg>"
+                showLoader={true}
+                fadeInDuration={400}
               />
             </div>
           ) : isPdf ? (

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import custom animations */
+@import './styles/animations.css';
+
 /* PWA Mobile App Styles */
 @layer base {
   /* Mobile PWA optimizations */

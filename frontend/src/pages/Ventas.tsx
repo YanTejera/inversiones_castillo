@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { 
   Plus, 
   Search, 
@@ -11,22 +11,44 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import { ventaService } from '../services/ventaService';
-import NewVentaForm from '../components/NewVentaForm';
+import NewVentaForm, { type VentaFormData } from '../components/NewVentaForm';
 import CancelarVentaModal from '../components/CancelarVentaModal';
 import ViewToggle from '../components/common/ViewToggle';
+import { SkeletonCard, SkeletonList, SkeletonStats } from '../components/Skeleton';
+import { useToast } from '../components/Toast';
+import AdvancedSearch from '../components/AdvancedSearch';
+import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
+import { ventasFilters, getSearchPlaceholder } from '../config/searchFilters';
 import type { Venta } from '../types';
-import type { VentaFormData } from '../components/NewVentaForm';
+
+// Define SearchFilters locally to avoid import issues
+interface SearchFilters {
+  [key: string]: any;
+}
 
 const Ventas: React.FC = () => {
+  const { success, error: showError, warning, info, ToastContainer } = useToast();
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [estadoFilter, setEstadoFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Advanced search setup
+  const {
+    searchTerm,
+    filters: activeFilters,
+    setSearchTerm,
+    setFilters: setActiveFilters,
+    debouncedSearchTerm,
+    hasActiveFilters
+  } = useAdvancedSearch({
+    persistKey: 'ventas_search',
+    debounceMs: 300
+  });
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
@@ -44,14 +66,53 @@ const Ventas: React.FC = () => {
     localStorage.setItem('ventas_view_mode', mode);
   };
 
-  const loadVentas = async (page = 1, search = '', estado = '') => {
+  const loadVentas = async (page = 1, search = '', filters: SearchFilters = {}) => {
     try {
       setLoading(true);
-      const response = await ventaService.getVentas(page, search, estado);
+      
+      // Build API parameters from search term and filters
+      const params: any = {
+        page,
+        search: search || undefined,
+        estado: filters.estado || undefined,
+        tipo_venta: filters.tipo_venta || undefined,
+        cliente_nombre: filters.cliente_nombre || undefined
+      };
+      
+      // Handle date ranges
+      if (filters.fecha_venta && Array.isArray(filters.fecha_venta)) {
+        const [startDate, endDate] = filters.fecha_venta;
+        if (startDate) params.fecha_inicio = startDate;
+        if (endDate) params.fecha_fin = endDate;
+      }
+      
+      // Handle number ranges
+      if (filters.monto_total && Array.isArray(filters.monto_total)) {
+        const [minMonto, maxMonto] = filters.monto_total;
+        if (minMonto) params.monto_min = minMonto;
+        if (maxMonto) params.monto_max = maxMonto;
+      }
+      
+      if (filters.saldo_pendiente && Array.isArray(filters.saldo_pendiente)) {
+        const [minSaldo, maxSaldo] = filters.saldo_pendiente;
+        if (minSaldo) params.saldo_min = minSaldo;
+        if (maxSaldo) params.saldo_max = maxSaldo;
+      }
+      
+      // Remove undefined parameters
+      Object.keys(params).forEach(key => {
+        if (params[key] === undefined) {
+          delete params[key];
+        }
+      });
+      
+      const response = await ventaService.getVentas(page, search, params.estado, params);
       setVentas(response.results);
       setTotalPages(Math.ceil(response.count / 20)); // Asumiendo 20 items por página
     } catch (err) {
-      setError('Error al cargar ventas');
+      const errorMsg = 'Error al cargar ventas';
+      setError(errorMsg);
+      showError(errorMsg);
       console.error('Error loading ventas:', err);
     } finally {
       setLoading(false);
@@ -59,17 +120,30 @@ const Ventas: React.FC = () => {
   };
 
   useEffect(() => {
-    loadVentas(currentPage, searchTerm, estadoFilter);
-  }, [currentPage, estadoFilter]);
+    loadVentas(currentPage, debouncedSearchTerm, activeFilters);
+  }, [currentPage, debouncedSearchTerm, activeFilters]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFiltersChange = (newFilters: SearchFilters) => {
+    setActiveFilters(newFilters);
     setCurrentPage(1);
-    loadVentas(1, searchTerm, estadoFilter);
   };
-
+  
+  const handleSearchReset = () => {
+    setSearchTerm('');
+    setActiveFilters({});
+    setCurrentPage(1);
+    info('Búsqueda reiniciada');
+  };
+  
+  // Quick filter handlers for legacy compatibility
   const handleEstadoChange = (estado: string) => {
-    setEstadoFilter(estado);
+    const newFilters = { ...activeFilters };
+    if (estado) {
+      newFilters.estado = estado;
+    } else {
+      delete newFilters.estado;
+    }
+    setActiveFilters(newFilters);
     setCurrentPage(1);
   };
 
@@ -77,7 +151,7 @@ const Ventas: React.FC = () => {
     if (window.confirm(`¿Estás seguro de eliminar la venta #${venta.id}?`)) {
       try {
         await ventaService.deleteVenta(venta.id);
-        loadVentas(currentPage, searchTerm, estadoFilter);
+        loadVentas(currentPage, debouncedSearchTerm, activeFilters);
       } catch (err) {
         alert('Error al eliminar venta');
         console.error('Error deleting venta:', err);
@@ -89,7 +163,7 @@ const Ventas: React.FC = () => {
     if (window.confirm(`¿Cambiar estado de la venta a "${nuevoEstado}"?`)) {
       try {
         await ventaService.cambiarEstadoVenta(venta.id, nuevoEstado);
-        loadVentas(currentPage, searchTerm, estadoFilter);
+        loadVentas(currentPage, debouncedSearchTerm, activeFilters);
       } catch (err) {
         alert('Error al cambiar estado de venta');
         console.error('Error changing venta status:', err);
@@ -109,7 +183,7 @@ const Ventas: React.FC = () => {
       await ventaService.cancelarVenta(ventaACancelar.id, { motivo, descripcion });
       setShowCancelModal(false);
       setVentaACancelar(null);
-      loadVentas(currentPage, searchTerm, estadoFilter);
+      loadVentas(currentPage, debouncedSearchTerm, activeFilters);
     } catch (err) {
       console.error('Error al cancelar venta:', err);
       alert('Error al cancelar la venta');
@@ -132,6 +206,39 @@ const Ventas: React.FC = () => {
   const closeModal = () => {
     setShowModal(false);
     setSelectedVenta(null);
+  };
+
+  const handleSaveDraft = async (data: VentaFormData) => {
+    try {
+      if (!data.customer) {
+        throw new Error('Debe seleccionar un cliente para guardar el borrador');
+      }
+
+      console.log('Guardando borrador de venta:', data);
+      
+      const draftResult = await ventaService.saveDraft({
+        cliente_id: data.customer.id,
+        draft_data: data,
+        draft_id: data.draftId
+      });
+
+      console.log('Borrador guardado exitosamente:', draftResult);
+      
+      // Mostrar mensaje de éxito
+      alert(`Borrador guardado exitosamente! ID: ${draftResult.id}`);
+      
+    } catch (error: any) {
+      console.error('Error guardando borrador:', error);
+      
+      let errorMessage = 'Error al guardar el borrador';
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Error: ${errorMessage}`);
+    }
   };
 
   const handleFormSave = async (data: VentaFormData) => {
@@ -177,7 +284,7 @@ const Ventas: React.FC = () => {
         console.log('Venta created successfully:', newVenta);
         
         // Recargar la lista de ventas
-        await loadVentas(currentPage, searchTerm, estadoFilter);
+        await loadVentas(currentPage, debouncedSearchTerm, activeFilters);
         
         // Cerrar el modal
         closeCreateModal();
@@ -188,17 +295,16 @@ const Ventas: React.FC = () => {
       } catch (apiError) {
         console.log('New API method not available, falling back to old method');
         
-        // Fallback al método anterior para motos individuales
+        // Fallback mejorado que funciona tanto para motos individuales como modelos
+        let oldVentaData;
+        
         if (data.selectedMotorcycle.tipo === 'individual' && data.selectedMotorcycle.moto) {
-          const oldVentaData = {
+          // Para motos individuales existentes
+          oldVentaData = {
             cliente: data.customer.id,
             tipo_venta: data.paymentType,
             monto_total: totalAmount,
             monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
-            cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
-            tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
-            pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
-            monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount,
             detalles: [{
               moto: data.selectedMotorcycle.moto.id,
               cantidad: data.selectedMotorcycle.cantidad,
@@ -206,22 +312,52 @@ const Ventas: React.FC = () => {
             }]
           };
 
-          const newVenta = await ventaService.createVenta(oldVentaData);
-          console.log('Venta created with fallback method:', newVenta);
+          // Solo agregar campos de financiamiento si el tipo de venta es financiado
+          if (data.paymentType === 'financiado') {
+            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
+            oldVentaData.tasa_interes = data.financingDetails.interestRate;
+            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
+            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
+          }
           
-          // Recargar la lista de ventas
-          await loadVentas(currentPage, searchTerm, estadoFilter);
-          
-          // Cerrar el modal
-          closeCreateModal();
-          
-          // Mostrar mensaje de éxito
-          alert(`Venta #${newVenta.id} registrada exitosamente!`);
+        } else if (data.selectedMotorcycle.tipo === 'modelo' && data.selectedMotorcycle.modelo) {
+          // Para modelos: crear entrada usando el método existente
+          oldVentaData = {
+            cliente: data.customer.id,
+            tipo_venta: data.paymentType,
+            monto_total: totalAmount,
+            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
+            detalles: [{
+              // Usar el primer item del inventario del modelo o el ID del modelo
+              moto: data.selectedMotorcycle.modelo.inventario?.[0]?.id || data.selectedMotorcycle.modelo.id,
+              cantidad: data.selectedMotorcycle.cantidad,
+              precio_unitario: data.selectedMotorcycle.precio_unitario
+            }]
+          };
+
+          // Solo agregar campos de financiamiento si el tipo de venta es financiado
+          if (data.paymentType === 'financiado') {
+            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
+            oldVentaData.tasa_interes = data.financingDetails.interestRate;
+            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
+            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
+          }
           
         } else {
-          // Para modelos, necesitamos el endpoint nuevo
-          throw new Error('La venta de modelos con selección de color requiere actualización del backend. Por favor, contacte al administrador del sistema.');
+          throw new Error('Datos de motocicleta incompletos para crear la venta.');
         }
+
+        const newVenta = await ventaService.createVenta(oldVentaData);
+        console.log('Venta created with fallback method:', newVenta);
+        
+        // Recargar la lista de ventas
+        await loadVentas(currentPage, debouncedSearchTerm, activeFilters);
+        
+        // Cerrar el modal
+        closeCreateModal();
+        
+        // Mostrar mensaje de éxito
+        alert(`Venta #${newVenta.id} registrada exitosamente!`);
       }
       
     } catch (error) {
@@ -274,16 +410,52 @@ const Ventas: React.FC = () => {
 
   if (loading && ventas.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="page-fade-in">
+        {/* Header skeleton */}
+        <div className="mb-8 animate-fade-in-up">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Filters skeleton */}
+        <div className="mb-6 space-y-4">
+          <div className="flex gap-4">
+            <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="flex space-x-2 animate-fade-in-left">
+            <div className="h-8 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+            <div className="h-8 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+            <div className="h-8 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+            <div className="h-8 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 staggered-fade-in">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="page-fade-in">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 animate-fade-in-up">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
@@ -293,7 +465,7 @@ const Ventas: React.FC = () => {
           </div>
           <button
             onClick={openCreateModal}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Nueva Venta
@@ -301,70 +473,66 @@ const Ventas: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="mb-6 space-y-4">
-        <form onSubmit={handleSearch} className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Buscar por cliente o ID de venta..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+      {/* Advanced Search */}
+      <div className="mb-6">
+        <AdvancedSearch
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={ventasFilters}
+          activeFilters={activeFilters}
+          onFiltersChange={handleFiltersChange}
+          placeholder={getSearchPlaceholder('ventas')}
+          onReset={handleSearchReset}
+          loading={loading}
+          className="animate-fade-in-up"
+        />
+        
+        {/* View Toggle and Quick Filters */}
+        <div className="flex justify-between items-center mt-4">
+          <div className="flex space-x-2 animate-fade-in-left">
+            <button
+              onClick={() => handleEstadoChange('')}
+              className={`px-3 py-1 rounded-full text-sm font-medium btn-press micro-bounce ${
+                !activeFilters.estado
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              onClick={() => handleEstadoChange('activa')}
+              className={`px-3 py-1 rounded-full text-sm font-medium btn-press micro-bounce ${
+                activeFilters.estado === 'activa'
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Activas
+            </button>
+            <button
+              onClick={() => handleEstadoChange('finalizada')}
+              className={`px-3 py-1 rounded-full text-sm font-medium btn-press micro-bounce ${
+                activeFilters.estado === 'finalizada'
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Finalizadas
+            </button>
+            <button
+              onClick={() => handleEstadoChange('cancelada')}
+              className={`px-3 py-1 rounded-full text-sm font-medium btn-press micro-bounce ${
+                activeFilters.estado === 'cancelada'
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Canceladas
+            </button>
           </div>
-          <button
-            type="submit"
-            className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
-          >
-            Buscar
-          </button>
+          
           <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
-        </form>
-
-        {/* Estado Filters */}
-        <div className="flex space-x-2">
-          <button
-            onClick={() => handleEstadoChange('')}
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              estadoFilter === '' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Todas
-          </button>
-          <button
-            onClick={() => handleEstadoChange('activa')}
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              estadoFilter === 'activa' 
-                ? 'bg-green-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Activas
-          </button>
-          <button
-            onClick={() => handleEstadoChange('finalizada')}
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              estadoFilter === 'finalizada' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Finalizadas
-          </button>
-          <button
-            onClick={() => handleEstadoChange('cancelada')}
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              estadoFilter === 'cancelada' 
-                ? 'bg-red-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Canceladas
-          </button>
         </div>
       </div>
 
@@ -374,12 +542,15 @@ const Ventas: React.FC = () => {
         </div>
       )}
 
+
       {/* Ventas Display */}
-      {viewMode === 'grid' ? (
+      {!loading && (
+        <>
+          {viewMode === 'grid' ? (
         /* Grid View */
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 staggered-fade-in">
           {ventas.map((venta) => (
-          <div key={venta.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+          <div key={venta.id} className="bg-white rounded-lg shadow-md p-6 card-hover animate-fade-in-up">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -663,9 +834,9 @@ const Ventas: React.FC = () => {
           <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No hay ventas</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {searchTerm || estadoFilter ? 'No se encontraron ventas con esos filtros.' : 'Comienza creando tu primera venta.'}
+            {searchTerm || hasActiveFilters ? 'No se encontraron ventas con esos filtros.' : 'Comienza creando tu primera venta.'}
           </p>
-          {!searchTerm && !estadoFilter && (
+          {!searchTerm && !hasActiveFilters && (
             <div className="mt-6">
               <button
                 onClick={openCreateModal}
@@ -719,12 +890,18 @@ const Ventas: React.FC = () => {
           </div>
         </div>
       )}
+        </>
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer />
 
       {/* New Venta Form Modal */}
       {showCreateModal && (
         <NewVentaForm
           onClose={closeCreateModal}
           onSave={handleFormSave}
+          onSaveDraft={handleSaveDraft}
         />
       )}
 

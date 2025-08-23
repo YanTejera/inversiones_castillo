@@ -1,3 +1,5 @@
+import React from 'react';
+
 export interface User {
   id: number;
   username: string;
@@ -375,4 +377,33 @@ export interface SistemaCredito {
     tardios: number;
     porcentaje_puntualidad: number;
   };
+}
+
+// Search-related types (moved from separate file to avoid module resolution issues)
+export interface SearchFilter {
+  key: string;
+  label: string;
+  type: 'text' | 'select' | 'date' | 'dateRange' | 'number' | 'numberRange' | 'boolean';
+  options?: { value: string; label: string }[];
+  placeholder?: string;
+  icon?: React.ReactNode;
+}
+
+export interface SearchFilters {
+  [key: string]: any;
+}
+
+export interface AdvancedSearchProps {
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
+  filters: SearchFilter[];
+  activeFilters: SearchFilters;
+  onFiltersChange: (filters: SearchFilters) => void;
+  suggestions?: string[];
+  onSuggestionSelect?: (suggestion: string) => void;
+  placeholder?: string;
+  showAdvanced?: boolean;
+  onReset?: () => void;
+  loading?: boolean;
+  className?: string;
 }

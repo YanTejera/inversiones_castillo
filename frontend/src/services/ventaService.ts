@@ -10,6 +10,7 @@ interface VentaCreateData {
   tasa_interes?: number;
   pago_mensual?: number;
   monto_total_con_intereses?: number;
+  observaciones?: string;
   detalles: {
     moto: number;
     cantidad: number;
@@ -169,5 +170,54 @@ export const ventaService = {
   async cancelarVenta(ventaId: number, cancelacionData?: { motivo: string, descripcion: string }): Promise<any> {
     const response = await api.post(`/ventas/${ventaId}/cancelar/`, cancelacionData || {});
     return response.data;
+  },
+
+  // Manejo de borradores de venta
+  async saveDraft(data: {
+    cliente_id: number;
+    draft_data: any;
+    draft_id?: string;
+  }): Promise<{ id: string; saved_at: string }> {
+    try {
+      const response = await api.post('/ventas/borrador/', data);
+      return response.data;
+    } catch (error) {
+      // Fallback: guardar en localStorage si no hay endpoint
+      const draftId = data.draft_id || `draft_${Date.now()}`;
+      const draftData = {
+        id: draftId,
+        cliente_id: data.cliente_id,
+        data: data.draft_data,
+        saved_at: new Date().toISOString()
+      };
+      
+      const existingDrafts = JSON.parse(localStorage.getItem('venta_drafts') || '[]');
+      const updatedDrafts = existingDrafts.filter((d: any) => d.id !== draftId);
+      updatedDrafts.push(draftData);
+      localStorage.setItem('venta_drafts', JSON.stringify(updatedDrafts));
+      
+      return { id: draftId, saved_at: draftData.saved_at };
+    }
+  },
+
+  async getDrafts(): Promise<any[]> {
+    try {
+      const response = await api.get('/ventas/borradores/');
+      return response.data;
+    } catch (error) {
+      // Fallback: obtener de localStorage
+      return JSON.parse(localStorage.getItem('venta_drafts') || '[]');
+    }
+  },
+
+  async deleteDraft(draftId: string): Promise<void> {
+    try {
+      await api.delete(`/ventas/borrador/${draftId}/`);
+    } catch (error) {
+      // Fallback: eliminar de localStorage
+      const existingDrafts = JSON.parse(localStorage.getItem('venta_drafts') || '[]');
+      const updatedDrafts = existingDrafts.filter((d: any) => d.id !== draftId);
+      localStorage.setItem('venta_drafts', JSON.stringify(updatedDrafts));
+    }
   }
 };

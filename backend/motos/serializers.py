@@ -16,13 +16,21 @@ class MotoSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['nombre_completo'] = f"{instance.marca} {instance.modelo} {instance.ano}"
         
-        # Asegurar URL absoluta para imagen en producción
+        # Generar URL absoluta para imagen
         if instance.imagen:
             from django.conf import settings
-            from decouple import config
-            if not settings.DEBUG and not representation['imagen'].startswith('http'):
-                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
-                representation['imagen'] = f"{backend_url}{representation['imagen']}"
+            
+            imagen_url = str(instance.imagen)
+            print(f"🖼️ [Moto] DEBUG={settings.DEBUG}, Imagen original: {imagen_url}")
+            
+            if settings.DEBUG:
+                base_url = 'http://localhost:8000'
+                full_url = f"{base_url}{settings.MEDIA_URL}{imagen_url}"
+            else:
+                full_url = f"{settings.MEDIA_URL}{imagen_url}"
+            
+            representation['imagen'] = full_url
+            print(f"🖼️ [Moto] URL final: {full_url}")
         
         return representation
 
@@ -38,11 +46,20 @@ class MotoDisponibleSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['nombre_completo'] = f"{instance.marca} {instance.modelo} {instance.ano}"
         
-        # Asegurar URL absoluta para imagen en producción (si existe)
+        # Asegurar URL absoluta para imagen (si existe)
         if hasattr(instance, 'imagen') and instance.imagen:
             from django.conf import settings
-            if not settings.DEBUG and not representation.get('imagen', '').startswith('http'):
-                representation['imagen'] = f"https://inversiones-castillo.onrender.com{representation.get('imagen', '')}"
+            from decouple import config
+            imagen_url = representation.get('imagen', '')
+            if imagen_url and not imagen_url.startswith('http'):
+                if settings.DEBUG:
+                    # Desarrollo local
+                    backend_url = 'http://localhost:8000'
+                    representation['imagen'] = f"{backend_url}{imagen_url}"
+                else:
+                    # Producción
+                    backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
+                    representation['imagen'] = f"{backend_url}{imagen_url}"
         
         return representation
 
@@ -73,13 +90,24 @@ class MotoModeloSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['nombre_completo'] = f"{instance.marca} {instance.modelo} {instance.ano}"
         
-        # Asegurar URL absoluta para imagen en producción
+        # Generar URL absoluta para imagen
         if instance.imagen:
             from django.conf import settings
-            from decouple import config
-            if not settings.DEBUG and not representation['imagen'].startswith('http'):
-                backend_url = config('RENDER_EXTERNAL_URL', default='https://inversiones-castillo.onrender.com')
-                representation['imagen'] = f"{backend_url}{representation['imagen']}"
+            
+            imagen_url = str(instance.imagen)
+            print(f"🖼️ [MotoModelo] DEBUG={settings.DEBUG}, Imagen original: {imagen_url}")
+            print(f"🖼️ [MotoModelo] MEDIA_URL={settings.MEDIA_URL}")
+            
+            # Usar la configuración de Django para generar la URL
+            if settings.DEBUG:
+                base_url = 'http://localhost:8000'
+                full_url = f"{base_url}{settings.MEDIA_URL}{imagen_url}"
+            else:
+                # En producción, usar la configuración ya establecida en settings
+                full_url = f"{settings.MEDIA_URL}{imagen_url}"
+            
+            representation['imagen'] = full_url
+            print(f"🖼️ [MotoModelo] URL final: {full_url}")
         
         # Agregar resumen de colores disponibles
         inventario_resumen = {}

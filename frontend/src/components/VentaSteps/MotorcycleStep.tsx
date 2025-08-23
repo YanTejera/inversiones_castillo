@@ -11,7 +11,10 @@ import {
   Plus,
   Minus,
   Tag,
-  Settings
+  Settings,
+  ShoppingCart,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import { motoService } from '../../services/motoService';
 import { motoModeloService } from '../../services/motoModeloService';
@@ -40,8 +43,22 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
   const [selectedModeloId, setSelectedModeloId] = useState<number | null>(null);
   const [selectedMotoId, setSelectedMotoId] = useState<number | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedChasis, setSelectedChasis] = useState<string>('');
+  const [customChasis, setCustomChasis] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [availableColors, setAvailableColors] = useState<ColorOption[]>([]);
+  const [availableChasis, setAvailableChasis] = useState<string[]>([]);
+  const [chasisInfo, setChasisInfo] = useState<Array<{
+    chasis: string;
+    stock: number;
+    precio: number;
+    descuento?: number;
+    unidad?: number;
+    chasisOriginal?: string;
+    inventarioId?: number;
+    isIndividual?: boolean;
+    allowCustomChasis?: boolean;
+  }>>([]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -55,9 +72,20 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
       setQuantity(data.selectedMotorcycle.cantidad);
       setSelectedColor(data.selectedMotorcycle.color || '');
       
+      // Manejar chasis
+      if (data.selectedMotorcycle.chasis) {
+        setCustomChasis(data.selectedMotorcycle.chasis);
+        setSelectedChasis('');
+      }
+      
       if (data.selectedMotorcycle.modelo) {
         setSelectedModeloId(data.selectedMotorcycle.modelo.id);
         loadColorsForModelo(data.selectedMotorcycle.modelo.id);
+        
+        // Si ya hay color, cargar chasis disponibles
+        if (data.selectedMotorcycle.color) {
+          loadChasisForColor(data.selectedMotorcycle.modelo.id, data.selectedMotorcycle.color);
+        }
       } else if (data.selectedMotorcycle.moto) {
         setSelectedMotoId(data.selectedMotorcycle.moto.id);
       }
@@ -101,6 +129,43 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
     }
   };
 
+  const loadChasisForColor = async (modeloId: number, color: string) => {
+    try {
+      console.log('🔍 Cargando chasis para modelo', modeloId, 'color', color);
+      
+      // Usar el nuevo endpoint optimizado
+      const chasisData = await motoModeloService.getChasisByColor(modeloId, color);
+      
+      console.log('📦 Datos recibidos del endpoint:', chasisData);
+      
+      // Procesar la información de chasis recibida del backend
+      const chasisWithInfo = chasisData.chasis_available?.map((item: any, index: number) => ({
+        chasis: item.chasis || `Stock-${color}-${index + 1}`,
+        chasisOriginal: item.chasis || '',
+        stock: item.stock,
+        precio: item.precio,
+        descuento: item.descuento || 0,
+        unidad: index + 1,
+        inventarioId: item.id,
+        isIndividual: item.is_individual,
+        allowCustomChasis: item.allow_custom_chasis
+      })) || [];
+      
+      console.log('🏷️ Información de chasis procesada:', chasisWithInfo);
+      
+      const chasisList = chasisWithInfo
+        .map(item => item.chasis)
+        .filter(Boolean);
+      
+      setAvailableChasis(chasisList);
+      setChasisInfo(chasisWithInfo);
+    } catch (error) {
+      console.error('❌ Error loading chasis:', error);
+      setAvailableChasis([]);
+      setChasisInfo([]);
+    }
+  };
+
   const handleModeloSelect = (modelo: MotoModelo) => {
     setSelectedModeloId(modelo.id);
     setSelectedMotoId(null);
@@ -138,23 +203,58 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
 
   const handleColorSelect = (color: string) => {
     setSelectedColor(color);
+    setSelectedChasis('');
+    setCustomChasis('');
     
     if (data.selectedMotorcycle && data.selectedMotorcycle.modelo) {
       const colorOption = availableColors.find(c => c.color === color);
       const precioUnitario = colorOption?.priceWithDiscount || data.selectedMotorcycle.modelo.precio_venta;
       
+      // Cargar chasis disponibles para este color
+      loadChasisForColor(data.selectedMotorcycle.modelo.id, color);
+      
       updateSelection({
         ...data.selectedMotorcycle,
         color,
+        chasis: '', // Reset chasis when color changes
         precio_unitario: precioUnitario
       });
     }
   };
 
+  const handleChasisSelect = (chasis: string) => {
+    setSelectedChasis(chasis);
+    setCustomChasis('');
+    
+    if (data.selectedMotorcycle) {
+      // Buscar la información del chasis seleccionado para usar el precio correcto
+      const chasisData = chasisInfo.find(item => item.chasis === chasis);
+      const precioUnitario = chasisData?.precio || data.selectedMotorcycle.precio_unitario;
+      
+      updateSelection({
+        ...data.selectedMotorcycle,
+        chasis,
+        precio_unitario: precioUnitario
+      });
+    }
+  };
+
+  const handleCustomChasisChange = (chasis: string) => {
+    setCustomChasis(chasis);
+    setSelectedChasis('');
+    
+    if (data.selectedMotorcycle) {
+      updateSelection({
+        ...data.selectedMotorcycle,
+        chasis
+      });
+    }
+  };
+
   const handleQuantityChange = (newQuantity: number) => {
-    const selectedColor = availableColors.find(c => c.color === selectedColor);
+    const selectedColorOption = availableColors.find(c => c.color === selectedColor);
     const maxQuantity = viewMode === 'modelos' 
-      ? selectedColor?.availableStock || 0
+      ? selectedColorOption?.availableStock || 0
       : 1; // Para motos individuales, máximo 1
 
     if (newQuantity >= 1 && newQuantity <= maxQuantity) {
@@ -172,6 +272,45 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
   const updateSelection = (selection: any) => {
     onUpdate({
       selectedMotorcycle: selection
+    });
+  };
+
+  const addMotorcycleToCart = () => {
+    if (!data.selectedMotorcycle) return;
+
+    const newMotorcycle = { ...data.selectedMotorcycle };
+    
+    // Agregar al array de motocicletas
+    const updatedMotorcycles = [...data.selectedMotorcycles, newMotorcycle];
+    
+    onUpdate({
+      selectedMotorcycles: updatedMotorcycles
+    });
+
+    // Limpiar selección actual para permitir agregar otra
+    resetSelection();
+  };
+
+  const removeMotorcycleFromCart = (index: number) => {
+    const updatedMotorcycles = data.selectedMotorcycles.filter((_, i) => i !== index);
+    onUpdate({
+      selectedMotorcycles: updatedMotorcycles
+    });
+  };
+
+  const resetSelection = () => {
+    setSelectedModeloId(null);
+    setSelectedMotoId(null);
+    setSelectedColor('');
+    setSelectedChasis('');
+    setCustomChasis('');
+    setQuantity(1);
+    setAvailableColors([]);
+    setAvailableChasis([]);
+    setChasisInfo([]);
+    
+    onUpdate({
+      selectedMotorcycle: null
     });
   };
 
@@ -195,8 +334,31 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
   };
 
   const isSelectionComplete = () => {
-    return data.selectedMotorcycle !== null && 
-           (viewMode === 'individual' || selectedColor !== '');
+    if (!data.selectedMotorcycle) return false;
+    
+    if (viewMode === 'individual') {
+      return true; // Para motos individuales ya tiene todos los datos
+    }
+    
+    // Para modelos, necesita color seleccionado
+    if (!selectedColor) return false;
+    
+    // Y necesita chasis (seleccionado de la lista o personalizado)
+    const hasChasisSelected = selectedChasis !== '' || customChasis.trim() !== '';
+    
+    return hasChasisSelected;
+  };
+
+  const getTotalFromCart = () => {
+    return data.selectedMotorcycles.reduce((total, moto) => 
+      total + (moto.precio_unitario * moto.cantidad), 0
+    );
+  };
+
+  const getTotalQuantityFromCart = () => {
+    return data.selectedMotorcycles.reduce((total, moto) => 
+      total + moto.cantidad, 0
+    );
   };
 
   const getSelectedColorOption = () => {
@@ -212,12 +374,77 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Selección de Motocicleta
+          Selección de Motocicletas
         </h3>
         <p className="text-gray-600">
-          Seleccione la motocicleta, color (si aplica) y cantidad para la venta.
+          Seleccione las motocicletas, colores y chasis para la venta. Puede agregar múltiples motocicletas.
         </p>
       </div>
+
+      {/* Carrito de motocicletas seleccionadas */}
+      {data.selectedMotorcycles.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+            <ShoppingCart className="h-5 w-5 mr-2" />
+            Motocicletas Seleccionadas ({getTotalQuantityFromCart()} unidades)
+          </h4>
+          
+          <div className="space-y-3">
+            {data.selectedMotorcycles.map((moto, index) => (
+              <div key={index} className="bg-white border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h5 className="font-medium text-gray-900">
+                      {moto.tipo === 'modelo' 
+                        ? `${moto.modelo?.marca} ${moto.modelo?.modelo} ${moto.modelo?.ano}`
+                        : `${moto.moto?.marca} ${moto.moto?.modelo} ${moto.moto?.ano}`
+                      }
+                    </h5>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      {moto.color && (
+                        <span className="flex items-center">
+                          <div 
+                            className="w-4 h-4 rounded-full mr-2 border border-gray-300"
+                            style={{ backgroundColor: getColorCode(moto.color) }}
+                          ></div>
+                          Color: {moto.color}
+                        </span>
+                      )}
+                      {moto.chasis && (
+                        <span className="flex items-center">
+                          <Tag className="h-4 w-4 mr-1" />
+                          Chasis: {moto.chasis}
+                        </span>
+                      )}
+                      <span>Cantidad: {moto.cantidad}</span>
+                      <span>Precio: {formatCurrency(moto.precio_unitario)}</span>
+                      <span className="font-semibold text-blue-600">
+                        Subtotal: {formatCurrency(moto.precio_unitario * moto.cantidad)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeMotorcycleFromCart(index)}
+                    className="ml-3 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Eliminar motocicleta"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-4 pt-3 border-t border-blue-200">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-blue-900">Total General:</span>
+              <span className="text-xl font-bold text-blue-900">
+                {formatCurrency(getTotalFromCart())}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs para tipo de vista */}
       <div className="border-b border-gray-200">
@@ -267,7 +494,7 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
       {data.selectedMotorcycle && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <div className="flex items-center flex-1">
               <Check className="h-6 w-6 text-green-600 mr-3" />
               <div>
                 <h4 className="font-semibold text-green-900">
@@ -298,6 +525,25 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
                 </div>
               </div>
             </div>
+            
+            {/* Botones de acción */}
+            {isSelectionComplete() && (
+              <div className="ml-4 flex space-x-2">
+                <button
+                  onClick={addMotorcycleToCart}
+                  className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Otra
+                </button>
+                <button
+                  onClick={resetSelection}
+                  className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -495,8 +741,185 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
         </div>
       )}
 
+      {/* Selección de chasis (solo para modelos después de seleccionar color) */}
+      {viewMode === 'modelos' && selectedColor && (
+        <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+          <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+            <Tag className="h-5 w-5 mr-2" />
+            Seleccionar Número de Chasis
+          </h4>
+          
+          {availableChasis.length > 0 ? (
+            <div className="space-y-4">
+              <div className="space-y-4">
+                {/* Motos individuales con chasis específico */}
+                {chasisInfo.filter(item => item.isIndividual).length > 0 && (
+                  <div>
+                    <h5 className="font-medium text-gray-700 mb-3">Motocicletas Individuales Disponibles:</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {chasisInfo.filter(item => item.isIndividual).map((item, index) => {
+                        const isSelected = selectedChasis === item.chasis;
+                        const isAvailable = item.stock > 0;
+                        
+                        return (
+                          <button
+                            key={`individual-${item.inventarioId || index}`}
+                            onClick={() => handleChasisSelect(item.chasis)}
+                            disabled={!isAvailable}
+                            className={`p-3 text-left border-2 rounded-lg transition-all ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50'
+                                : isAvailable
+                                ? 'border-green-200 hover:border-green-300 bg-green-50 cursor-pointer'
+                                : 'border-red-200 bg-red-50 cursor-not-allowed opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="text-sm font-medium text-gray-900">📍 {item.chasis}</div>
+                              <div className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                isAvailable 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {isAvailable ? 'Disponible' : 'No Disponible'}
+                              </div>
+                            </div>
+                            
+                            <div className="text-xs text-gray-600 space-y-1">
+                              <div className="flex justify-between">
+                                <span>Unidades:</span>
+                                <span className="font-medium">{item.stock}</span>
+                              </div>
+                              {item.descuento && item.descuento > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Descuento:</span>
+                                  <span className="text-orange-600 font-medium">{item.descuento}%</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between border-t pt-1">
+                                <span>Precio:</span>
+                                <span className="font-medium text-green-600">
+                                  {formatCurrency(item.precio)}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {isSelected && (
+                              <div className="mt-2 flex items-center text-xs text-blue-600">
+                                <Check className="h-3 w-3 mr-1" />
+                                Seleccionado
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Stock general sin chasis específico */}
+                {chasisInfo.filter(item => !item.isIndividual).length > 0 && (
+                  <div>
+                    <h5 className="font-medium text-gray-700 mb-3">Stock Disponible (Chasis Personalizable):</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {chasisInfo.filter(item => !item.isIndividual).map((item, index) => {
+                        const isAvailable = item.stock > 0;
+                        
+                        return (
+                          <div
+                            key={`stock-${item.inventarioId || index}`}
+                            className={`p-4 border-2 rounded-lg ${
+                              isAvailable
+                                ? 'border-blue-200 bg-blue-50'
+                                : 'border-gray-200 bg-gray-50 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="text-sm font-medium text-gray-900">📦 Stock General</div>
+                              <div className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                isAvailable 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {item.stock} disponibles
+                              </div>
+                            </div>
+                            
+                            <div className="text-xs text-gray-600 space-y-1">
+                              {item.descuento && item.descuento > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Descuento:</span>
+                                  <span className="text-orange-600 font-medium">{item.descuento}%</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between border-t pt-1">
+                                <span>Precio unitario:</span>
+                                <span className="font-medium text-green-600">
+                                  {formatCurrency(item.precio)}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-3 text-xs text-blue-600 flex items-center">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Requiere número de chasis personalizado
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="border-t border-gray-200 pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🔢 O ingrese un número de chasis personalizado:
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={customChasis}
+                    onChange={(e) => handleCustomChasisChange(e.target.value)}
+                    placeholder="Ej: ABC123456789"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {customChasis && (
+                    <div className="text-xs text-blue-600 flex items-center">
+                      <Check className="h-3 w-3 mr-1" />
+                      Chasis personalizado: {customChasis}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  No hay números de chasis específicos disponibles para este color en el inventario.
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ingrese el número de chasis:
+                </label>
+                <input
+                  type="text"
+                  value={customChasis}
+                  onChange={(e) => handleCustomChasisChange(e.target.value)}
+                  placeholder="Ingrese número de chasis"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Selección de cantidad */}
-      {selectedColor && viewMode === 'modelos' && (
+      {selectedColor && (selectedChasis || customChasis) && viewMode === 'modelos' && (
         <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
           <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
             <Settings className="h-5 w-5 mr-2" />
@@ -532,15 +955,70 @@ const MotorcycleStep: React.FC<MotorcycleStepProps> = ({ data, onUpdate, errors 
       )}
 
       {/* Validación */}
-      {!isSelectionComplete() && (
+      {data.selectedMotorcycles.length === 0 && !data.selectedMotorcycle && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center">
           <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
           <span className="text-yellow-800">
-            {!data.selectedMotorcycle 
-              ? 'Seleccione una motocicleta para continuar.'
-              : 'Seleccione un color para continuar.'
-            }
+            Debe agregar al menos una motocicleta al carrito para continuar.
           </span>
+        </div>
+      )}
+
+      {data.selectedMotorcycle && !isSelectionComplete() && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center">
+          <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
+          <div className="text-yellow-800">
+            {!selectedColor ? (
+              <div>
+                <div className="font-medium">Falta seleccionar el color</div>
+                <div className="text-sm">Seleccione un color para ver los chasis disponibles.</div>
+              </div>
+            ) : (
+              <div>
+                <div className="font-medium">Falta seleccionar el chasis</div>
+                <div className="text-sm">
+                  {chasisInfo.filter(item => item.isIndividual).length > 0
+                    ? 'Seleccione una motocicleta individual o ingrese un chasis personalizado.'
+                    : 'Ingrese el número de chasis para esta motocicleta.'
+                  }
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Botones de acción rápida al final */}
+      {(data.selectedMotorcycles.length > 0 || data.selectedMotorcycle) && (
+        <div className="bg-gray-50 border-t border-gray-200 rounded-lg p-4">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              {data.selectedMotorcycles.length > 0 
+                ? `${data.selectedMotorcycles.length} motocicleta(s) en el carrito`
+                : 'Motocicleta seleccionada'
+              }
+              {data.selectedMotorcycle && !data.selectedMotorcycles.find(m => m.chasis === data.selectedMotorcycle?.chasis) && (
+                <span className="ml-2 text-blue-600">
+                  + 1 pendiente de agregar
+                </span>
+              )}
+            </div>
+            <div className="flex space-x-2">
+              {data.selectedMotorcycle && isSelectionComplete() && (
+                <button
+                  onClick={addMotorcycleToCart}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors text-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar al Carrito
+                </button>
+              )}
+              <div className="text-sm text-green-600 flex items-center">
+                <Check className="h-4 w-4 mr-1" />
+                Listo para continuar
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

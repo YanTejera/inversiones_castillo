@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { 
   Plus, 
   Search, 
@@ -28,7 +28,12 @@ import { clienteService } from '../services/clienteService';
 import ClienteForm from '../components/ClienteForm';
 import ClienteDetalle from '../components/ClienteDetalle';
 import ClienteDetalleCompleto from '../components/ClienteDetalleCompleto';
+import AdvancedSearch from '../components/AdvancedSearch';
 import ViewToggle from '../components/common/ViewToggle';
+import { SkeletonCard, SkeletonList, SkeletonStats } from '../components/Skeleton';
+import { useToast } from '../components/Toast';
+import { useLocalSearch, useSearchSuggestions } from '../hooks/useAdvancedSearch';
+import { clientesFilters, getSearchPlaceholder } from '../config/searchFilters';
 import { getEstadoPagoInfo, calcularSistemaCredito, getNivelIcon, getNivelColor, formatCurrency, calcularProximoPago, type Cliente } from '../utils/clienteUtils';
 
 interface ModalState {
@@ -41,10 +46,10 @@ interface ModalState {
 }
 
 const Clientes: React.FC = () => {
+  const { success, error: showError, warning, info, ToastContainer } = useToast();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -90,6 +95,49 @@ const Clientes: React.FC = () => {
   const showConfirmModal = (title: string, message: string, onConfirm: () => void) => {
     showCustomModal('confirm', title, message, null, onConfirm);
   };
+
+  // Advanced search functionality
+  const searchFields: (keyof Cliente)[] = ['nombre', 'apellido', 'cedula', 'telefono', 'email', 'ciudad'];
+  
+  const filterFunctions = useMemo(() => ({
+    estado_credito: (cliente: Cliente, value: string) => {
+      const estadoPago = getEstadoPagoInfo(cliente);
+      return estadoPago.estado === value;
+    },
+    saldo_pendiente: (cliente: Cliente, value: [string, string]) => {
+      const [min, max] = value;
+      const saldo = cliente.saldo_pendiente || 0;
+      if (min && max) return saldo >= Number(min) && saldo <= Number(max);
+      if (min) return saldo >= Number(min);
+      if (max) return saldo <= Number(max);
+      return true;
+    },
+    nivel_credito: (cliente: Cliente, value: string) => {
+      const sistema = calcularSistemaCredito(cliente);
+      return sistema.nivel === value;
+    },
+    tiene_ventas_activas: (cliente: Cliente, value: string) => {
+      const hasActiveVentas = cliente.ventas?.some(v => v.estado === 'activa') || false;
+      return value === 'true' ? hasActiveVentas : !hasActiveVentas;
+    }
+  }), []);
+
+  const {
+    searchTerm,
+    filters,
+    setSearchTerm,
+    setFilters,
+    filteredData: filteredClientes,
+    totalCount,
+    filteredCount
+  } = useLocalSearch({
+    data: clientes,
+    searchFields,
+    filterFunctions,
+    persistKey: 'clientes'
+  });
+
+  const suggestions = useSearchSuggestions(clientes, searchFields, 10);
 
   // Función para obtener datos persistentes del cliente
   const getClienteData = (cliente: Cliente): Cliente => {
@@ -157,10 +205,10 @@ const Clientes: React.FC = () => {
     return newData;
   };
 
-  const loadClientes = async (page = 1, search = '') => {
+  const loadClientes = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await clienteService.getClientes(page, search);
+      const response = await clienteService.getClientes(page);
       
       // Usar datos persistentes para cada cliente
       const clientesConDatos = response.results.map(getClienteData);
@@ -168,7 +216,9 @@ const Clientes: React.FC = () => {
       setClientes(clientesConDatos);
       setTotalPages(Math.ceil(response.count / 20)); // Asumiendo 20 items por página
     } catch (err) {
-      setError('Error al cargar clientes');
+      const errorMsg = 'Error al cargar clientes';
+      setError(errorMsg);
+      showError(errorMsg);
       console.error('Error loading clientes:', err);
     } finally {
       setLoading(false);
@@ -176,14 +226,9 @@ const Clientes: React.FC = () => {
   };
 
   useEffect(() => {
-    loadClientes(currentPage, searchTerm);
+    loadClientes(currentPage);
   }, [currentPage]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    loadClientes(1, searchTerm);
-  };
 
   const handleDelete = async (cliente: Cliente) => {
     showConfirmModal(
@@ -192,7 +237,7 @@ const Clientes: React.FC = () => {
       async () => {
         try {
           await clienteService.deleteCliente(cliente.id);
-          loadClientes(currentPage, searchTerm);
+          loadClientes(currentPage);
           closeCustomModal();
           showSuccessModal('Cliente eliminado exitosamente');
         } catch (err) {
@@ -313,7 +358,7 @@ const Clientes: React.FC = () => {
   };
 
   const handleFormSave = () => {
-    loadClientes(currentPage, searchTerm);
+    loadClientes(currentPage);
   };
 
   const formatDate = (dateString: string) => {
@@ -330,8 +375,40 @@ const Clientes: React.FC = () => {
 
   if (loading && clientes.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="page-fade-in">
+        {/* Header skeleton */}
+        <div className="mb-8 animate-fade-in-up">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Search and filters skeleton */}
+        <div className="mb-6 space-y-4">
+          <div className="flex gap-4">
+            <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="flex justify-end">
+            <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 staggered-fade-in">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </div>
       </div>
     );
   }
@@ -357,9 +434,9 @@ const Clientes: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="page-fade-in">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 animate-fade-in-up">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Gestión de Clientes</h1>
@@ -369,7 +446,7 @@ const Clientes: React.FC = () => {
           </div>
           <button
             onClick={() => openModal('create')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Nuevo Cliente
@@ -377,28 +454,28 @@ const Clientes: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Bar and View Toggle */}
+      {/* Advanced Search */}
       <div className="mb-6 space-y-4">
-        <form onSubmit={handleSearch} className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, apellido o cédula..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <button
-            type="submit"
-            className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
-          >
-            Buscar
-          </button>
-        </form>
+        <AdvancedSearch
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={clientesFilters}
+          activeFilters={filters}
+          onFiltersChange={setFilters}
+          suggestions={suggestions}
+          placeholder={getSearchPlaceholder('clientes')}
+          loading={loading}
+          className="animate-fade-in-up"
+        />
         
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-gray-600">
+            {filteredCount !== totalCount ? (
+              <span>Mostrando {filteredCount} de {totalCount} clientes</span>
+            ) : (
+              <span>{totalCount} cliente{totalCount !== 1 ? 's' : ''} total{totalCount !== 1 ? 'es' : ''}</span>
+            )}
+          </div>
           <ViewToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
         </div>
       </div>
@@ -409,11 +486,14 @@ const Clientes: React.FC = () => {
         </div>
       )}
 
+
       {/* Clientes Display */}
-      {viewMode === 'grid' ? (
+      {!loading && (
+        <>
+          {viewMode === 'grid' ? (
         /* Grid View */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {clientes.map((cliente) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 staggered-fade-in">
+          {filteredClientes.map((cliente) => {
             const estadoPago = getEstadoPagoInfo(cliente);
             const sistemaCredito = calcularSistemaCredito(cliente);
             const NivelIcon = getNivelIcon(sistemaCredito.nivel);
@@ -421,7 +501,7 @@ const Clientes: React.FC = () => {
             return (
               <div 
                 key={cliente.id} 
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border border-gray-200"
+                className="bg-white rounded-lg shadow-md card-hover cursor-pointer border border-gray-200 animate-fade-in-up"
                 onClick={() => handleClienteClick(cliente)}
               >
                 {/* Header con foto y datos básicos */}
@@ -666,7 +746,7 @@ const Clientes: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {clientes.map((cliente) => (
+                {filteredClientes.map((cliente) => (
                   <tr key={cliente.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -838,14 +918,14 @@ const Clientes: React.FC = () => {
         </div>
       )}
 
-      {clientes.length === 0 && !loading && (
+      {filteredClientes.length === 0 && !loading && (
         <div className="text-center py-12">
           <User className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No hay clientes</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {searchTerm ? 'No se encontraron clientes con esa búsqueda.' : 'Comienza creando tu primer cliente.'}
+            {(searchTerm || Object.keys(filters).length > 0) ? 'No se encontraron clientes con esa búsqueda.' : 'Comienza creando tu primer cliente.'}
           </p>
-          {!searchTerm && (
+          {!(searchTerm || Object.keys(filters).length > 0) && (
             <div className="mt-6">
               <button
                 onClick={() => openModal('create')}
@@ -909,6 +989,11 @@ const Clientes: React.FC = () => {
           onSave={handleFormSave}
         />
       )}
+        </>
+      )}
+
+      {/* Toast Container */}
+      <ToastContainer />
 
       {/* Modales personalizados */}
       {modalState.isOpen && (

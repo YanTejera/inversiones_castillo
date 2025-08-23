@@ -370,12 +370,25 @@ const MotoModeloDetalle: React.FC<MotoModeloDetalleProps> = ({
                       src={modelo.imagen}
                       alt={`${modelo.marca} ${modelo.modelo}`}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                        if (fallback) {
+                          fallback.style.display = 'flex';
+                        }
+                      }}
+                      onLoad={(e) => {
+                        const fallback = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                        if (fallback) {
+                          fallback.style.display = 'none';
+                        }
+                      }}
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Bike className="h-16 w-16 text-gray-400" />
-                    </div>
-                  )}
+                  ) : null}
+                  
+                  <div className="fallback-icon w-full h-full flex items-center justify-center" style={{ display: modelo.imagen ? 'none' : 'flex' }}>
+                    <Bike className="h-16 w-16 text-gray-400" />
+                  </div>
                 </div>
               </div>
 
