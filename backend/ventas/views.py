@@ -11,6 +11,7 @@ from .models import Venta, VentaDetalle
 from .serializers import VentaSerializer, VentaCreateSerializer, VentaDetalleSerializer
 from usuarios.models import Cliente
 from motos.models import Moto, MotoModelo, MotoInventario
+from pagos.models import Pago
 
 class VentaListCreateView(generics.ListCreateAPIView):
     queryset = Venta.objects.all()
@@ -523,16 +524,37 @@ class CreateVentaFromFormView(APIView):
                 if tipo_venta == 'financiado' and venta.cuotas > 1:
                     self._crear_cuotas_vencimiento(venta)
                 
+                # Crear pago inicial si hay monto inicial > 0
+                pago_inicial = None
+                if venta.monto_inicial > 0:
+                    pago_inicial = Pago.objects.create(
+                        venta=venta,
+                        monto_pagado=venta.monto_inicial,
+                        tipo_pago='efectivo',  # Por defecto, se puede cambiar luego
+                        observaciones='Pago inicial registrado automáticamente al crear la venta',
+                        usuario_cobrador=request.user
+                    )
+                    print(f"Pago inicial creado: {pago_inicial.id} - Monto: {pago_inicial.monto_pagado}")
+                
                 # Retornar la venta creada
                 serializer = VentaSerializer(venta)
                 response_data = serializer.data
                 response_data['message'] = 'Venta creada exitosamente'
                 response_data['detalle'] = {
-                    'moto': f"{moto_obj.marca} {moto_obj.modelo}",
+                    'moto': f"{moto_obj.marca} {moto_obj.modelo} ({moto_obj.chasis})",
                     'cantidad': cantidad_requerida,
                     'precio_unitario': float(precio_unitario),
                     'subtotal': float(detalle.subtotal)
                 }
+                
+                # Agregar información del pago inicial si existe
+                if pago_inicial:
+                    response_data['pago_inicial'] = {
+                        'id': pago_inicial.id,
+                        'monto': float(pago_inicial.monto_pagado),
+                        'fecha': pago_inicial.fecha_pago.isoformat(),
+                        'tipo': pago_inicial.tipo_pago
+                    }
                 
                 print(f"Venta creada exitosamente: {venta.id}")
                 return Response(response_data, status=status.HTTP_201_CREATED)

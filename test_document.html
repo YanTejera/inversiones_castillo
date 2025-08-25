@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrato de Compraventa de Vehículo</title>
+</head>
+<body>
+    <h1>CONTRATO DE COMPRAVENTA DE VEHÍCULO</h1>
+    
+    <p>Entre los suscritos a saber:</p>
+    
+    <p><strong>EL VENDEDOR:</strong> INVERSIONES CASTILLO S.A.S., identificada con NIT 900.123.456-7, con domicilio en Carrera 15 #85-32, Bogotá D.C., representada legalmente por su Gerente General.</p>
+    
+    <p><strong>EL COMPRADOR:</strong> <u>{{cliente_nombre_completo}}</u>, identificado(a) con cédula de ciudadanía número <u>{{cliente_cedula}}</u>, con domicilio en <u>{{cliente_direccion}}</u>.</p>
+    
+    <h2>CLÁUSULAS:</h2>
+    
+    <h3>PRIMERA: OBJETO DEL CONTRATO</h3>
+    <p>EL VENDEDOR se obliga a transferir la propiedad y EL COMPRADOR se obliga a adquirir el siguiente vehículo:</p>
+    
+    <ul>
+        <li><strong>Marca:</strong> {{vehiculo_marca}}</li>
+        <li><strong>Modelo:</strong> {{vehiculo_modelo}}</li>
+        <li><strong>Año:</strong> {{vehiculo_ano}}</li>
+        <li><strong>Color:</strong> {{vehiculo_color}}</li>
+        <li><strong>Número de Motor:</strong> {{vehiculo_motor}}</li>
+        <li><strong>Número de Chasis:</strong> {{vehiculo_chasis}}</li>
+    </ul>
+    
+    <h3>SEGUNDA: PRECIO Y FORMA DE PAGO</h3>
+    <p>Las partes acuerdan que el precio total del vehículo es de <strong>${{precio_total}}</strong> pesos colombianos, pagaderos así:</p>
+    
+    <ol>
+        <li>Cuota inicial: ${{cuota_inicial}}</li>
+        <li>Saldo: ${{saldo_financiado}} financiado a {{plazo_meses}} meses</li>
+        <li>Cuotas mensuales de: ${{cuota_mensual}}</li>
+    </ol>
+    
+    <h3>TERCERA: ENTREGA DEL VEHÍCULO</h3>
+    <p><em>El vehículo será entregado en las instalaciones del vendedor el día {{fecha_entrega}}, previa verificación del cumplimiento de todas las obligaciones del comprador.</em></p>
+    
+    <h3>CUARTA: GARANTÍAS</h3>
+    <p>El vendedor otorga garantía de <strong>6 meses</strong> sobre defectos de fábrica y funcionamiento mecánico básico.</p>
+    
+    <br><br>
+    
+    <p>Dado en Bogotá D.C., a los {{dia_actual}} días del mes de {{mes_actual}} del año {{ano_actual}}.</p>
+    
+    <br><br>
+    
+    <table>
+        <tr>
+            <td style="text-align: center; width: 50%;">
+                <br><br><br>
+                _________________________________<br>
+                <strong>EL VENDEDOR</strong><br>
+                INVERSIONES CASTILLO S.A.S.<br>
+                NIT 900.123.456-7
+            </td>
+            <td style="text-align: center; width: 50%;">
+                <br><br><br>
+                _________________________________<br>
+                <strong>EL COMPRADOR</strong><br>
+                {{cliente_nombre_completo}}<br>
+                C.C. {{cliente_cedula}}
+            </td>
+        </tr>
+    </table>
+    
+    <br>
+    
+    <p style="text-align: center;">
+        _________________________________<br>
+        <strong>TESTIGO</strong><br>
+        Nombre: _______________<br>
+        C.C.: _______________
+    </p>
+</body>
+</html>

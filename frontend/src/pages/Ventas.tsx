@@ -17,6 +17,7 @@ import {
 import { ventaService } from '../services/ventaService';
 import NewVentaForm, { type VentaFormData } from '../components/NewVentaForm';
 import CancelarVentaModal from '../components/CancelarVentaModal';
+import VentaDetalleModal from '../components/VentaDetalleModal';
 import ViewToggle from '../components/common/ViewToggle';
 import { SkeletonCard, SkeletonList, SkeletonStats } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
@@ -557,11 +558,74 @@ const Ventas: React.FC = () => {
               )}
             </div>
 
-            {/* Número de productos */}
-            <div className="flex items-center text-sm text-gray-600 mb-4">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              {venta.detalles?.length || 0} producto(s)
-            </div>
+            {/* Motocicleta vendida */}
+            {venta.detalles && venta.detalles.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Motocicleta Vendida
+                </h4>
+                {venta.detalles.map((detalle, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-3 mb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">
+                          {detalle.producto_info?.marca} {detalle.producto_info?.modelo} {detalle.producto_info?.ano}
+                        </div>
+                        {detalle.producto_info?.color && (
+                          <div className="text-sm text-gray-600">
+                            Color: <span className="font-medium">{detalle.producto_info.color}</span>
+                          </div>
+                        )}
+                        {detalle.producto_info?.chasis && (
+                          <div className="text-sm text-gray-600">
+                            Chasis: <span className="font-mono font-medium">{detalle.producto_info.chasis}</span>
+                          </div>
+                        )}
+                        {detalle.producto_info?.cilindraje && (
+                          <div className="text-sm text-gray-600">
+                            {detalle.producto_info.cilindraje}cc
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          Cant: {detalle.cantidad}
+                        </div>
+                        <div className="text-sm text-green-600 font-medium">
+                          {formatCurrency(detalle.precio_unitario)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Documentos asociados */}
+            {venta.documentos_generados && venta.documentos_generados.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Documentos Generados
+                </h4>
+                <div className="space-y-2">
+                  {venta.documentos_generados.slice(0, 3).map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600 truncate">{doc.nombre || doc.tipo}</span>
+                      <span className="text-xs text-gray-500">
+                        {doc.fecha_creacion ? formatDate(doc.fecha_creacion) : 'Generado'}
+                      </span>
+                    </div>
+                  ))}
+                  {venta.documentos_generados.length > 3 && (
+                    <div className="text-xs text-blue-600">
+                      +{venta.documentos_generados.length - 3} documentos más
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Información de cancelación */}
             {venta.estado === 'cancelada' && venta.motivo_cancelacion && (
@@ -848,127 +912,12 @@ const Ventas: React.FC = () => {
         />
       )}
 
-      {/* Old Venta Form Modal for viewing/editing existing sales */}
+      {/* Venta Details Modal */}
       {showModal && selectedVenta && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[95vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-bold">Detalles de la Venta #{selectedVenta.id}</h2>
-              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[80vh]">
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Información General</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-gray-600">Fecha de venta:</span>
-                        <p className="font-medium">{formatDate(selectedVenta.fecha_venta)}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Estado:</span>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ml-2 ${getEstadoColor(selectedVenta.estado)}`}>
-                          {selectedVenta.estado_display}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Tipo de venta:</span>
-                        <p className="font-medium">{selectedVenta.tipo_venta_display}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Información del Cliente</h3>
-                    {selectedVenta.cliente_info ? (
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-gray-600">Nombre:</span>
-                          <p className="font-medium">{selectedVenta.cliente_info.nombre} {selectedVenta.cliente_info.apellido}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Cédula:</span>
-                          <p className="font-medium">{selectedVenta.cliente_info.cedula}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Teléfono:</span>
-                          <p className="font-medium">{selectedVenta.cliente_info.telefono}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500">Información del cliente no disponible</p>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Información Financiera</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <span className="text-gray-600">Monto total:</span>
-                      <p className="font-bold text-lg text-green-600">{formatCurrency(selectedVenta.monto_total)}</p>
-                    </div>
-                    {selectedVenta.tipo_venta === 'financiado' && (
-                      <>
-                        <div>
-                          <span className="text-gray-600">Monto inicial:</span>
-                          <p className="font-medium">{formatCurrency(selectedVenta.monto_inicial)}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Pago mensual:</span>
-                          <p className="font-medium text-blue-600">{formatCurrency(selectedVenta.pago_mensual)}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Número de cuotas:</span>
-                          <p className="font-medium">{selectedVenta.cuotas}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Saldo pendiente:</span>
-                          <p className={`font-medium ${selectedVenta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {formatCurrency(selectedVenta.saldo_pendiente)}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {selectedVenta.detalles && selectedVenta.detalles.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Productos</h3>
-                    <div className="space-y-3">
-                      {selectedVenta.detalles.map((detalle, index) => (
-                        <div key={index} className="border rounded-lg p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                              <span className="text-gray-600">Producto:</span>
-                              <p className="font-medium">{detalle.producto_info?.marca} {detalle.producto_info?.modelo}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Cantidad:</span>
-                              <p className="font-medium">{detalle.cantidad}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Precio unitario:</span>
-                              <p className="font-medium">{formatCurrency(detalle.precio_unitario)}</p>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Subtotal:</span>
-                              <p className="font-medium text-green-600">{formatCurrency(detalle.subtotal)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <VentaDetalleModal
+          venta={selectedVenta}
+          onClose={closeModal}
+        />
       )}
     </div>
   );

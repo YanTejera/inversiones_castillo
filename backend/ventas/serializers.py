@@ -1,15 +1,32 @@
 from rest_framework import serializers
 from .models import Venta, VentaDetalle
 from usuarios.serializers import ClienteSerializer, UsuarioSerializer
-from motos.serializers import MotoSerializer
 
 class VentaDetalleSerializer(serializers.ModelSerializer):
-    moto_info = MotoSerializer(source='moto', read_only=True)
+    producto_info = serializers.SerializerMethodField()
     
     class Meta:
         model = VentaDetalle
-        fields = ['id', 'venta', 'moto', 'moto_info', 'cantidad', 'precio_unitario', 'subtotal']
+        fields = ['id', 'venta', 'moto', 'producto_info', 'cantidad', 'precio_unitario', 'subtotal']
         read_only_fields = ['subtotal']
+    
+    def get_producto_info(self, obj):
+        """Obtener información completa del producto (moto) con detalles de color, chasis, etc."""
+        if obj.moto:
+            return {
+                'id': obj.moto.id,
+                'marca': obj.moto.marca,
+                'modelo': obj.moto.modelo,
+                'ano': obj.moto.ano,
+                'color': obj.moto.color,
+                'chasis': obj.moto.chasis,
+                'cilindraje': obj.moto.cilindraje,
+                'tipo_motor': obj.moto.tipo_motor,
+                'condicion': obj.moto.condicion,
+                'precio_venta': obj.moto.precio_venta,
+                'imagen': obj.moto.imagen.url if obj.moto.imagen else None
+            }
+        return None
 
 class VentaSerializer(serializers.ModelSerializer):
     cliente_info = ClienteSerializer(source='cliente', read_only=True)
@@ -20,6 +37,7 @@ class VentaSerializer(serializers.ModelSerializer):
     tipo_venta_display = serializers.CharField(source='get_tipo_venta_display', read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
     motivo_cancelacion_display = serializers.CharField(source='get_motivo_cancelacion_display', read_only=True)
+    documentos_generados = serializers.SerializerMethodField()
     
     class Meta:
         model = Venta
@@ -29,7 +47,40 @@ class VentaSerializer(serializers.ModelSerializer):
                  'monto_total_con_intereses', 'estado', 'estado_display',
                  'motivo_cancelacion', 'motivo_cancelacion_display', 'descripcion_cancelacion',
                  'fecha_cancelacion', 'usuario_cancelacion', 'usuario_cancelacion_info',
-                 'detalles', 'saldo_pendiente']
+                 'detalles', 'saldo_pendiente', 'documentos_generados']
+    
+    def get_documentos_generados(self, obj):
+        """Obtener lista de documentos que se generarían/han generado para esta venta"""
+        # Por ahora, devolvemos una lista básica de documentos típicos de una venta
+        # En el futuro, esto podría venir de una tabla de documentos reales
+        documentos_base = [
+            {
+                'nombre': 'Contrato de Compraventa',
+                'tipo': 'contrato',
+                'fecha_creacion': obj.fecha_venta.isoformat() if obj.fecha_venta else None
+            },
+            {
+                'nombre': 'Recibo de Pago Inicial',
+                'tipo': 'recibo',
+                'fecha_creacion': obj.fecha_venta.isoformat() if obj.fecha_venta else None
+            }
+        ]
+        
+        if obj.tipo_venta == 'financiado':
+            documentos_base.extend([
+                {
+                    'nombre': 'Plan de Pagos',
+                    'tipo': 'plan_pagos',
+                    'fecha_creacion': obj.fecha_venta.isoformat() if obj.fecha_venta else None
+                },
+                {
+                    'nombre': 'Pagaré',
+                    'tipo': 'pagare',
+                    'fecha_creacion': obj.fecha_venta.isoformat() if obj.fecha_venta else None
+                }
+            ])
+        
+        return documentos_base
 
 class VentaDetalleCreateSerializer(serializers.ModelSerializer):
     class Meta:
