@@ -401,8 +401,11 @@ class CreateVentaFromFormView(APIView):
                         )
                     
                     # Buscar una moto disponible del modelo y color especificado
+                    # El modelo Moto no tiene relación directa con MotoModelo, usar campos de texto
                     moto_query = Moto.objects.filter(
-                        modelo=modelo,
+                        marca=modelo.marca,
+                        modelo=modelo.modelo,
+                        ano=modelo.ano,
                         cantidad_stock__gt=0
                     )
                     
@@ -410,7 +413,7 @@ class CreateVentaFromFormView(APIView):
                         moto_query = moto_query.filter(color__icontains=color)
                     
                     if chasis:
-                        moto_query = moto_query.filter(numero_chasis=chasis)
+                        moto_query = moto_query.filter(chasis=chasis)
                     
                     moto_obj = moto_query.first()
                     
@@ -424,24 +427,40 @@ class CreateVentaFromFormView(APIView):
                             
                             if not inventario_item:
                                 return Response(
-                                    {'error': f'No hay stock disponible para el modelo {modelo.nombre}'},
+                                    {'error': f'No hay stock disponible para el modelo {modelo.marca} {modelo.modelo}'},
                                     status=status.HTTP_400_BAD_REQUEST
                                 )
                             
                             # Crear nueva moto desde inventario
                             moto_obj = Moto.objects.create(
                                 marca=modelo.marca,
-                                modelo=modelo,
-                                numero_chasis=chasis or f"{modelo.nombre}_{timezone.now().strftime('%Y%m%d_%H%M%S')}",
-                                color=color or 'Sin especificar',
-                                precio_compra=inventario_item.precio_compra,
-                                precio_venta=inventario_item.precio_venta,
+                                modelo=modelo.modelo,
+                                ano=modelo.ano,
+                                chasis=chasis or f"{modelo.modelo}_{timezone.now().strftime('%Y%m%d_%H%M%S')}",
+                                color=color or inventario_item.color,
+                                precio_compra=inventario_item.precio_compra_individual or modelo.precio_compra,
+                                precio_venta=inventario_item.precio_con_descuento,
                                 cantidad_stock=1,
-                                condicion='nueva',
-                                proveedor=inventario_item.proveedor
+                                condicion=modelo.condicion,
+                                proveedor=modelo.proveedor,
+                                # Copiar especificaciones técnicas del modelo
+                                cilindraje=modelo.cilindraje,
+                                tipo_motor=modelo.tipo_motor,
+                                potencia=modelo.potencia,
+                                torque=modelo.torque,
+                                combustible=modelo.combustible,
+                                transmision=modelo.transmision,
+                                peso=modelo.peso,
+                                capacidad_tanque=modelo.capacidad_tanque,
+                                descripcion=modelo.descripcion
                             )
                             
+                            # Reducir stock del inventario
+                            inventario_item.cantidad_stock -= 1
+                            inventario_item.save()
+                            
                         except Exception as e:
+                            print(f"Error creando moto desde inventario: {str(e)}")
                             return Response(
                                 {'error': f'Error creando motocicleta desde inventario: {str(e)}'},
                                 status=status.HTTP_400_BAD_REQUEST
