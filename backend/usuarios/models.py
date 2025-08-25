@@ -82,6 +82,7 @@ class Cliente(models.Model):
     ocupacion = models.CharField(max_length=100, blank=True, null=True)
     ingresos = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     referencias_personales = models.TextField(blank=True, null=True)
+    foto_perfil = models.ImageField(upload_to='clientes/fotos/', blank=True, null=True, verbose_name='Foto de Perfil')
     fecha_registro = models.DateTimeField(auto_now_add=True)
     
     class Meta:

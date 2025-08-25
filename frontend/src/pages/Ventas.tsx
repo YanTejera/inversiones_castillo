@@ -19,6 +19,7 @@ import NewVentaForm, { type VentaFormData } from '../components/NewVentaForm';
 import CancelarVentaModal from '../components/CancelarVentaModal';
 import VentaDetalleModal from '../components/VentaDetalleModal';
 import ViewToggle from '../components/common/ViewToggle';
+import { colors, statusColors } from '../styles/colors';
 import { SkeletonCard, SkeletonList, SkeletonStats } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import AdvancedSearch from '../components/AdvancedSearch';
@@ -313,13 +314,13 @@ const Ventas: React.FC = () => {
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'activa':
-        return 'bg-green-100 text-green-800';
+        return statusColors.venta.activa;
       case 'finalizada':
-        return 'bg-blue-100 text-blue-800';
+        return statusColors.venta.finalizada;
       case 'cancelada':
-        return 'bg-red-100 text-red-800';
+        return statusColors.venta.cancelada;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return colors.badge.neutral;
     }
   };
 
@@ -390,8 +391,8 @@ const Ventas: React.FC = () => {
       <div className="mb-8 animate-fade-in-up">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Ventas</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-slate-900">Gestión de Ventas</h1>
+            <p className="mt-1 text-sm text-slate-500">
               Administra todas las ventas de motocicletas
             </p>
           </div>
@@ -482,20 +483,20 @@ const Ventas: React.FC = () => {
         /* Grid View */
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 staggered-fade-in">
           {ventas.map((venta) => (
-          <div key={venta.id} className="bg-white rounded-lg shadow-md p-6 card-hover animate-fade-in-up">
+          <div key={venta.id} className="bg-white rounded-lg shadow-md border-3 border-slate-300 p-6 card-hover animate-fade-in-up">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-slate-900">
                   Venta #{venta.id}
                 </h3>
-                <div className="flex items-center text-sm text-gray-500 mt-1">
+                <div className="flex items-center text-sm text-slate-500 mt-1">
                   <Calendar className="h-4 w-4 mr-1" />
                   {formatDate(venta.fecha_venta)}
                 </div>
               </div>
               <div className="flex flex-col items-end space-y-2">
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(venta.estado)}`}>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(venta.estado)}`}>
                   {getEstadoIcon(venta.estado)}
                   <span className="ml-1">{venta.estado_display}</span>
                 </span>
@@ -508,7 +509,7 @@ const Ventas: React.FC = () => {
             {/* Cliente */}
             <div className="flex items-center mb-4">
               <User className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-slate-700">
                 {venta.cliente_info ? 
                   `${venta.cliente_info.nombre} ${venta.cliente_info.apellido}` : 
                   'Cliente no disponible'
@@ -519,7 +520,7 @@ const Ventas: React.FC = () => {
             {/* Detalles financieros */}
             <div className="space-y-2 mb-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Monto Total:</span>
+                <span className="text-slate-700">Monto Total:</span>
                 <span className="font-semibold text-green-600">
                   {formatCurrency(venta.monto_total)}
                 </span>
@@ -528,19 +529,19 @@ const Ventas: React.FC = () => {
               {venta.tipo_venta === 'financiado' && (
                 <>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Inicial:</span>
+                    <span className="text-slate-700">Inicial:</span>
                     <span className="font-medium">
                       {formatCurrency(venta.monto_inicial)}
                     </span>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Cuotas:</span>
+                    <span className="text-slate-700">Cuotas:</span>
                     <span className="font-medium">{venta.cuotas}</span>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Pago Mensual:</span>
+                    <span className="text-slate-700">Pago Mensual:</span>
                     <span className="font-medium text-blue-600">
                       {formatCurrency(venta.pago_mensual)}
                     </span>
@@ -548,7 +549,7 @@ const Ventas: React.FC = () => {
                   
                   {venta.saldo_pendiente > 0 && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Saldo Pendiente:</span>
+                      <span className="text-slate-700">Saldo Pendiente:</span>
                       <span className="font-semibold text-red-600">
                         {formatCurrency(venta.saldo_pendiente)}
                       </span>
@@ -566,24 +567,24 @@ const Ventas: React.FC = () => {
                   Motocicleta Vendida
                 </h4>
                 {venta.detalles.map((detalle, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-3 mb-2">
+                  <div key={index} className="bg-slate-50 border-3 border-slate-300 rounded-lg p-3 mb-2">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-slate-900">
                           {detalle.producto_info?.marca} {detalle.producto_info?.modelo} {detalle.producto_info?.ano}
                         </div>
                         {detalle.producto_info?.color && (
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-slate-700">
                             Color: <span className="font-medium">{detalle.producto_info.color}</span>
                           </div>
                         )}
                         {detalle.producto_info?.chasis && (
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-slate-700">
                             Chasis: <span className="font-mono font-medium">{detalle.producto_info.chasis}</span>
                           </div>
                         )}
                         {detalle.producto_info?.cilindraje && (
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-slate-700">
                             {detalle.producto_info.cilindraje}cc
                           </div>
                         )}
@@ -612,8 +613,8 @@ const Ventas: React.FC = () => {
                 <div className="space-y-2">
                   {venta.documentos_generados.slice(0, 3).map((doc, index) => (
                     <div key={index} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 truncate">{doc.nombre || doc.tipo}</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-slate-700 truncate">{doc.nombre || doc.tipo}</span>
+                      <span className="text-xs text-slate-500">
                         {doc.fecha_creacion ? formatDate(doc.fecha_creacion) : 'Generado'}
                       </span>
                     </div>
@@ -640,7 +641,7 @@ const Ventas: React.FC = () => {
                     </div>
                   )}
                   {venta.descripcion_cancelacion && (
-                    <div className="text-gray-600 text-xs mt-1">
+                    <div className="text-slate-700 text-xs mt-1">
                       {venta.descripcion_cancelacion}
                     </div>
                   )}
@@ -690,50 +691,50 @@ const Ventas: React.FC = () => {
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-slate-50 border-3 border-slate-300">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Venta
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Monto Total
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Tipo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Cancelación
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Productos
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {ventas.map((venta) => (
-                  <tr key={venta.id} className="hover:bg-gray-50">
+                  <tr key={venta.id} className="hover:bg-slate-50 border-3 border-slate-300">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-slate-900">
                           Venta #{venta.id}
                         </div>
-                        <div className="text-xs text-gray-500 flex items-center">
+                        <div className="text-xs text-slate-500 flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
                           {formatDate(venta.fecha_venta)}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-slate-900">
                         {venta.cliente_info ? 
                           `${venta.cliente_info.nombre} ${venta.cliente_info.apellido}` : 
                           'Cliente no disponible'
@@ -755,13 +756,13 @@ const Ventas: React.FC = () => {
                         {venta.tipo_venta_display}
                       </span>
                       {venta.tipo_venta === 'financiado' && (
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-slate-500">
                           {venta.cuotas} cuotas
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(venta.estado)}`}>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(venta.estado)}`}>
                         {getEstadoIcon(venta.estado)}
                         <span className="ml-1">{venta.estado_display}</span>
                       </span>
@@ -773,7 +774,7 @@ const Ventas: React.FC = () => {
                             {venta.motivo_cancelacion_display}
                           </div>
                           {venta.fecha_cancelacion && (
-                            <div className="text-gray-500">
+                            <div className="text-slate-500">
                               {formatDate(venta.fecha_cancelacion)}
                             </div>
                           )}
@@ -782,7 +783,7 @@ const Ventas: React.FC = () => {
                         <span className="text-gray-400 text-xs">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {venta.detalles?.length || 0} producto(s)
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -827,8 +828,8 @@ const Ventas: React.FC = () => {
       {ventas.length === 0 && !loading && (
         <div className="text-center py-12">
           <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No hay ventas</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-slate-900">No hay ventas</h3>
+          <p className="mt-1 text-sm text-slate-500">
             {searchTerm || hasActiveFilters ? 'No se encontraron ventas con esos filtros.' : 'Comienza creando tu primera venta.'}
           </p>
           {!searchTerm && !hasActiveFilters && (
@@ -852,7 +853,7 @@ const Ventas: React.FC = () => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-gray-300 rounded-md hover:bg-slate-50 border-3 border-slate-300 disabled:opacity-50"
             >
               Anterior
             </button>
@@ -867,7 +868,7 @@ const Ventas: React.FC = () => {
                   className={`px-3 py-2 text-sm font-medium rounded-md ${
                     currentPage === page
                       ? 'bg-blue-600 text-white'
-                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                      : 'text-slate-500 bg-white border border-gray-300 hover:bg-slate-50 border-3 border-slate-300'
                   }`}
                 >
                   {page}
@@ -878,7 +879,7 @@ const Ventas: React.FC = () => {
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-gray-300 rounded-md hover:bg-slate-50 border-3 border-slate-300 disabled:opacity-50"
             >
               Siguiente
             </button>

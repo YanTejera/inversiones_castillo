@@ -17,6 +17,7 @@ import {
   Clipboard,
   Download
 } from 'lucide-react';
+import { componentStyles, colors, statusColors } from '../styles/colors';
 import type { Venta } from '../types';
 
 interface VentaDetalleModalProps {
@@ -56,13 +57,13 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'activa':
-        return 'bg-green-100 text-green-800';
+        return statusColors.venta.activa;
       case 'finalizada':
-        return 'bg-blue-100 text-blue-800';
+        return statusColors.venta.finalizada;
       case 'cancelada':
-        return 'bg-red-100 text-red-800';
+        return statusColors.venta.cancelada;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return colors.badge.neutral;
     }
   };
 
@@ -76,15 +77,15 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
   const dateTime = formatDateTime(venta.fecha_venta);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-hidden">
+    <div className={componentStyles.modalOverlay}>
+      <div className={componentStyles.modalContainer}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-gray-50">
+        <div className={componentStyles.modalHeader}>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className={`text-2xl font-bold ${colors.text.primary}`}>
               Venta #{venta.id}
             </h2>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+            <div className={`flex items-center gap-4 mt-2 text-sm ${colors.text.secondary}`}>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
                 <span>{dateTime.date}</span>
@@ -93,21 +94,21 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                 <Clock className="h-4 w-4" />
                 <span>{dateTime.time}</span>
               </div>
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(venta.estado)}`}>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getEstadoColor(venta.estado)}`}>
                 {venta.estado_display}
               </span>
             </div>
           </div>
           <button 
             onClick={onClose} 
-            className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-lg"
+            className={`${colors.text.muted} hover:${colors.text.secondary} p-2 ${colors.hover.light} rounded-lg transition-colors`}
           >
             <X className="h-6 w-6" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="border-b">
+        <div className={`${colors.border.medium} border-b-4`}>
           <nav className="flex space-x-8 px-6" aria-label="Tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon;
@@ -115,10 +116,10 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  className={`py-4 px-1 font-medium text-sm flex items-center gap-2 transition-all ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? componentStyles.tabActive
+                      : componentStyles.tabInactive
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -130,7 +131,7 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
         </div>
 
         {/* Tab Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(95vh-200px)]">
+        <div className={`${componentStyles.modalContent} max-h-[calc(95vh-200px)]`}>
           {/* General Tab */}
           {activeTab === 'general' && (
             <div className="space-y-6">
@@ -139,33 +140,33 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <DollarSign className="h-5 w-5 text-green-600" />
+                      <DollarSign className="h-5 w-5 text-emerald-600" />
                       Información de la Venta
                     </h3>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4 space-y-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Tipo de Venta:</span>
-                        <span className={`font-medium ${venta.tipo_venta === 'contado' ? 'text-green-600' : 'text-blue-600'}`}>
+                        <span className="text-slate-700">Tipo de Venta:</span>
+                        <span className={`font-medium ${venta.tipo_venta === 'contado' ? 'text-emerald-600' : 'text-blue-600'}`}>
                           {venta.tipo_venta_display}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Monto Total:</span>
-                        <span className="font-bold text-lg text-green-600">
+                        <span className="text-slate-700">Monto Total:</span>
+                        <span className="font-bold text-lg text-emerald-600">
                           {formatCurrency(venta.monto_total)}
                         </span>
                       </div>
                       {venta.tipo_venta === 'financiado' && (
                         <>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Monto Inicial:</span>
+                            <span className="text-slate-700">Monto Inicial:</span>
                             <span className="font-medium">
                               {formatCurrency(venta.monto_inicial)}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Saldo Pendiente:</span>
-                            <span className={`font-medium ${venta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            <span className="text-slate-700">Saldo Pendiente:</span>
+                            <span className={`font-medium ${venta.saldo_pendiente > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                               {formatCurrency(venta.saldo_pendiente)}
                             </span>
                           </div>
@@ -180,32 +181,32 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                       <UserCheck className="h-5 w-5 text-blue-600" />
                       Vendedor
                     </h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4">
                       {venta.usuario_info ? (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-500" />
+                            <User className="h-4 w-4 text-slate-500" />
                             <span className="font-medium">
                               {venta.usuario_info.first_name} {venta.usuario_info.last_name}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm text-gray-600">
+                            <Mail className="h-4 w-4 text-slate-500" />
+                            <span className="text-sm text-slate-700">
                               {venta.usuario_info.email}
                             </span>
                           </div>
                           {venta.usuario_info.telefono && (
                             <div className="flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-gray-500" />
-                              <span className="text-sm text-gray-600">
+                              <Phone className="h-4 w-4 text-slate-500" />
+                              <span className="text-sm text-slate-700">
                                 {venta.usuario_info.telefono}
                               </span>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <span className="text-gray-500">Información del vendedor no disponible</span>
+                        <span className="text-slate-500">Información del vendedor no disponible</span>
                       )}
                     </div>
                   </div>
@@ -218,32 +219,32 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                     Información del Cliente
                   </h3>
                   {venta.cliente_info ? (
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4 space-y-3">
                       <div>
-                        <span className="text-gray-600">Nombre Completo:</span>
+                        <span className="text-slate-700">Nombre Completo:</span>
                         <p className="font-medium text-lg">
                           {venta.cliente_info.nombre} {venta.cliente_info.apellido}
                         </p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <span className="text-gray-600 text-sm">Cédula:</span>
+                          <span className="text-slate-700 text-sm">Cédula:</span>
                           <p className="font-medium">{venta.cliente_info.cedula}</p>
                         </div>
                         <div>
-                          <span className="text-gray-600 text-sm">Teléfono:</span>
+                          <span className="text-slate-700 text-sm">Teléfono:</span>
                           <p className="font-medium">{venta.cliente_info.telefono}</p>
                         </div>
                       </div>
                       {venta.cliente_info.email && (
                         <div>
-                          <span className="text-gray-600 text-sm">Email:</span>
+                          <span className="text-slate-700 text-sm">Email:</span>
                           <p className="font-medium">{venta.cliente_info.email}</p>
                         </div>
                       )}
                       {venta.cliente_info.direccion && (
                         <div>
-                          <span className="text-gray-600 text-sm flex items-center gap-1">
+                          <span className="text-slate-700 text-sm flex items-center gap-1">
                             <MapPin className="h-3 w-3" />
                             Dirección:
                           </span>
@@ -252,8 +253,8 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                       )}
                     </div>
                   ) : (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-gray-500">Información del cliente no disponible</p>
+                    <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4">
+                      <p className="text-slate-500">Información del cliente no disponible</p>
                     </div>
                   )}
                 </div>
@@ -268,13 +269,13 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                 {/* Resumen Financiero */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Calculator className="h-5 w-5 text-green-600" />
+                    <Calculator className="h-5 w-5 text-emerald-600" />
                     Resumen Financiero
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4 space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Monto Total:</span>
-                      <span className="font-bold text-xl text-green-600">
+                      <span className="text-slate-700">Monto Total:</span>
+                      <span className="font-bold text-xl text-emerald-600">
                         {formatCurrency(venta.monto_total)}
                       </span>
                     </div>
@@ -283,27 +284,27 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                       <>
                         <div className="border-t pt-3">
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Monto Inicial:</span>
+                            <span className="text-slate-700">Monto Inicial:</span>
                             <span className="font-medium">
                               {formatCurrency(venta.monto_inicial)}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Total con Intereses:</span>
+                            <span className="text-slate-700">Total con Intereses:</span>
                             <span className="font-medium">
                               {formatCurrency(venta.monto_total_con_intereses)}
                             </span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Número de Cuotas:</span>
+                            <span className="text-slate-700">Número de Cuotas:</span>
                             <span className="font-medium">{venta.cuotas}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Tasa de Interés:</span>
+                            <span className="text-slate-700">Tasa de Interés:</span>
                             <span className="font-medium">{venta.tasa_interes}%</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Pago Mensual:</span>
+                            <span className="text-slate-700">Pago Mensual:</span>
                             <span className="font-semibold text-blue-600">
                               {formatCurrency(venta.pago_mensual)}
                             </span>
@@ -312,8 +313,8 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                         
                         <div className="border-t pt-3">
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Saldo Pendiente:</span>
-                            <span className={`font-bold ${venta.saldo_pendiente > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            <span className="text-slate-700">Saldo Pendiente:</span>
+                            <span className={`font-bold ${venta.saldo_pendiente > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                               {formatCurrency(venta.saldo_pendiente)}
                             </span>
                           </div>
@@ -339,14 +340,14 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                       <CreditCard className="h-5 w-5 text-blue-600" />
                       Cronograma de Pagos
                     </h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4">
                       <div className="space-y-3">
                         <div className="flex justify-between items-center bg-white rounded p-3 border">
                           <div>
-                            <span className="text-sm text-gray-600">Pago Inicial</span>
+                            <span className="text-sm text-slate-700">Pago Inicial</span>
                             <p className="font-medium">{formatDateTime(venta.fecha_venta).date}</p>
                           </div>
-                          <span className="font-semibold text-green-600">
+                          <span className="font-semibold text-emerald-600">
                             {formatCurrency(venta.monto_inicial)}
                           </span>
                         </div>
@@ -359,7 +360,7 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                           return (
                             <div key={i} className="flex justify-between items-center bg-white rounded p-3 border">
                               <div>
-                                <span className="text-sm text-gray-600">Cuota #{i + 1}</span>
+                                <span className="text-sm text-slate-700">Cuota #{i + 1}</span>
                                 <p className="font-medium">
                                   {fechaCuota.toLocaleDateString('es-CO')}
                                 </p>
@@ -372,7 +373,7 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                         })}
                         
                         {venta.cuotas > 6 && (
-                          <div className="text-center text-sm text-gray-500 py-2">
+                          <div className="text-center text-sm text-slate-500 py-2">
                             ... y {venta.cuotas - 6} cuotas más
                           </div>
                         )}
@@ -396,15 +397,15 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                   <div className="space-y-3">
                     {venta.documentos_generados && venta.documentos_generados.length > 0 ? (
                       venta.documentos_generados.map((doc, index) => (
-                        <div key={index} className="bg-gray-50 border rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                        <div key={index} className="bg-slate-50 border-3 border-slate-300 border rounded-lg p-4 hover:bg-gray-100 transition-colors">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
                                 <FileText className="h-5 w-5 text-indigo-600" />
                               </div>
                               <div>
-                                <h4 className="font-medium text-gray-900">{doc.nombre}</h4>
-                                <p className="text-sm text-gray-600">
+                                <h4 className="font-medium text-slate-900">{doc.nombre}</h4>
+                                <p className="text-sm text-slate-700">
                                   {doc.fecha_creacion ? formatDateTime(doc.fecha_creacion).date : 'Disponible'}
                                 </p>
                               </div>
@@ -416,9 +417,9 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                         </div>
                       ))
                     ) : (
-                      <div className="bg-gray-50 rounded-lg p-6 text-center">
+                      <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-6 text-center">
                         <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                        <p className="text-gray-600">No hay documentos generados para esta venta</p>
+                        <p className="text-slate-700">No hay documentos generados para esta venta</p>
                       </div>
                     )}
                   </div>
@@ -429,18 +430,18 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                     <Clipboard className="h-5 w-5 text-orange-600" />
                     Documentos del Cliente
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-gray-600 text-sm mb-3">
+                  <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4">
+                    <p className="text-slate-700 text-sm mb-3">
                       Documentos asociados al perfil del cliente
                     </p>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between bg-white rounded p-3 border">
                         <span className="text-sm">Cédula de Identidad</span>
-                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">Verificado</span>
+                        <span className="text-xs text-emerald-600 bg-green-100 px-2 py-1 rounded">Verificado</span>
                       </div>
                       <div className="flex items-center justify-between bg-white rounded p-3 border">
                         <span className="text-sm">Comprobante de Ingresos</span>
-                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">Verificado</span>
+                        <span className="text-xs text-emerald-600 bg-green-100 px-2 py-1 rounded">Verificado</span>
                       </div>
                     </div>
                   </div>
@@ -454,7 +455,7 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
             <div className="space-y-6">
               {venta.detalles && venta.detalles.length > 0 ? (
                 venta.detalles.map((detalle, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-6">
+                  <div key={index} className="bg-slate-50 border-3 border-slate-300 rounded-lg p-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       {/* Imagen y detalles básicos */}
                       <div>
@@ -476,25 +477,25 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <span className="text-gray-600 text-sm">Marca:</span>
+                              <span className="text-slate-700 text-sm">Marca:</span>
                               <p className="font-medium">{detalle.producto_info?.marca}</p>
                             </div>
                             <div>
-                              <span className="text-gray-600 text-sm">Modelo:</span>
+                              <span className="text-slate-700 text-sm">Modelo:</span>
                               <p className="font-medium">{detalle.producto_info?.modelo}</p>
                             </div>
                             <div>
-                              <span className="text-gray-600 text-sm">Año:</span>
+                              <span className="text-slate-700 text-sm">Año:</span>
                               <p className="font-medium">{detalle.producto_info?.ano}</p>
                             </div>
                             <div>
-                              <span className="text-gray-600 text-sm">Color:</span>
+                              <span className="text-slate-700 text-sm">Color:</span>
                               <p className="font-medium">{detalle.producto_info?.color}</p>
                             </div>
                           </div>
 
                           <div className="bg-white rounded-lg p-3 border">
-                            <span className="text-gray-600 text-sm">Número de Chasis:</span>
+                            <span className="text-slate-700 text-sm">Número de Chasis:</span>
                             <p className="font-mono font-bold text-lg text-blue-600">
                               {detalle.producto_info?.chasis}
                             </p>
@@ -508,34 +509,34 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                         <div className="bg-white rounded-lg p-4 space-y-3">
                           {detalle.producto_info?.cilindraje && (
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Cilindraje:</span>
+                              <span className="text-slate-700">Cilindraje:</span>
                               <span className="font-medium">{detalle.producto_info.cilindraje} CC</span>
                             </div>
                           )}
                           {detalle.producto_info?.tipo_motor && (
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Tipo de Motor:</span>
+                              <span className="text-slate-700">Tipo de Motor:</span>
                               <span className="font-medium">{detalle.producto_info.tipo_motor}</span>
                             </div>
                           )}
                           <div className="flex justify-between">
-                            <span className="text-gray-600">Condición:</span>
+                            <span className="text-slate-700">Condición:</span>
                             <span className="font-medium capitalize">{detalle.producto_info?.condicion}</span>
                           </div>
                           
                           <div className="border-t pt-3">
                             <h5 className="font-medium mb-2">Detalles de la Venta</h5>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Cantidad:</span>
+                              <span className="text-slate-700">Cantidad:</span>
                               <span className="font-medium">{detalle.cantidad}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Precio Unitario:</span>
+                              <span className="text-slate-700">Precio Unitario:</span>
                               <span className="font-medium">{formatCurrency(detalle.precio_unitario)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-gray-600">Subtotal:</span>
-                              <span className="font-bold text-green-600">{formatCurrency(detalle.subtotal)}</span>
+                              <span className="text-slate-700">Subtotal:</span>
+                              <span className="font-bold text-emerald-600">{formatCurrency(detalle.subtotal)}</span>
                             </div>
                           </div>
                         </div>
@@ -544,9 +545,9 @@ const VentaDetalleModal: React.FC<VentaDetalleModalProps> = ({ venta, onClose })
                   </div>
                 ))
               ) : (
-                <div className="bg-gray-50 rounded-lg p-8 text-center">
+                <div className="bg-slate-50 border-3 border-slate-300 rounded-lg p-8 text-center">
                   <Bike className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No hay información de motocicletas para esta venta</p>
+                  <p className="text-slate-700">No hay información de motocicletas para esta venta</p>
                 </div>
               )}
             </div>

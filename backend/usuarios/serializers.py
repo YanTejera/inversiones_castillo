@@ -122,7 +122,7 @@ class ClienteSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'apellido', 'direccion', 'ciudad', 'pais', 
                  'cedula', 'telefono', 'celular', 'email', 'estado_civil', 
                  'fecha_nacimiento', 'ocupacion', 'ingresos', 'referencias_personales',
-                 'fecha_registro', 'nombre_completo', 'fiador', 'documentos',
+                 'foto_perfil', 'fecha_registro', 'nombre_completo', 'fiador', 'documentos',
                  'estado_pago', 'dias_atraso', 'saldo_total_pendiente', 'cuota_actual',
                  'proximo_pago', 'total_cuotas_vencidas', 'ventas_activas']
     
@@ -254,3 +254,24 @@ class ClienteSerializer(serializers.ModelSerializer):
             'cuotas': venta.cuotas,
             'pago_mensual': float(venta.pago_mensual) if venta.pago_mensual else None
         } for venta in ventas]
+    
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        # Generar URL absoluta para la foto de perfil
+        if instance.foto_perfil:
+            from django.conf import settings
+            
+            imagen_url = str(instance.foto_perfil)
+            print(f"📸 [Cliente] DEBUG={settings.DEBUG}, Foto original: {imagen_url}")
+            
+            if settings.DEBUG:
+                base_url = 'http://localhost:8000'
+                full_url = f"{base_url}{settings.MEDIA_URL}{imagen_url}"
+            else:
+                full_url = f"{settings.MEDIA_URL}{imagen_url}"
+            
+            representation['foto_perfil'] = full_url
+            print(f"📸 [Cliente] URL final: {full_url}")
+        
+        return representation

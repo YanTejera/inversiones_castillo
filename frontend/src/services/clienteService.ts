@@ -57,5 +57,17 @@ export const clienteService = {
     const response = await api.get(`/usuarios/clientes/?search=${encodeURIComponent(query)}`);
     const data = response.data as ClienteListResponse;
     return data.results;
+  },
+
+  async updateClienteFoto(id: number, foto: File): Promise<Cliente> {
+    const formData = new FormData();
+    formData.append('foto_perfil', foto);
+    
+    const response = await api.patch(`/usuarios/clientes/${id}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data as Cliente;
   }
 };

@@ -27,6 +27,8 @@ import {
   UserCheck
 } from 'lucide-react';
 import { getEstadoPagoInfo, calcularSistemaCredito, getNivelIcon, getNivelColor, formatCurrency, formatDate, getBeneficios, type Cliente, type CompraCliente, type PagoCliente, type Fiador } from '../utils/clienteUtils';
+import { componentStyles, colors, statusColors } from '../styles/colors';
+import { clienteService } from '../services/clienteService';
 import PagoForm from './PagoForm';
 import CancelarPagoModal from './CancelarPagoModal';
 import type { ClienteFinanciado, Venta } from '../types';
@@ -275,19 +277,23 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
     showModal('info', 'Información', message);
   };
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const newCliente = {
-          ...cliente,
-          foto_perfil: e.target?.result as string
-        };
-        onUpdate(newCliente);
+      try {
+        // Subir la foto usando el servicio real
+        const clienteActualizado = await clienteService.updateClienteFoto(cliente.id, file);
+        
+        // Actualizar el cliente en el estado del componente padre
+        onUpdate(clienteActualizado);
         setEditingPhoto(false);
-      };
-      reader.readAsDataURL(file);
+        
+        showSuccessModal('Foto de perfil actualizada exitosamente!');
+      } catch (error) {
+        console.error('Error al subir foto:', error);
+        showInfoModal('Error al actualizar la foto. Por favor, inténtalo de nuevo.');
+        setEditingPhoto(false);
+      }
     }
   };
 
@@ -557,15 +563,15 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-slate-900">
                 {cliente.nombre} {cliente.apellido}
               </h2>
-              <p className="text-gray-600">CC: {cliente.cedula}</p>
+              <p className="text-slate-700">CC: {cliente.cedula}</p>
               <div className="flex items-center mt-2 space-x-3">
                 <span className={`text-sm px-3 py-1 rounded-full font-medium ${getNivelColor(sistemaCredito.nivel)}`}>
                   {sistemaCredito.nivel.toUpperCase()} - {sistemaCredito.score} pts
                 </span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   Cliente desde {cliente.cliente_desde ? formatDate(cliente.cliente_desde) : 'N/A'}
                 </span>
               </div>
@@ -583,14 +589,14 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 <div className="py-1">
                   <button
                     onClick={handleVentaRapidaClick}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-gray-100 flex items-center gap-2"
                   >
                     <ShoppingCart className="h-4 w-4" />
                     Nueva Venta
                   </button>
                   <button
                     onClick={handlePagoCuota}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-gray-100 flex items-center gap-2"
                   >
                     <CreditCard className="h-4 w-4" />
                     Pago de Cuota
@@ -598,7 +604,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-700">
               <X className="h-6 w-6" />
             </button>
           </div>
@@ -621,7 +627,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                   activeTab === id
                     ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -649,7 +655,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   </div>
                   {cliente.cuota_actual && (
                     <div className="text-right">
-                      <p className="text-sm text-gray-600">Cuota Actual</p>
+                      <p className="text-sm text-slate-700">Cuota Actual</p>
                       <p className="text-lg font-bold">{formatCurrency(cliente.cuota_actual)}</p>
                     </div>
                   )}
@@ -658,77 +664,77 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
 
               {/* Información personal en grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-3">Información Personal</h4>
+                <div className="bg-slate-50 border-3 border-slate-300 p-4 rounded-lg">
+                  <h4 className="font-semibold text-slate-900 mb-3">Información Personal</h4>
                   <div className="space-y-2">
                     {cliente.telefono && (
                       <div className="flex items-center">
-                        <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                        <Phone className="h-4 w-4 text-slate-500 mr-2" />
                         <span className="text-sm">{cliente.telefono}</span>
                       </div>
                     )}
                     {cliente.email && (
                       <div className="flex items-center">
-                        <Mail className="h-4 w-4 text-gray-500 mr-2" />
+                        <Mail className="h-4 w-4 text-slate-500 mr-2" />
                         <span className="text-sm">{cliente.email}</span>
                       </div>
                     )}
                     {cliente.direccion && (
                       <div className="flex items-center">
-                        <MapPin className="h-4 w-4 text-gray-500 mr-2" />
+                        <MapPin className="h-4 w-4 text-slate-500 mr-2" />
                         <span className="text-sm">{cliente.direccion}</span>
                       </div>
                     )}
                     {cliente.fecha_nacimiento && (
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-500 mr-2" />
+                        <Calendar className="h-4 w-4 text-slate-500 mr-2" />
                         <span className="text-sm">{formatDate(cliente.fecha_nacimiento)}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-3">Información Financiera</h4>
+                <div className="bg-slate-50 border-3 border-slate-300 p-4 rounded-lg">
+                  <h4 className="font-semibold text-slate-900 mb-3">Información Financiera</h4>
                   <div className="space-y-2">
                     {cliente.deuda_total && (
                       <div>
-                        <p className="text-sm text-gray-600">Deuda Total</p>
+                        <p className="text-sm text-slate-700">Deuda Total</p>
                         <p className="font-semibold text-red-600">{formatCurrency(cliente.deuda_total)}</p>
                       </div>
                     )}
                     {cliente.ingresos && (
                       <div>
-                        <p className="text-sm text-gray-600">Ingresos Declarados</p>
+                        <p className="text-sm text-slate-700">Ingresos Declarados</p>
                         <p className="font-semibold text-green-600">{formatCurrency(cliente.ingresos)}</p>
                       </div>
                     )}
                     {cliente.proximo_pago && (
                       <div>
-                        <p className="text-sm text-gray-600">Próximo Pago</p>
+                        <p className="text-sm text-slate-700">Próximo Pago</p>
                         <p className="font-semibold">{formatDate(cliente.proximo_pago)}</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-3">Información Adicional</h4>
+                <div className="bg-slate-50 border-3 border-slate-300 p-4 rounded-lg">
+                  <h4 className="font-semibold text-slate-900 mb-3">Información Adicional</h4>
                   <div className="space-y-2">
                     {cliente.ocupacion && (
                       <div>
-                        <p className="text-sm text-gray-600">Ocupación</p>
+                        <p className="text-sm text-slate-700">Ocupación</p>
                         <p className="font-semibold">{cliente.ocupacion}</p>
                       </div>
                     )}
                     {cliente.estado_civil && (
                       <div>
-                        <p className="text-sm text-gray-600">Estado Civil</p>
+                        <p className="text-sm text-slate-700">Estado Civil</p>
                         <p className="font-semibold">{cliente.estado_civil}</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-sm text-gray-600">Fecha de Registro</p>
+                      <p className="text-sm text-slate-700">Fecha de Registro</p>
                       <p className="font-semibold">{formatDate(cliente.fecha_registro)}</p>
                     </div>
                   </div>
@@ -740,7 +746,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
           {activeTab === 'pagos' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Historial de Pagos</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Historial de Pagos</h3>
                 <button 
                   onClick={handlePagoCuota}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -752,24 +758,24 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
 
               <div className="bg-white border rounded-lg overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-slate-50 border-3 border-slate-300">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Fecha
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Cuota #
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Monto
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Método
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         Estado
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">
                         Acciones
                       </th>
                     </tr>
@@ -777,29 +783,29 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   <tbody className="bg-white divide-y divide-gray-200">
                     {loadingPagos ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                        <td colSpan={6} className="px-6 py-4 text-center text-slate-500">
                           Cargando pagos...
                         </td>
                       </tr>
                     ) : pagosReales.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                        <td colSpan={6} className="px-6 py-4 text-center text-slate-500">
                           No hay pagos registrados
                         </td>
                       </tr>
                     ) : (
                       pagosReales.map((pago) => (
                       <tr key={pago.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                           {formatDate(pago.fecha_pago)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                           {pago.numero_cuota || 'N/A'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">
                           {formatCurrency(pago.monto_pagado)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                           {pago.tipo_pago_display || pago.tipo_pago}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -844,12 +850,12 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
           {activeTab === 'compras' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Historial de Compras y Contratos</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Historial de Compras y Contratos</h3>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-8">
                 {loadingTodasVentas ? (
-                  <div className="bg-white border rounded-lg p-6">
+                  <div className="bg-white border-3 border-slate-300 rounded-lg p-6">
                     <div className="animate-pulse">
                       <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
                       <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
@@ -858,17 +864,17 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   </div>
                 ) : comprasCliente.length > 0 ? (
                   comprasCliente.map((compra) => (
-                  <div key={compra.id} className="bg-white border rounded-lg p-6">
+                  <div key={compra.id} className="bg-white border-4 border-slate-400 rounded-lg p-6 mb-8 shadow-xl">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h4 className="font-semibold text-gray-900">
+                        <h4 className="font-semibold text-slate-900">
                           Venta #{compra.venta_id}
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-slate-700">
                           {formatDate(compra.fecha_compra)}
                         </p>
                         {compra.vendedor && (
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <p className="text-xs text-slate-500 flex items-center gap-1">
                             <UserCheck className="h-3 w-3" />
                             Vendedor: {compra.vendedor}
                           </p>
@@ -883,7 +889,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                           {compra.estado.toUpperCase()}
                         </span>
                         <button 
-                          className="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg hover:bg-gray-200 flex items-center gap-1 text-sm"
+                          className="bg-gray-100 text-slate-700 px-3 py-1 rounded-lg hover:bg-gray-200 flex items-center gap-1 text-sm"
                           title="Ver contrato"
                         >
                           <FileText className="h-3 w-3" />
@@ -892,18 +898,18 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                       <div>
-                        <p className="text-sm text-gray-600">Monto Total</p>
+                        <p className="text-sm text-slate-700">Monto Total</p>
                         <p className="font-semibold">{formatCurrency(compra.monto_total)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Tipo de Venta</p>
+                        <p className="text-sm text-slate-700">Tipo de Venta</p>
                         <p className="font-semibold capitalize">{compra.tipo_venta}</p>
                       </div>
                       {compra.cuotas_totales && (
                         <div>
-                          <p className="text-sm text-gray-600">Cuotas</p>
+                          <p className="text-sm text-slate-700">Cuotas</p>
                           <p className="font-semibold">
                             {compra.cuotas_pagadas}/{compra.cuotas_totales}
                           </p>
@@ -911,7 +917,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                       )}
                       {compra.saldo_pendiente && (
                         <div>
-                          <p className="text-sm text-gray-600">Saldo Pendiente</p>
+                          <p className="text-sm text-slate-700">Saldo Pendiente</p>
                           <p className="font-semibold text-red-600">
                             {formatCurrency(compra.saldo_pendiente)}
                           </p>
@@ -919,9 +925,9 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                       )}
                     </div>
 
-                    <div className="border-t pt-4">
+                    <div className="border-t-4 border-slate-300 pt-6 mt-4">
                       <div className="flex justify-between items-center mb-2">
-                        <h5 className="font-medium text-gray-900">Productos</h5>
+                        <h5 className="font-medium text-slate-900">Productos</h5>
                         {compra.estado === 'activa' && (
                           <button className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
                             Ver Recibos Históricos
@@ -930,13 +936,13 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                       </div>
                       <div className="space-y-2">
                         {compra.productos.map((producto) => (
-                          <div key={producto.id} className="bg-gray-50 rounded p-3">
+                          <div key={producto.id} className="bg-slate-50 border-3 border-slate-300 rounded-lg p-4 mb-3">
                             <div className="flex justify-between items-start mb-2">
                               <div className="flex-1">
-                                <span className="text-sm font-medium text-gray-900">
+                                <span className="text-sm font-medium text-slate-900">
                                   {producto.nombre}
                                 </span>
-                                <div className="text-xs text-gray-600 mt-1 space-y-1">
+                                <div className="text-xs text-slate-700 mt-1 space-y-1">
                                   <div>Cantidad: {producto.cantidad}</div>
                                   {producto.chasis && (
                                     <div className="font-mono">Chasis: {producto.chasis}</div>
@@ -950,7 +956,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                                 <span className="text-sm font-medium text-green-600">
                                   {formatCurrency(producto.subtotal)}
                                 </span>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-slate-500">
                                   {formatCurrency(producto.precio_unitario)} c/u
                                 </div>
                               </div>
@@ -961,8 +967,8 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
 
                     {/* Sección de documentos del contrato */}
-                    <div className="border-t mt-4 pt-4">
-                      <h6 className="font-medium text-gray-900 mb-3">Documentos del Contrato</h6>
+                    <div className="border-t-4 border-slate-300 mt-6 pt-6">
+                      <h6 className="font-medium text-slate-900 mb-3">Documentos del Contrato</h6>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {[
                           { nombre: 'Contrato Original', tipo: 'PDF', icono: FileText },
@@ -974,12 +980,12 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                           return (
                             <button 
                               key={index}
-                              className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                              className="flex items-center gap-2 p-2 bg-slate-50 border-3 border-slate-300 rounded hover:bg-gray-100 transition-colors"
                             >
                               <IconComponent className="h-4 w-4 text-blue-600" />
                               <div className="text-left">
-                                <p className="text-xs font-medium text-gray-900">{doc.nombre}</p>
-                                <p className="text-xs text-gray-500">{doc.tipo}</p>
+                                <p className="text-xs font-medium text-slate-900">{doc.nombre}</p>
+                                <p className="text-xs text-slate-500">{doc.tipo}</p>
                               </div>
                             </button>
                           );
@@ -989,12 +995,12 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   </div>
                 ))
                 ) : (
-                  <div className="bg-white border rounded-lg p-8 text-center">
+                  <div className="bg-white border-4 border-slate-300 rounded-lg p-8 text-center shadow-lg">
                     <ShoppingCart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-slate-900 mb-2">
                       Sin Compras Registradas
                     </h3>
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-slate-700 mb-4">
                       Este cliente no tiene ventas registradas en el sistema.
                     </p>
                     <button 
@@ -1013,7 +1019,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
           {activeTab === 'documentos' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Documentos del Cliente</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Documentos del Cliente</h3>
                 <button 
                   onClick={handleSubirDocumento}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -1035,8 +1041,8 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                           className="h-12 w-12 rounded-lg object-cover mr-3"
                         />
                         <div>
-                          <h4 className="font-medium text-gray-900">Foto de Perfil</h4>
-                          <p className="text-sm text-gray-600">{formatDate(cliente.fecha_registro)}</p>
+                          <h4 className="font-medium text-slate-900">Foto de Perfil</h4>
+                          <p className="text-sm text-slate-700">{formatDate(cliente.fecha_registro)}</p>
                           <span className="text-xs text-blue-600 font-medium">IMAGEN</span>
                         </div>
                       </div>
@@ -1063,9 +1069,9 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                       <div className="flex items-center">
                         <FileText className="h-8 w-8 text-blue-600 mr-3" />
                         <div>
-                          <h4 className="font-medium text-gray-900">{doc.nombre}</h4>
-                          <p className="text-sm text-gray-600">{formatDate(doc.fecha)}</p>
-                          <span className="text-xs text-gray-500">{doc.tipo}</span>
+                          <h4 className="font-medium text-slate-900">{doc.nombre}</h4>
+                          <p className="text-sm text-slate-700">{formatDate(doc.fecha)}</p>
+                          <span className="text-xs text-slate-500">{doc.tipo}</span>
                         </div>
                       </div>
                       <div className="flex space-x-1">
@@ -1088,7 +1094,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
               {cliente.fiador ? (
                 <div className="bg-white">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900">Información del Fiador</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">Información del Fiador</h3>
                     <button 
                       onClick={handleEditarFiador}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -1100,32 +1106,32 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Información Personal */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-3">Datos Personales</h4>
+                    <div className="bg-slate-50 border-3 border-slate-300 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-900 mb-3">Datos Personales</h4>
                       <div className="space-y-2">
                         <div>
-                          <p className="text-sm text-gray-600">Nombre Completo</p>
+                          <p className="text-sm text-slate-700">Nombre Completo</p>
                           <p className="font-semibold">{cliente.fiador.nombre_completo}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-600">Cédula</p>
+                          <p className="text-sm text-slate-700">Cédula</p>
                           <p className="font-semibold">{cliente.fiador.cedula}</p>
                         </div>
                         {cliente.fiador.fecha_nacimiento && (
                           <div>
-                            <p className="text-sm text-gray-600">Fecha de Nacimiento</p>
+                            <p className="text-sm text-slate-700">Fecha de Nacimiento</p>
                             <p className="font-semibold">{formatDate(cliente.fiador.fecha_nacimiento)}</p>
                           </div>
                         )}
                         {cliente.fiador.estado_civil && (
                           <div>
-                            <p className="text-sm text-gray-600">Estado Civil</p>
+                            <p className="text-sm text-slate-700">Estado Civil</p>
                             <p className="font-semibold">{cliente.fiador.estado_civil}</p>
                           </div>
                         )}
                         {cliente.fiador.parentesco_cliente && (
                           <div>
-                            <p className="text-sm text-gray-600">Parentesco</p>
+                            <p className="text-sm text-slate-700">Parentesco</p>
                             <p className="font-semibold text-blue-600">{cliente.fiador.parentesco_cliente}</p>
                           </div>
                         )}
@@ -1133,36 +1139,36 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
 
                     {/* Información de Contacto */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-3">Contacto</h4>
+                    <div className="bg-slate-50 border-3 border-slate-300 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-900 mb-3">Contacto</h4>
                       <div className="space-y-2">
                         <div>
-                          <p className="text-sm text-gray-600">Dirección</p>
+                          <p className="text-sm text-slate-700">Dirección</p>
                           <p className="font-semibold">{cliente.fiador.direccion}</p>
                         </div>
                         {cliente.fiador.telefono && (
                           <div className="flex items-center">
-                            <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                            <Phone className="h-4 w-4 text-slate-500 mr-2" />
                             <div>
-                              <p className="text-sm text-gray-600">Teléfono</p>
+                              <p className="text-sm text-slate-700">Teléfono</p>
                               <p className="font-semibold">{cliente.fiador.telefono}</p>
                             </div>
                           </div>
                         )}
                         {cliente.fiador.celular && (
                           <div className="flex items-center">
-                            <Phone className="h-4 w-4 text-gray-500 mr-2" />
+                            <Phone className="h-4 w-4 text-slate-500 mr-2" />
                             <div>
-                              <p className="text-sm text-gray-600">Celular</p>
+                              <p className="text-sm text-slate-700">Celular</p>
                               <p className="font-semibold">{cliente.fiador.celular}</p>
                             </div>
                           </div>
                         )}
                         {cliente.fiador.email && (
                           <div className="flex items-center">
-                            <Mail className="h-4 w-4 text-gray-500 mr-2" />
+                            <Mail className="h-4 w-4 text-slate-500 mr-2" />
                             <div>
-                              <p className="text-sm text-gray-600">Email</p>
+                              <p className="text-sm text-slate-700">Email</p>
                               <p className="font-semibold">{cliente.fiador.email}</p>
                             </div>
                           </div>
@@ -1171,30 +1177,30 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
 
                     {/* Información Laboral */}
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-3">Información Laboral</h4>
+                    <div className="bg-slate-50 border-3 border-slate-300 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-900 mb-3">Información Laboral</h4>
                       <div className="space-y-2">
                         {cliente.fiador.ocupacion && (
                           <div>
-                            <p className="text-sm text-gray-600">Ocupación</p>
+                            <p className="text-sm text-slate-700">Ocupación</p>
                             <p className="font-semibold">{cliente.fiador.ocupacion}</p>
                           </div>
                         )}
                         {cliente.fiador.lugar_trabajo && (
                           <div>
-                            <p className="text-sm text-gray-600">Lugar de Trabajo</p>
+                            <p className="text-sm text-slate-700">Lugar de Trabajo</p>
                             <p className="font-semibold">{cliente.fiador.lugar_trabajo}</p>
                           </div>
                         )}
                         {cliente.fiador.telefono_trabajo && (
                           <div>
-                            <p className="text-sm text-gray-600">Teléfono de Trabajo</p>
+                            <p className="text-sm text-slate-700">Teléfono de Trabajo</p>
                             <p className="font-semibold">{cliente.fiador.telefono_trabajo}</p>
                           </div>
                         )}
                         {cliente.fiador.ingresos && (
                           <div>
-                            <p className="text-sm text-gray-600">Ingresos</p>
+                            <p className="text-sm text-slate-700">Ingresos</p>
                             <p className="font-semibold text-green-600">{formatCurrency(cliente.fiador.ingresos)}</p>
                           </div>
                         )}
@@ -1204,17 +1210,17 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
 
                   {/* Referencias */}
                   {cliente.fiador.referencias_personales && (
-                    <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-3">Referencias Personales</h4>
-                      <p className="text-gray-700">{cliente.fiador.referencias_personales}</p>
+                    <div className="mt-6 bg-slate-50 border-3 border-slate-300 p-4 rounded-lg">
+                      <h4 className="font-semibold text-slate-900 mb-3">Referencias Personales</h4>
+                      <p className="text-slate-700">{cliente.fiador.referencias_personales}</p>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="text-center py-12">
                   <UserCheck className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Sin Fiador Registrado</h3>
-                  <p className="text-gray-500 mb-6">Este cliente no tiene un fiador asignado.</p>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">Sin Fiador Registrado</h3>
+                  <p className="text-slate-500 mb-6">Este cliente no tiene un fiador asignado.</p>
                   <button 
                     onClick={handleEditarFiador}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
@@ -1244,7 +1250,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white border rounded-lg p-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">Historial de Pagos</h4>
+                  <h4 className="font-semibold text-slate-900 mb-4">Historial de Pagos</h4>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span>Total de Pagos:</span>
@@ -1272,7 +1278,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 </div>
 
                 <div className="bg-white border rounded-lg p-6">
-                  <h4 className="font-semibold text-gray-900 mb-4">Beneficios Actuales</h4>
+                  <h4 className="font-semibold text-slate-900 mb-4">Beneficios Actuales</h4>
                   <div className="space-y-2">
                     {sistemaCredito.beneficios.map((beneficio, index) => (
                       <div key={index} className="flex items-center">
@@ -1310,7 +1316,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 <div className="flex space-x-2">
                   <button
                     onClick={() => setEditingPhoto(false)}
-                    className="flex-1 bg-gray-300 text-gray-700 p-2 rounded-lg hover:bg-gray-400"
+                    className="flex-1 bg-gray-300 text-slate-700 p-2 rounded-lg hover:bg-gray-400"
                   >
                     Cancelar
                   </button>
@@ -1330,13 +1336,13 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     <Upload className="h-6 w-6 text-blue-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{modalState.title}</h3>
                   </div>
-                  <p className="text-gray-600 mb-6">{modalState.message}</p>
+                  <p className="text-slate-700 mb-6">{modalState.message}</p>
                   <div className="flex space-x-3">
                     <button
                       onClick={closeModal}
-                      className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                      className="flex-1 bg-gray-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-gray-400"
                     >
                       Cancelar
                     </button>
@@ -1355,9 +1361,9 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     <UserCheck className="h-6 w-6 text-blue-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{modalState.title}</h3>
                   </div>
-                  <p className="text-gray-600 mb-6">{modalState.message}</p>
+                  <p className="text-slate-700 mb-6">{modalState.message}</p>
                   <div className="space-y-3">
                     <button
                       onClick={() => {
@@ -1379,7 +1385,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </button>
                     <button
                       onClick={closeModal}
-                      className="w-full bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                      className="w-full bg-gray-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-gray-400"
                     >
                       Cancelar
                     </button>
@@ -1392,13 +1398,13 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 <div className="p-6 max-h-[80vh] overflow-y-auto">
                   <div className="flex items-center mb-4">
                     <UserCheck className="h-6 w-6 text-blue-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{modalState.title}</h3>
                   </div>
-                  <p className="text-gray-600 mb-4">{modalState.message}</p>
+                  <p className="text-slate-700 mb-4">{modalState.message}</p>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Nombre Completo *
                       </label>
                       <input
@@ -1411,7 +1417,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Cédula *
                       </label>
                       <input
@@ -1424,7 +1430,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Dirección *
                       </label>
                       <input
@@ -1437,7 +1443,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Teléfono
                       </label>
                       <input
@@ -1450,7 +1456,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Parentesco con el Cliente
                       </label>
                       <select
@@ -1470,7 +1476,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
                         Ocupación
                       </label>
                       <input
@@ -1486,7 +1492,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   <div className="flex space-x-3 mt-6">
                     <button
                       onClick={closeModal}
-                      className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                      className="flex-1 bg-gray-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-gray-400"
                     >
                       Cancelar
                     </button>
@@ -1509,9 +1515,9 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     <CheckCircle className="h-6 w-6 text-green-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{modalState.title}</h3>
                   </div>
-                  <p className="text-gray-600 mb-6 whitespace-pre-line">{modalState.message}</p>
+                  <p className="text-slate-700 mb-6 whitespace-pre-line">{modalState.message}</p>
                   <button
                     onClick={closeModal}
                     className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700"
@@ -1526,9 +1532,9 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     <AlertTriangle className="h-6 w-6 text-blue-600 mr-3" />
-                    <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">{modalState.title}</h3>
                   </div>
-                  <p className="text-gray-600 mb-6 whitespace-pre-line">{modalState.message}</p>
+                  <p className="text-slate-700 mb-6 whitespace-pre-line">{modalState.message}</p>
                   <button
                     onClick={closeModal}
                     className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
@@ -1553,15 +1559,15 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   <div className="bg-white rounded-lg max-w-md w-full mx-4 p-6">
                     <div className="flex items-center mb-4">
                       <AlertTriangle className="h-6 w-6 text-yellow-600 mr-3" />
-                      <h3 className="text-lg font-semibold text-gray-900">Sin Ventas Activas</h3>
+                      <h3 className="text-lg font-semibold text-slate-900">Sin Ventas Activas</h3>
                     </div>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-slate-700 mb-6">
                       {cliente.nombre_completo} no tiene ventas activas con saldo pendiente en este momento.
                     </p>
                     <div className="flex space-x-3">
                       <button
                         onClick={() => setShowPagoForm(false)}
-                        className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                        className="flex-1 bg-gray-300 text-slate-700 py-2 px-4 rounded-lg hover:bg-gray-400"
                       >
                         Cerrar
                       </button>
