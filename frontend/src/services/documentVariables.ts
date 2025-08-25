@@ -72,6 +72,55 @@ export interface DocumentVariables {
   ano_actual: string;
   mes_actual: string;
   dia_actual: string;
+  
+  // Variables adicionales para documentos especiales
+  testigo_1_nombre: string;
+  testigo_1_cedula: string;
+  testigo_2_nombre: string;
+  testigo_2_cedula: string;
+  persona_autorizada: string;
+  cedula_persona_autorizada: string;
+  fecha_vencimiento_autorizacion: string;
+  concepto_deuda: string;
+  monto_pagado: string;
+  saldo_pendiente: string;
+  cuotas_vencidas: string;
+  mora_acumulada: string;
+  total_adeudado: string;
+  entidad_destinataria: string;
+  direccion_entidad: string;
+  representante_nombre: string;
+  representante_cedula: string;
+  motivo_solicitud: string;
+  lista_documentos: string;
+  proposito_certificacion: string;
+  autoridad_judicial: string;
+  direccion_autoridad: string;
+  numero_expediente: string;
+  fundamentos_solicitud: string;
+  representante_legal: string;
+  solicitante_nombre: string;
+  solicitante_cedula: string;
+  solicitante_direccion: string;
+  objeto_solicitud: string;
+  detalles_solicitud: string;
+  justificacion_solicitud: string;
+  documentos_adjuntos: string;
+  telefono_contacto: string;
+  vehiculo_actual_marca: string;
+  vehiculo_actual_modelo: string;
+  vehiculo_actual_ano: string;
+  vehiculo_actual_chasis: string;
+  vehiculo_actual_placa: string;
+  vehiculo_actual_color: string;
+  vehiculo_nuevo_marca: string;
+  vehiculo_nuevo_modelo: string;
+  vehiculo_nuevo_ano: string;
+  vehiculo_nuevo_chasis: string;
+  vehiculo_nuevo_color: string;
+  motivo_cambio: string;
+  numero_contrato: string;
+  representante_empresa: string;
 }
 
 // Función para convertir números a letras (básica)
@@ -247,6 +296,55 @@ export function generateDocumentVariables(ventaData: VentaFormData): DocumentVar
     ano_actual: ahora.getFullYear().toString(),
     mes_actual: (ahora.getMonth() + 1).toString().padStart(2, '0'),
     dia_actual: ahora.getDate().toString().padStart(2, '0'),
+    
+    // Variables adicionales para documentos especiales (valores por defecto)
+    testigo_1_nombre: 'Francis Vladimir Castillo Calderón',
+    testigo_1_cedula: '001-0782607-5',
+    testigo_2_nombre: 'Andreina Gómez Santos',
+    testigo_2_cedula: '223-0164781-8',
+    persona_autorizada: '[Nombre de la persona autorizada]',
+    cedula_persona_autorizada: '[Cédula de la persona autorizada]',
+    fecha_vencimiento_autorizacion: '[Fecha de vencimiento]',
+    concepto_deuda: 'Venta a crédito de motocicleta',
+    monto_pagado: '[Monto pagado]',
+    saldo_pendiente: '[Saldo pendiente]',
+    cuotas_vencidas: '[Cuotas vencidas]',
+    mora_acumulada: '[Mora acumulada]',
+    total_adeudado: '[Total adeudado]',
+    entidad_destinataria: '[Entidad destinataria]',
+    direccion_entidad: '[Dirección de la entidad]',
+    representante_nombre: 'Bienvenido Alexis Castillo Calderón',
+    representante_cedula: '[Cédula del representante]',
+    motivo_solicitud: '[Motivo de la solicitud]',
+    lista_documentos: '[Lista de documentos a certificar]',
+    proposito_certificacion: '[Propósito de la certificación]',
+    autoridad_judicial: '[Autoridad judicial]',
+    direccion_autoridad: '[Dirección de la autoridad]',
+    numero_expediente: '[Número de expediente]',
+    fundamentos_solicitud: '[Fundamentos de la solicitud]',
+    representante_legal: 'Bienvenido Alexis Castillo Calderón',
+    solicitante_nombre: '[Nombre del solicitante]',
+    solicitante_cedula: '[Cédula del solicitante]',
+    solicitante_direccion: '[Dirección del solicitante]',
+    objeto_solicitud: '[Objeto de la solicitud]',
+    detalles_solicitud: '[Detalles de la solicitud]',
+    justificacion_solicitud: '[Justificación de la solicitud]',
+    documentos_adjuntos: '[Documentos adjuntos]',
+    telefono_contacto: ventaData.customer?.celular || ventaData.customer?.telefono || '[Teléfono de contacto]',
+    vehiculo_actual_marca: '[Marca del vehículo actual]',
+    vehiculo_actual_modelo: '[Modelo del vehículo actual]',
+    vehiculo_actual_ano: '[Año del vehículo actual]',
+    vehiculo_actual_chasis: '[Chasis del vehículo actual]',
+    vehiculo_actual_placa: '[Placa del vehículo actual]',
+    vehiculo_actual_color: '[Color del vehículo actual]',
+    vehiculo_nuevo_marca: '[Marca del vehículo nuevo]',
+    vehiculo_nuevo_modelo: '[Modelo del vehículo nuevo]',
+    vehiculo_nuevo_ano: '[Año del vehículo nuevo]',
+    vehiculo_nuevo_chasis: '[Chasis del vehículo nuevo]',
+    vehiculo_nuevo_color: '[Color del vehículo nuevo]',
+    motivo_cambio: '[Motivo del cambio]',
+    numero_contrato: `CT-${Date.now()}`,
+    representante_empresa: 'Bienvenido Alexis Castillo Calderón',
   };
 }
 
@@ -297,6 +395,20 @@ export function getAvailableVariables(): string[] {
     'fecha_venta', 'fecha_venta_completa', 'numero_venta', 'vendedor_nombre',
     
     // Fechas
-    'fecha_actual', 'fecha_actual_completa', 'ano_actual', 'mes_actual', 'dia_actual'
+    'fecha_actual', 'fecha_actual_completa', 'ano_actual', 'mes_actual', 'dia_actual',
+    
+    // Variables adicionales para documentos especiales
+    'testigo_1_nombre', 'testigo_1_cedula', 'testigo_2_nombre', 'testigo_2_cedula',
+    'persona_autorizada', 'cedula_persona_autorizada', 'fecha_vencimiento_autorizacion',
+    'concepto_deuda', 'monto_pagado', 'saldo_pendiente', 'cuotas_vencidas', 'mora_acumulada', 'total_adeudado',
+    'entidad_destinataria', 'direccion_entidad', 'representante_nombre', 'representante_cedula',
+    'motivo_solicitud', 'lista_documentos', 'proposito_certificacion',
+    'autoridad_judicial', 'direccion_autoridad', 'numero_expediente', 'fundamentos_solicitud',
+    'representante_legal', 'solicitante_nombre', 'solicitante_cedula', 'solicitante_direccion',
+    'objeto_solicitud', 'detalles_solicitud', 'justificacion_solicitud', 'documentos_adjuntos',
+    'telefono_contacto', 'vehiculo_actual_marca', 'vehiculo_actual_modelo', 'vehiculo_actual_ano',
+    'vehiculo_actual_chasis', 'vehiculo_actual_placa', 'vehiculo_actual_color',
+    'vehiculo_nuevo_marca', 'vehiculo_nuevo_modelo', 'vehiculo_nuevo_ano', 'vehiculo_nuevo_chasis',
+    'vehiculo_nuevo_color', 'motivo_cambio', 'numero_contrato', 'representante_empresa'
   ];
 }
