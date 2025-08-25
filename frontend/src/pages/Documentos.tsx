@@ -23,7 +23,6 @@ import { getAvailableVariables } from '../services/documentVariables';
 import ViewToggle from '../components/common/ViewToggle';
 import { useToast } from '../components/Toast';
 import { FileImportService } from '../services/fileImportService';
-import { marked } from 'marked';
 import RichTextEditor from '../components/RichTextEditor';
 
 interface DocumentTemplate {
