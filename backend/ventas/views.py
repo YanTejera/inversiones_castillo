@@ -6,8 +6,11 @@ from django.http import HttpResponse
 from django.template.loader import get_template
 from django.utils import timezone
 from datetime import datetime
+from django.db import transaction
 from .models import Venta, VentaDetalle
 from .serializers import VentaSerializer, VentaCreateSerializer, VentaDetalleSerializer
+from usuarios.models import Cliente
+from motos.models import Moto, MotoModelo, MotoInventario
 
 class VentaListCreateView(generics.ListCreateAPIView):
     queryset = Venta.objects.all()
@@ -317,3 +320,234 @@ class CancelarVentaView(APIView):
             return Response({'error': 'Venta no encontrada'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CreateVentaFromFormView(APIView):
+    """
+    Vista para crear ventas usando el formulario mejorado del frontend
+    Maneja tanto motos individuales como modelos con inventario
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            print(f"Datos recibidos en CreateVentaFromFormView: {request.data}")
+            
+            with transaction.atomic():
+                # Extraer datos principales
+                data = request.data
+                cliente_id = data.get('cliente_id')
+                tipo_venta = data.get('tipo_venta')
+                motorcycle_data = data.get('motorcycle', {})
+                payment_data = data.get('payment', {})
+                documentos = data.get('documentos', [])
+                observaciones = data.get('observaciones', '')
+                
+                # Validar datos requeridos
+                if not cliente_id or not tipo_venta or not motorcycle_data or not payment_data:
+                    return Response(
+                        {'error': 'Datos incompletos. Se requiere cliente_id, tipo_venta, motorcycle y payment'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Verificar que el cliente existe
+                try:
+                    cliente = Cliente.objects.get(id=cliente_id)
+                except Cliente.DoesNotExist:
+                    return Response(
+                        {'error': 'Cliente no encontrado'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+                
+                # Procesar datos de motocicleta
+                motorcycle_tipo = motorcycle_data.get('tipo')
+                moto_obj = None
+                
+                if motorcycle_tipo == 'individual':
+                    # Moto individual existente
+                    moto_id = motorcycle_data.get('moto_id')
+                    if not moto_id:
+                        return Response(
+                            {'error': 'moto_id requerido para tipo individual'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    
+                    try:
+                        moto_obj = Moto.objects.get(id=moto_id)
+                    except Moto.DoesNotExist:
+                        return Response(
+                            {'error': 'Motocicleta no encontrada'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+                    
+                elif motorcycle_tipo == 'modelo':
+                    # Crear desde modelo - buscar en inventario disponible
+                    modelo_id = motorcycle_data.get('modelo_id')
+                    color = motorcycle_data.get('color')
+                    chasis = motorcycle_data.get('chasis')
+                    
+                    if not modelo_id:
+                        return Response(
+                            {'error': 'modelo_id requerido para tipo modelo'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    
+                    try:
+                        modelo = MotoModelo.objects.get(id=modelo_id)
+                    except MotoModelo.DoesNotExist:
+                        return Response(
+                            {'error': 'Modelo de motocicleta no encontrado'},
+                            status=status.HTTP_404_NOT_FOUND
+                        )
+                    
+                    # Buscar una moto disponible del modelo y color especificado
+                    moto_query = Moto.objects.filter(
+                        modelo=modelo,
+                        cantidad_stock__gt=0
+                    )
+                    
+                    if color:
+                        moto_query = moto_query.filter(color__icontains=color)
+                    
+                    if chasis:
+                        moto_query = moto_query.filter(numero_chasis=chasis)
+                    
+                    moto_obj = moto_query.first()
+                    
+                    if not moto_obj:
+                        # Si no hay moto disponible, crear una nueva del inventario
+                        try:
+                            inventario_item = MotoInventario.objects.filter(
+                                modelo=modelo,
+                                cantidad_stock__gt=0
+                            ).first()
+                            
+                            if not inventario_item:
+                                return Response(
+                                    {'error': f'No hay stock disponible para el modelo {modelo.nombre}'},
+                                    status=status.HTTP_400_BAD_REQUEST
+                                )
+                            
+                            # Crear nueva moto desde inventario
+                            moto_obj = Moto.objects.create(
+                                marca=modelo.marca,
+                                modelo=modelo,
+                                numero_chasis=chasis or f"{modelo.nombre}_{timezone.now().strftime('%Y%m%d_%H%M%S')}",
+                                color=color or 'Sin especificar',
+                                precio_compra=inventario_item.precio_compra,
+                                precio_venta=inventario_item.precio_venta,
+                                cantidad_stock=1,
+                                condicion='nueva',
+                                proveedor=inventario_item.proveedor
+                            )
+                            
+                        except Exception as e:
+                            return Response(
+                                {'error': f'Error creando motocicleta desde inventario: {str(e)}'},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+                else:
+                    return Response(
+                        {'error': 'Tipo de motocicleta debe ser "individual" o "modelo"'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Validar stock disponible
+                cantidad_requerida = motorcycle_data.get('cantidad', 1)
+                if moto_obj.cantidad_stock < cantidad_requerida:
+                    return Response(
+                        {'error': f'Stock insuficiente. Disponible: {moto_obj.cantidad_stock}, solicitado: {cantidad_requerida}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Crear la venta
+                venta_data = {
+                    'cliente': cliente,
+                    'usuario': request.user,
+                    'tipo_venta': tipo_venta,
+                    'monto_total': payment_data.get('monto_total', 0),
+                    'monto_inicial': payment_data.get('monto_inicial', 0),
+                }
+                
+                # Agregar campos de financiamiento si aplica
+                if tipo_venta == 'financiado':
+                    venta_data.update({
+                        'cuotas': payment_data.get('cuotas', 1),
+                        'tasa_interes': payment_data.get('tasa_interes', 0),
+                        'pago_mensual': payment_data.get('pago_mensual', 0),
+                        'monto_total_con_intereses': payment_data.get('monto_total_con_intereses', 0),
+                    })
+                else:
+                    venta_data.update({
+                        'cuotas': 1,
+                        'tasa_interes': 0,
+                        'pago_mensual': 0,
+                        'monto_total_con_intereses': payment_data.get('monto_total', 0),
+                    })
+                
+                # Crear la venta
+                venta = Venta.objects.create(**venta_data)
+                
+                # Crear el detalle de venta
+                precio_unitario = motorcycle_data.get('precio_unitario', moto_obj.precio_venta)
+                detalle = VentaDetalle.objects.create(
+                    venta=venta,
+                    moto=moto_obj,
+                    cantidad=cantidad_requerida,
+                    precio_unitario=precio_unitario
+                )
+                
+                # Si hay documentos seleccionados, se podrían manejar aquí
+                # (esto dependería de cómo manejes los documentos en tu sistema)
+                
+                # Crear cuotas de vencimiento si es financiado
+                if tipo_venta == 'financiado' and venta.cuotas > 1:
+                    self._crear_cuotas_vencimiento(venta)
+                
+                # Retornar la venta creada
+                serializer = VentaSerializer(venta)
+                response_data = serializer.data
+                response_data['message'] = 'Venta creada exitosamente'
+                response_data['detalle'] = {
+                    'moto': f"{moto_obj.marca} {moto_obj.modelo}",
+                    'cantidad': cantidad_requerida,
+                    'precio_unitario': float(precio_unitario),
+                    'subtotal': float(detalle.subtotal)
+                }
+                
+                print(f"Venta creada exitosamente: {venta.id}")
+                return Response(response_data, status=status.HTTP_201_CREATED)
+                
+        except Exception as e:
+            print(f"Error en CreateVentaFromFormView: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {'error': f'Error interno del servidor: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def _crear_cuotas_vencimiento(self, venta):
+        """
+        Crea las cuotas de vencimiento para ventas financiadas
+        """
+        try:
+            from pagos.models import CuotaVencimiento
+            from dateutil.relativedelta import relativedelta
+            
+            fecha_primera_cuota = timezone.now().date() + relativedelta(months=1)
+            
+            for numero_cuota in range(1, venta.cuotas + 1):
+                fecha_vencimiento = fecha_primera_cuota + relativedelta(months=numero_cuota-1)
+                
+                CuotaVencimiento.objects.create(
+                    venta=venta,
+                    numero_cuota=numero_cuota,
+                    monto_cuota=venta.pago_mensual,
+                    fecha_vencimiento=fecha_vencimiento,
+                    estado='pendiente'
+                )
+                
+        except Exception as e:
+            print(f"Error creando cuotas de vencimiento: {e}")
+            # No fallar la venta por esto, solo registrar el error

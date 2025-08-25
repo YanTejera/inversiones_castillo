@@ -9,3 +9,4 @@ psycopg2-binary==2.9.10
 psycopg==3.2.3
 dj-database-url==2.1.0
 reportlab==4.4.3
+python-dateutil==2.8.2

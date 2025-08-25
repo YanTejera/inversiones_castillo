@@ -8,6 +8,7 @@ urlpatterns = [
     path('<int:pk>/', views.VentaDetailView.as_view(), name='venta-detail'),
     path('<int:pk>/cancelar/', views.CancelarVentaView.as_view(), name='cancelar-venta'),
     path('calcular/', views.CalcularVentaView.as_view(), name='calcular-venta'),
+    path('create-from-form/', views.CreateVentaFromFormView.as_view(), name='create-venta-from-form'),
     path('detalles/', views.VentaDetalleListCreateView.as_view(), name='detalle-list-create'),
     path('detalles/<int:pk>/', views.VentaDetalleDetailView.as_view(), name='detalle-detail'),
     path('activas/', views.VentaActivaListView.as_view(), name='venta-activas'),

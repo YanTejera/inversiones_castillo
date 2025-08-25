@@ -308,75 +308,12 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
 
       console.log('Prepared venta data for API:', ventaData);
 
-      // Intentar crear la venta usando el nuevo método
-      try {
-        const newVenta = await ventaService.createVentaFromForm(ventaData);
-        console.log('Venta created successfully:', newVenta);
-        
-        setShowVentaForm(false);
-        showSuccessModal(`¡Venta #${newVenta.id} registrada exitosamente para ${cliente.nombre} ${cliente.apellido}!`);
-        
-      } catch (apiError) {
-        console.log('New API method not available, falling back to old method');
-        
-        // Fallback mejorado que funciona tanto para motos individuales como modelos
-        let oldVentaData;
-        
-        if (data.selectedMotorcycle.tipo === 'individual' && data.selectedMotorcycle.moto) {
-          // Para motos individuales existentes
-          oldVentaData = {
-            cliente: data.customer.id,
-            tipo_venta: data.paymentType,
-            monto_total: totalAmount,
-            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
-            detalles: [{
-              moto: data.selectedMotorcycle.moto.id,
-              cantidad: data.selectedMotorcycle.cantidad,
-              precio_unitario: data.selectedMotorcycle.precio_unitario
-            }]
-          };
-
-          // Solo agregar campos de financiamiento si el tipo de venta es financiado
-          if (data.paymentType === 'financiado') {
-            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
-            oldVentaData.tasa_interes = data.financingDetails.interestRate;
-            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
-            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
-          }
-          
-        } else if (data.selectedMotorcycle.tipo === 'modelo' && data.selectedMotorcycle.modelo) {
-          // Para modelos: crear una entrada de inventario temporal o usar el método existente
-          oldVentaData = {
-            cliente: data.customer.id,
-            tipo_venta: data.paymentType,
-            monto_total: totalAmount,
-            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
-            detalles: [{
-              // Si no hay moto específica, intentamos usar el primer item del inventario del modelo
-              moto: data.selectedMotorcycle.modelo.inventario?.[0]?.id || data.selectedMotorcycle.modelo.id,
-              cantidad: data.selectedMotorcycle.cantidad,
-              precio_unitario: data.selectedMotorcycle.precio_unitario
-            }]
-          };
-
-          // Solo agregar campos de financiamiento si el tipo de venta es financiado
-          if (data.paymentType === 'financiado') {
-            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
-            oldVentaData.tasa_interes = data.financingDetails.interestRate;
-            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
-            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
-          }
-          
-        } else {
-          throw new Error('Datos de motocicleta incompletos para crear la venta.');
-        }
-
-        const newVenta = await ventaService.createVenta(oldVentaData);
-        console.log('Venta created with fallback method:', newVenta);
-        
-        setShowVentaForm(false);
-        showSuccessModal(`¡Venta #${newVenta.id} registrada exitosamente para ${cliente.nombre} ${cliente.apellido}!`);
-      }
+      // Crear la venta usando el nuevo método mejorado
+      const newVenta = await ventaService.createVentaFromForm(ventaData);
+      console.log('Venta created successfully:', newVenta);
+      
+      setShowVentaForm(false);
+      showSuccessModal(`¡Venta #${newVenta.id} registrada exitosamente para ${cliente.nombre} ${cliente.apellido}!`);
       
     } catch (error) {
       console.error('Error saving venta from client profile:', error);

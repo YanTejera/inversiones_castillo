@@ -278,87 +278,18 @@ const Ventas: React.FC = () => {
 
       console.log('Prepared venta data for API:', ventaData);
 
-      // Intentar crear la venta usando el nuevo método
-      try {
-        const newVenta = await ventaService.createVentaFromForm(ventaData);
-        console.log('Venta created successfully:', newVenta);
-        
-        // Recargar la lista de ventas
-        await loadVentas(currentPage, debouncedSearchTerm, activeFilters);
-        
-        // Cerrar el modal
-        closeCreateModal();
-        
-        // Mostrar mensaje de éxito
-        alert(`Venta #${newVenta.id} registrada exitosamente!`);
-        
-      } catch (apiError) {
-        console.log('New API method not available, falling back to old method');
-        
-        // Fallback mejorado que funciona tanto para motos individuales como modelos
-        let oldVentaData;
-        
-        if (data.selectedMotorcycle.tipo === 'individual' && data.selectedMotorcycle.moto) {
-          // Para motos individuales existentes
-          oldVentaData = {
-            cliente: data.customer.id,
-            tipo_venta: data.paymentType,
-            monto_total: totalAmount,
-            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
-            detalles: [{
-              moto: data.selectedMotorcycle.moto.id,
-              cantidad: data.selectedMotorcycle.cantidad,
-              precio_unitario: data.selectedMotorcycle.precio_unitario
-            }]
-          };
-
-          // Solo agregar campos de financiamiento si el tipo de venta es financiado
-          if (data.paymentType === 'financiado') {
-            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
-            oldVentaData.tasa_interes = data.financingDetails.interestRate;
-            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
-            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
-          }
-          
-        } else if (data.selectedMotorcycle.tipo === 'modelo' && data.selectedMotorcycle.modelo) {
-          // Para modelos: crear entrada usando el método existente
-          oldVentaData = {
-            cliente: data.customer.id,
-            tipo_venta: data.paymentType,
-            monto_total: totalAmount,
-            monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
-            detalles: [{
-              // Usar el primer item del inventario del modelo o el ID del modelo
-              moto: data.selectedMotorcycle.modelo.inventario?.[0]?.id || data.selectedMotorcycle.modelo.id,
-              cantidad: data.selectedMotorcycle.cantidad,
-              precio_unitario: data.selectedMotorcycle.precio_unitario
-            }]
-          };
-
-          // Solo agregar campos de financiamiento si el tipo de venta es financiado
-          if (data.paymentType === 'financiado') {
-            oldVentaData.cuotas = data.financingDetails.numberOfPayments;
-            oldVentaData.tasa_interes = data.financingDetails.interestRate;
-            oldVentaData.pago_mensual = data.financingDetails.paymentAmount;
-            oldVentaData.monto_total_con_intereses = data.financingDetails.totalAmount;
-          }
-          
-        } else {
-          throw new Error('Datos de motocicleta incompletos para crear la venta.');
-        }
-
-        const newVenta = await ventaService.createVenta(oldVentaData);
-        console.log('Venta created with fallback method:', newVenta);
-        
-        // Recargar la lista de ventas
-        await loadVentas(currentPage, debouncedSearchTerm, activeFilters);
-        
-        // Cerrar el modal
-        closeCreateModal();
-        
-        // Mostrar mensaje de éxito
-        alert(`Venta #${newVenta.id} registrada exitosamente!`);
-      }
+      // Crear la venta usando el nuevo método mejorado
+      const newVenta = await ventaService.createVentaFromForm(ventaData);
+      console.log('Venta created successfully:', newVenta);
+      
+      // Recargar la lista de ventas
+      await loadVentas(currentPage, debouncedSearchTerm, activeFilters);
+      
+      // Cerrar el modal
+      closeCreateModal();
+      
+      // Mostrar mensaje de éxito
+      alert(`Venta #${newVenta.id} registrada exitosamente!`);
       
     } catch (error) {
       console.error('Error saving venta:', error);
