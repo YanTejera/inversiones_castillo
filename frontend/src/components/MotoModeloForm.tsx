@@ -397,7 +397,76 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       return;
     }
 
-    if (!modelo?.id) {
+    let modeloId = modelo?.id;
+    
+    // Si es modo create, necesitamos crear el modelo primero
+    if (mode === 'create' && !modeloId) {
+      console.log('🚀 Creando modelo antes de agregar inventario...');
+      
+      // Validar formulario básico primero
+      if (!validateForm()) {
+        setServerError('Por favor, completa todos los campos requeridos del modelo antes de agregar inventario');
+        return;
+      }
+      
+      try {
+        // Crear el modelo sin inventario
+        const submitData = {
+          marca: formData.marca,
+          modelo: formData.modelo,
+          ano: parseInt(formData.ano),
+          condicion: formData.condicion,
+          descripcion: formData.descripcion || null,
+          precio_compra: parseFloat(formData.precio_compra),
+          precio_venta: parseFloat(formData.precio_venta),
+          moneda_compra: formData.moneda_compra,
+          moneda_venta: formData.moneda_venta,
+          activa: formData.activa,
+          // Especificaciones técnicas
+          especificaciones: {
+            tipo_motor: formData.tipo_motor || null,
+            cilindrada: formData.cilindrada || null,
+            potencia: formData.potencia || null,
+            refrigeracion: formData.refrigeracion || null,
+            arranque: formData.arranque || null,
+            transmision: formData.transmision || null,
+            dimensiones: formData.dimensiones || null,
+            distancia_ejes: formData.distancia_ejes || null,
+            altura_asiento: formData.altura_asiento || null,
+            peso_seco: formData.peso_seco || null,
+            tanque_combustible: formData.tanque_combustible || null,
+            capacidad_carga: formData.capacidad_carga || null,
+            freno_delantero: formData.freno_delantero || null,
+            freno_trasero: formData.freno_trasero || null,
+            llanta_delantera: formData.llanta_delantera || null,
+            llanta_trasera: formData.llanta_trasera || null,
+            suspension_delantera: formData.suspension_delantera || null,
+            suspension_trasera: formData.suspension_trasera || null,
+            consumo: formData.consumo || null,
+            velocidad_maxima: formData.velocidad_maxima || null,
+            autonomia: formData.autonomia || null,
+            emisiones: formData.emisiones || null
+          },
+          inventario_data: [] // Sin inventario inicialmente
+        };
+
+        // Agregar imagen si existe
+        if (formData.imagen && formData.imagen instanceof File) {
+          submitData.imagen = formData.imagen;
+        }
+
+        const nuevoModelo = await motoModeloService.createModelo(submitData);
+        modeloId = nuevoModelo.id;
+        console.log('✅ Modelo creado exitosamente con ID:', modeloId);
+        
+      } catch (error: any) {
+        console.error('❌ Error creando modelo:', error);
+        setServerError('Error creando el modelo: ' + (error.response?.data?.message || error.message));
+        return;
+      }
+    }
+
+    if (!modeloId) {
       setServerError('Error: ID del modelo no encontrado');
       return;
     }
@@ -462,7 +531,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           };
           
           console.log('📦 Guardando inventario:', inventarioData);
-          const response = await motoModeloService.createInventario(modelo.id, inventarioData);
+          const response = await motoModeloService.createInventario(modeloId, inventarioData);
           responses.push(response);
         }
       }
@@ -481,7 +550,11 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       // Actualizar datos del modelo sin cerrar el modal
       onSave();
       
-      alert(`✅ Se agregaron ${nuevoStock.length} nuevos colores al inventario`);
+      if (mode === 'create' && !modelo?.id) {
+        alert(`✅ Modelo creado exitosamente y se agregaron ${nuevoStock.length} nuevos colores al inventario`);
+      } else {
+        alert(`✅ Se agregaron ${nuevoStock.length} nuevos colores al inventario`);
+      }
 
     } catch (error: any) {
       console.error('Error guardando nuevo stock:', error);
