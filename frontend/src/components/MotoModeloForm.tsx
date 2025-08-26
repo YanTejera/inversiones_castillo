@@ -73,6 +73,10 @@ interface FormData {
 }
 
 const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, onSave }) => {
+  // Separar inventario registrado del nuevo
+  const [inventarioRegistrado, setInventarioRegistrado] = useState<ColorInventario[]>([]);
+  const [nuevoStock, setNuevoStock] = useState<ColorInventario[]>([]);
+  
   const [formData, setFormData] = useState<FormData>({
     marca: modelo?.marca || '',
     modelo: modelo?.modelo || '',
@@ -84,17 +88,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     moneda_compra: modelo?.moneda_compra || 'USD',
     moneda_venta: modelo?.moneda_venta || 'RD',
     activa: modelo?.activa ?? true,
-    colores: modelo?.inventario?.map(inv => ({
-      color: inv.color || '',
-      cantidad_stock: inv.cantidad_stock || 1,
-      descuento_porcentaje: inv.descuento_porcentaje || 0,
-      chasis: inv.chasis && inv.chasis.trim() 
-        ? [inv.chasis] 
-        : Array(inv.cantidad_stock || 1).fill(''),
-      precio_compra_individual: inv.precio_compra_individual || undefined,
-      tasa_dolar: inv.tasa_dolar || undefined,
-      fecha_compra: inv.fecha_compra || new Date().toISOString().split('T')[0]
-    })) || [],
+    colores: [], // Ya no usamos este campo para el inventario
     // Especificaciones técnicas - Motor
     tipo_motor: modelo?.especificaciones?.tipo_motor || '',
     cilindrada: modelo?.especificaciones?.cilindrada || '',
@@ -133,11 +127,27 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   React.useEffect(() => {
     console.log('=== ESTADO INICIAL DEL FORMULARIO ===');
     console.log('Modelo recibido:', modelo);
-    console.log('Formdata.colores inicial:', formData.colores);
     console.log('Mode:', mode);
     
     if (modelo?.imagen) {
       setImagePreview(modelo.imagen);
+    }
+
+    // Separar inventario registrado del nuevo
+    if (modelo?.inventario && modelo.inventario.length > 0) {
+      const inventarioExistente = modelo.inventario.map(inv => ({
+        color: inv.color || '',
+        cantidad_stock: inv.cantidad_stock || 1,
+        descuento_porcentaje: inv.descuento_porcentaje || 0,
+        chasis: inv.chasis && inv.chasis.trim() 
+          ? [inv.chasis] 
+          : Array(inv.cantidad_stock || 1).fill(''),
+        precio_compra_individual: inv.precio_compra_individual || undefined,
+        tasa_dolar: inv.tasa_dolar || undefined,
+        fecha_compra: inv.fecha_compra || new Date().toISOString().split('T')[0]
+      }));
+      setInventarioRegistrado(inventarioExistente);
+      console.log('Inventario registrado:', inventarioExistente);
     }
   }, [modelo]);
   
@@ -181,35 +191,40 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       }
     }
 
-    // Validar colores
-    if (formData.colores.length === 0) {
+    // Validar colores (tanto registrado como nuevo)
+    const totalColores = inventarioRegistrado.length + nuevoStock.length;
+    if (totalColores === 0 && mode === 'create') {
       newErrors.colores = 'Debe agregar al menos un color';
-    } else {
-      formData.colores.forEach((color, index) => {
-        if (!color.color.trim()) {
-          newErrors[`color_${index}`] = 'El color es requerido';
-        }
-        if (color.cantidad_stock < 0) {
-          newErrors[`cantidad_${index}`] = 'La cantidad no puede ser negativa';
-        }
-        if (color.descuento_porcentaje < 0 || color.descuento_porcentaje > 100) {
-          newErrors[`descuento_${index}`] = 'El descuento debe estar entre 0 y 100%';
-        }
-        
-        // Validar que todos los chasis estén completos
-        const chasisArray = Array.isArray(color.chasis) ? color.chasis : [color.chasis || ''];
-        const emptyChasis = chasisArray.filter(chasis => !chasis.trim()).length;
-        if (emptyChasis > 0) {
-          newErrors[`chasis_${index}`] = `Faltan ${emptyChasis} números de chasis`;
-        }
-        
-        // Validar que no haya chasis duplicados
-        const uniqueChasis = new Set(chasisArray.filter(c => c.trim()));
-        if (uniqueChasis.size !== chasisArray.filter(c => c.trim()).length) {
-          newErrors[`chasis_duplicados_${index}`] = 'Los números de chasis deben ser únicos';
-        }
-      });
     }
+    
+    // Validar nuevo stock
+    nuevoStock.forEach((color, index) => {
+      if (!color.color.trim()) {
+        newErrors[`nuevo_color_${index}`] = 'El color es requerido';
+      }
+      if (color.cantidad_stock <= 0) {
+        newErrors[`nuevo_cantidad_${index}`] = 'La cantidad debe ser mayor a 0';
+      }
+      if (!color.precio_compra_individual || color.precio_compra_individual <= 0) {
+        newErrors[`nuevo_precio_${index}`] = 'El precio de compra es requerido';
+      }
+      if (color.descuento_porcentaje < 0 || color.descuento_porcentaje > 100) {
+        newErrors[`nuevo_descuento_${index}`] = 'El descuento debe estar entre 0 y 100%';
+      }
+      
+      // Validar que todos los chasis estén completos
+      const chasisArray = Array.isArray(color.chasis) ? color.chasis : [color.chasis || ''];
+      const emptyChasis = chasisArray.filter(chasis => !chasis.trim()).length;
+      if (emptyChasis > 0) {
+        newErrors[`nuevo_chasis_${index}`] = `Faltan ${emptyChasis} números de chasis`;
+      }
+      
+      // Validar que no haya chasis duplicados
+      const uniqueChasis = new Set(chasisArray.filter(c => c.trim()));
+      if (uniqueChasis.size !== chasisArray.filter(c => c.trim()).length) {
+        newErrors[`nuevo_chasis_duplicados_${index}`] = 'Los números de chasis deben ser únicos';
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -266,7 +281,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           autonomia: formData.autonomia || null,
           emisiones: formData.emisiones || null
         },
-        inventario_data: formData.colores.map(color => ({
+        inventario_data: nuevoStock.map(color => ({
           color: color.color,
           cantidad_stock: color.cantidad_stock,
           descuento_porcentaje: color.descuento_porcentaje || 0,
@@ -283,12 +298,12 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         submitData.imagen = formData.imagen;
       }
 
-      // Validar que todos los chasis estén llenos
+      // Validar que todos los chasis estén llenos (solo para nuevo stock)
       const invalidChasis = [];
-      formData.colores.forEach((color, colorIndex) => {
+      nuevoStock.forEach((color, colorIndex) => {
         color.chasis.forEach((chasis, chasisIndex) => {
           if (!chasis || chasis.trim() === '') {
-            invalidChasis.push(`Color ${colorIndex + 1}, Unidad ${chasisIndex + 1}`);
+            invalidChasis.push(`Nuevo Color ${colorIndex + 1}, Unidad ${chasisIndex + 1}`);
           }
         });
       });
@@ -298,9 +313,9 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         return;
       }
 
-      // Validar chasis únicos
-      const allChasis = formData.colores.flatMap(color => color.chasis.filter(c => c.trim() !== ''));
-      const duplicateChasis = allChasis.filter((chasis, index) => allChasis.indexOf(chasis) !== index);
+      // Validar chasis únicos (solo para nuevo stock)
+      const allNewChasis = nuevoStock.flatMap(color => color.chasis.filter(c => c.trim() !== ''));
+      const duplicateChasis = allNewChasis.filter((chasis, index) => allNewChasis.indexOf(chasis) !== index);
       if (duplicateChasis.length > 0) {
         setServerError(`⚠️ Chasis duplicados encontrados: ${[...new Set(duplicateChasis)].join(', ')}. Cada chasis debe ser único.`);
         return;
@@ -373,27 +388,127 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     }
   };
 
+  const handleSaveNewStock = async () => {
+    // Validar solo el nuevo stock
+    const newErrors: Record<string, string> = {};
+    
+    if (nuevoStock.length === 0) {
+      alert('⚠️ No hay nuevo stock para guardar');
+      return;
+    }
+
+    if (!modelo?.id) {
+      setServerError('Error: ID del modelo no encontrado');
+      return;
+    }
+
+    // Validar nuevo stock
+    nuevoStock.forEach((color, index) => {
+      if (!color.color.trim()) {
+        newErrors[`nuevo_color_${index}`] = 'El color es requerido';
+      }
+      if (color.cantidad_stock <= 0) {
+        newErrors[`nuevo_cantidad_${index}`] = 'La cantidad debe ser mayor a 0';
+      }
+      if (!color.precio_compra_individual || color.precio_compra_individual <= 0) {
+        newErrors[`nuevo_precio_${index}`] = 'El precio de compra es requerido';
+      }
+      
+      // Validar chasis
+      const chasisArray = Array.isArray(color.chasis) ? color.chasis : [color.chasis || ''];
+      const emptyChasis = chasisArray.filter(chasis => !chasis.trim()).length;
+      if (emptyChasis > 0) {
+        newErrors[`nuevo_chasis_${index}`] = `Faltan ${emptyChasis} números de chasis`;
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setLoading(true);
+    setServerError('');
+
+    try {
+      // Validar chasis únicos
+      const allNewChasis = nuevoStock.flatMap(color => color.chasis.filter(c => c.trim() !== ''));
+      const duplicateChasis = allNewChasis.filter((chasis, index) => allNewChasis.indexOf(chasis) !== index);
+      if (duplicateChasis.length > 0) {
+        setServerError(`⚠️ Chasis duplicados encontrados: ${[...new Set(duplicateChasis)].join(', ')}. Cada chasis debe ser único.`);
+        setLoading(false);
+        return;
+      }
+
+      console.log('🚀 Guardando nuevo stock...');
+      console.log(`📊 Colores a procesar: ${nuevoStock.length}`);
+
+      // Crear inventarios individuales para cada chasis
+      const responses = [];
+      for (const color of nuevoStock) {
+        const chasisArray = Array.isArray(color.chasis) ? color.chasis.filter(c => c.trim()) : [color.chasis].filter(c => c.trim());
+        
+        console.log(`📦 Procesando color ${color.color} con ${chasisArray.length} chasis`);
+        
+        // Crear un inventario por cada chasis
+        for (const chasis of chasisArray) {
+          const inventarioData = {
+            color: color.color,
+            chasis: chasis,
+            cantidad_stock: 1, // Un inventario por chasis
+            descuento_porcentaje: color.descuento_porcentaje || 0,
+            precio_con_descuento: color.precio_compra_individual ? 
+              color.precio_compra_individual * (1 - (color.descuento_porcentaje || 0) / 100) : 0
+          };
+          
+          console.log('📦 Guardando inventario:', inventarioData);
+          const response = await motoModeloService.createInventario(modelo.id, inventarioData);
+          responses.push(response);
+        }
+      }
+
+      console.log('✅ Nuevo stock guardado exitosamente:', responses);
+
+      // Mover el nuevo stock al inventario registrado
+      setInventarioRegistrado(prev => [...prev, ...nuevoStock]);
+      
+      // Limpiar el nuevo stock
+      setNuevoStock([]);
+      
+      // Limpiar errores
+      setErrors({});
+      
+      // Actualizar datos del modelo sin cerrar el modal
+      onSave();
+      
+      alert(`✅ Se agregaron ${nuevoStock.length} nuevos colores al inventario`);
+
+    } catch (error: any) {
+      console.error('Error guardando nuevo stock:', error);
+      setServerError(error.response?.data?.message || error.message || 'Error al guardar el nuevo stock');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addColor = () => {
     try {
       console.log('=== AGREGANDO NUEVO COLOR ===');
       
-      setFormData(prev => {
-        const newColor = { 
-          color: '', 
-          cantidad_stock: 1, 
-          descuento_porcentaje: 0, 
-          chasis: [''],
-          precio_compra_individual: undefined,
-          tasa_dolar: undefined,
-          fecha_compra: new Date().toISOString().split('T')[0]
-        };
-        const newColores = [...prev.colores, newColor];
-        console.log(`Colores: ${prev.colores.length} -> ${newColores.length}`);
-        
-        return {
-          ...prev,
-          colores: newColores
-        };
+      const newColor = { 
+        color: '', 
+        cantidad_stock: 0, 
+        descuento_porcentaje: 0, 
+        chasis: [''],
+        precio_compra_individual: undefined,
+        tasa_dolar: undefined,
+        fecha_compra: new Date().toISOString().split('T')[0]
+      };
+      
+      setNuevoStock(prev => {
+        const newStock = [...prev, newColor];
+        console.log(`Nuevo stock: ${prev.length} -> ${newStock.length}`);
+        return newStock;
       });
       
       console.log('=== COLOR AGREGADO EXITOSAMENTE ===');
@@ -403,26 +518,22 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   };
 
   const removeColor = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      colores: prev.colores.filter((_, i) => i !== index)
-    }));
+    setNuevoStock(prev => prev.filter((_, i) => i !== index));
   };
 
   const updateColor = (index: number, field: keyof ColorInventario, value: any) => {
-    console.log(`Actualizando color ${index}, campo ${field}:`, value);
-    setFormData(prev => ({
-      ...prev,
-      colores: prev.colores.map((color, i) => {
-        if (i === index) {
-          const updatedColor = { ...color, [field]: value };
+    console.log(`Actualizando nuevo stock ${index}, campo ${field}:`, value);
+    setNuevoStock(prev => prev.map((color, i) => {
+      if (i === index) {
+        const updatedColor = { ...color, [field]: value };
+        
+        // Si se cambió la cantidad, ajustar el array de chasis
+        if (field === 'cantidad_stock') {
+          const newQuantity = parseInt(value) || 0;
+          const currentChasis = color.chasis || [];
+          console.log(`📦 Cantidad: ${currentChasis.length} -> ${newQuantity} chasis`);
           
-          // Si se cambió la cantidad, ajustar el array de chasis
-          if (field === 'cantidad_stock') {
-            const newQuantity = parseInt(value) || 0;
-            const currentChasis = color.chasis || [];
-            console.log(`📦 Cantidad: ${currentChasis.length} -> ${newQuantity} chasis`);
-            
+          if (newQuantity > 0) {
             if (newQuantity > currentChasis.length) {
               // Agregar campos vacíos para los nuevos chasis
               updatedColor.chasis = [
@@ -430,22 +541,20 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                 ...Array(newQuantity - currentChasis.length).fill('')
               ];
               console.log('✅ Chasis agregados:', updatedColor.chasis.length);
-            } else if (newQuantity < currentChasis.length && newQuantity >= 0) {
+            } else if (newQuantity < currentChasis.length) {
               // Recortar el array si la cantidad disminuye
               updatedColor.chasis = currentChasis.slice(0, newQuantity);
               console.log('🔄 Chasis recortados:', updatedColor.chasis.length);
             }
-            
-            // Si la cantidad es 0, limpiar todos los chasis
-            if (newQuantity === 0) {
-              updatedColor.chasis = [];
-            }
+          } else {
+            // Si la cantidad es 0, mantener al menos un chasis vacío
+            updatedColor.chasis = [''];
           }
-          
-          return updatedColor;
         }
-        return color;
-      })
+        
+        return updatedColor;
+      }
+      return color;
     }));
   };
 
@@ -481,7 +590,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
 
   // Función para generar sugerencias de chasis
   const generateChasisSuggestions = (colorIndex: number) => {
-    const color = formData.colores[colorIndex];
+    const color = nuevoStock[colorIndex];
     if (!color || color.chasis.length === 0) return [];
     
     const firstChasis = color.chasis[0];
@@ -511,38 +620,32 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     const suggestions = generateChasisSuggestions(colorIndex);
     if (suggestions.length === 0) return;
     
-    setFormData(prev => ({
-      ...prev,
-      colores: prev.colores.map((color, i) => {
-        if (i === colorIndex) {
-          const newChasis = [...color.chasis];
-          let suggestionIndex = 0;
-          
-          for (let j = 1; j < newChasis.length; j++) {
-            if (newChasis[j].trim() === '' && suggestionIndex < suggestions.length) {
-              newChasis[j] = suggestions[suggestionIndex];
-              suggestionIndex++;
-            }
+    setNuevoStock(prev => prev.map((color, i) => {
+      if (i === colorIndex) {
+        const newChasis = [...color.chasis];
+        let suggestionIndex = 0;
+        
+        for (let j = 1; j < newChasis.length; j++) {
+          if (newChasis[j].trim() === '' && suggestionIndex < suggestions.length) {
+            newChasis[j] = suggestions[suggestionIndex];
+            suggestionIndex++;
           }
-          
-          return { ...color, chasis: newChasis };
         }
-        return color;
-      })
+        
+        return { ...color, chasis: newChasis };
+      }
+      return color;
     }));
   };
 
   const updateChasis = (colorIndex: number, chasisIndex: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      colores: prev.colores.map((color, i) => {
-        if (i === colorIndex) {
-          const newChasis = [...color.chasis];
-          newChasis[chasisIndex] = value;
-          return { ...color, chasis: newChasis };
-        }
-        return color;
-      })
+    setNuevoStock(prev => prev.map((color, i) => {
+      if (i === colorIndex) {
+        const newChasis = [...color.chasis];
+        newChasis[chasisIndex] = value;
+        return { ...color, chasis: newChasis };
+      }
+      return color;
     }));
   };
 
@@ -575,11 +678,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     }).format(amount);
   };
 
-  const calculatePriceWithDiscount = (basePrice: number, discount: number) => {
-    if (discount > 0) {
-      return basePrice * (1 - discount / 100);
-    }
-    return basePrice;
+  const calculatePriceWithDiscount = (price: number, discountPercentage: number) => {
+    return price * (1 - discountPercentage / 100);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -645,8 +745,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
             >
               <div className="flex items-center">
                 <Palette className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Colores y Chasis ({formData.colores.length})</span>
-                <span className="sm:hidden">Colores ({formData.colores.length})</span>
+                <span className="hidden sm:inline">Colores y Chasis ({inventarioRegistrado.length + nuevoStock.length})</span>
+                <span className="sm:hidden">Colores ({inventarioRegistrado.length + nuevoStock.length})</span>
               </div>
             </button>
             <button
@@ -1447,296 +1547,377 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           {/* Tab Colores */}
           {activeTab === 'colores' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                  <Package className="h-5 w-5 mr-2" />
-                  Colores y Stock Disponible
-                </h3>
-                {!isReadOnly && (
-                  <button
-                    type="button"
-                    onClick={addColor}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Color
-                  </button>
-                )}
-              </div>
+              
+              {/* Sección 1: Agregar Nuevo Stock */}
+              {!isReadOnly && (
+                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium text-green-800 flex items-center">
+                      <Plus className="h-5 w-5 mr-2" />
+                      Agregar Nuevo Stock
+                    </h3>
+                    <div className="flex space-x-3">
+                      <button
+                        type="button"
+                        onClick={addColor}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center text-sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nuevo Color
+                      </button>
+                      {nuevoStock.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleSaveNewStock}
+                          disabled={loading}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm disabled:opacity-50"
+                        >
+                          {loading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Guardando...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4 mr-2" />
+                              Guardar
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
 
-              {errors.colores && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                  {errors.colores}
+                  {errors.colores && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
+                      {errors.colores}
+                    </div>
+                  )}
+
+                  {nuevoStock.length === 0 ? (
+                    <div className="text-center py-8 bg-white rounded-lg border-2 border-dashed border-green-300">
+                      <Palette className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                      <p className="text-green-700 font-medium">Listo para agregar nuevos colores</p>
+                      <p className="text-green-600 text-sm mt-1">
+                        Haz clic en "Nuevo Color" para empezar
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {nuevoStock.map((color, index) => (
+                        <div key={index} className="border-2 border-green-200 rounded-lg p-6 bg-white">
+                          <div className="flex justify-between items-start mb-4">
+                            <h4 className="font-medium text-green-800">Nuevo Color {index + 1}</h4>
+                            <button
+                              type="button"
+                              onClick={() => removeColor(index)}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Información básica del color */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Color *</label>
+                              <input
+                                type="text"
+                                value={color.color}
+                                onChange={(e) => updateColor(index, 'color', e.target.value)}
+                                placeholder="Ej: Rojo, Azul, Negro..."
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                  errors[`nuevo_color_${index}`] ? 'border-red-500' : 'border-gray-300'
+                                } bg-white`}
+                              />
+                              {errors[`nuevo_color_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1">{errors[`nuevo_color_${index}`]}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={color.cantidad_stock === 0 ? '' : color.cantidad_stock}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value === '') {
+                                    updateColor(index, 'cantidad_stock', 0);
+                                  } else {
+                                    const numValue = parseInt(value);
+                                    if (!isNaN(numValue) && numValue >= 1) {
+                                      updateColor(index, 'cantidad_stock', numValue);
+                                    }
+                                  }
+                                }}
+                                placeholder="Cantidad de motos"
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                  errors[`nuevo_cantidad_${index}`] ? 'border-red-500' : 'border-gray-300'
+                                } bg-white`}
+                              />
+                              {errors[`nuevo_cantidad_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1">{errors[`nuevo_cantidad_${index}`]}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Compra *</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={color.precio_compra_individual || ''}
+                                onChange={(e) => updateColor(index, 'precio_compra_individual', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                placeholder="Precio unitario USD"
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                  errors[`nuevo_precio_${index}`] ? 'border-red-500' : 'border-gray-300'
+                                } bg-white`}
+                              />
+                              {errors[`nuevo_precio_${index}`] && (
+                                <p className="text-red-500 text-sm mt-1">{errors[`nuevo_precio_${index}`]}</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Tasa USD</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={color.tasa_dolar || ''}
+                                onChange={(e) => updateColor(index, 'tasa_dolar', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                placeholder="Ej: 58.50"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Segunda fila */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value={color.descuento_porcentaje}
+                                onChange={(e) => updateColor(index, 'descuento_porcentaje', parseFloat(e.target.value) || 0)}
+                                placeholder="0"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Compra</label>
+                              <input
+                                type="date"
+                                value={color.fecha_compra || ''}
+                                onChange={(e) => updateColor(index, 'fecha_compra', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Mostrar cálculo en pesos si hay precio y tasa */}
+                          {color.precio_compra_individual && color.tasa_dolar && (
+                            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                              <p className="text-sm text-blue-800">
+                                <strong>Precio en RD$:</strong> {(color.precio_compra_individual * color.tasa_dolar).toLocaleString('es-DO', {
+                                  style: 'currency',
+                                  currency: 'DOP',
+                                  minimumFractionDigits: 0
+                                })} por unidad
+                              </p>
+                              {color.cantidad_stock > 0 && (
+                                <p className="text-xs text-blue-600 mt-1">
+                                  Total: {(color.precio_compra_individual * color.tasa_dolar * color.cantidad_stock).toLocaleString('es-DO', {
+                                    style: 'currency',
+                                    currency: 'DOP',
+                                    minimumFractionDigits: 0
+                                  })}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Números de Chasis */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="block text-sm font-medium text-gray-700">Números de Chasis *</label>
+                              {color.cantidad_stock > 1 && color.chasis[0]?.trim() && (
+                                <button
+                                  type="button"
+                                  onClick={() => applyChasisAutoFill(index)}
+                                  className="flex items-center px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100"
+                                  title="Auto-completar chasis"
+                                >
+                                  <Wand2 className="h-3 w-3 mr-1" />
+                                  Auto-completar
+                                </button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {color.chasis.map((chasis, chasisIndex) => (
+                                <input
+                                  key={chasisIndex}
+                                  type="text"
+                                  value={chasis}
+                                  onChange={(e) => updateChasis(index, chasisIndex, e.target.value)}
+                                  placeholder={`Chasis ${chasisIndex + 1}`}
+                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${
+                                    !chasis.trim() ? 'border-red-300' : 'border-gray-300'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            {errors[`nuevo_chasis_${index}`] && (
+                              <p className="text-red-500 text-sm mt-1">{errors[`nuevo_chasis_${index}`]}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {formData.colores.length === 0 ? (
+              {/* Sección 2: Inventario Registrado */}
+              {inventarioRegistrado.length > 0 && (
+                <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-gray-800 flex items-center mb-4">
+                    <Package className="h-5 w-5 mr-2" />
+                    Inventario Registrado (Solo Lectura)
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Este inventario ya está registrado en el sistema y no puede ser modificado para evitar errores.
+                  </p>
+                  
+                  <div className="space-y-4">
+                    {inventarioRegistrado.map((color, index) => {
+                      // Función para obtener el color CSS del nombre del color
+                      const getColorIndicator = (colorName: string) => {
+                        const colorMap: { [key: string]: string } = {
+                          'rojo': '#ef4444', 'red': '#ef4444',
+                          'azul': '#3b82f6', 'blue': '#3b82f6',
+                          'verde': '#22c55e', 'green': '#22c55e',
+                          'amarillo': '#eab308', 'yellow': '#eab308',
+                          'negro': '#1f2937', 'black': '#1f2937',
+                          'blanco': '#f8fafc', 'white': '#f8fafc',
+                          'gris': '#6b7280', 'gray': '#6b7280',
+                          'naranja': '#f97316', 'orange': '#f97316',
+                          'morado': '#a855f7', 'purple': '#a855f7',
+                          'rosa': '#ec4899', 'pink': '#ec4899',
+                          'celeste': '#0ea5e9', 'lightblue': '#0ea5e9',
+                          'dorado': '#f59e0b', 'gold': '#f59e0b',
+                          'plateado': '#94a3b8', 'silver': '#94a3b8'
+                        };
+                        return colorMap[colorName.toLowerCase()] || '#6b7280';
+                      };
+
+                      const precioCompraIndividual = parseFloat(color.precio_compra_individual) || 0;
+                      const tasaDolar = parseFloat(color.tasa_dolar) || 0;
+                      
+                      const precioCompraTotal = precioCompraIndividual * color.cantidad_stock;
+                      const precioEnPesos = precioCompraTotal * tasaDolar;
+
+                      return (
+                        <div key={`registrado-${index}`} className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                          {/* Header con indicador de color */}
+                          <div className="flex items-center mb-3">
+                            <div 
+                              className="w-6 h-6 rounded-full border-2 border-gray-300 mr-3 shadow-sm"
+                              style={{ 
+                                backgroundColor: getColorIndicator(color.color),
+                                border: color.color.toLowerCase() === 'blanco' || color.color.toLowerCase() === 'white' ? 
+                                  '2px solid #d1d5db' : '2px solid #6b7280'
+                              }}
+                              title={`Color: ${color.color}`}
+                            ></div>
+                            <h4 className="text-lg font-semibold text-gray-900 capitalize">{color.color}</h4>
+                            <span className="ml-auto bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
+                              {color.cantidad_stock} unidades
+                            </span>
+                          </div>
+
+                          {/* Grid con información financiera */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                              <label className="block text-xs font-medium text-green-700 mb-1 flex items-center">
+                                <DollarSign className="h-3 w-3 mr-1" />
+                                Precio Compra (USD)
+                              </label>
+                              <p className="text-sm font-semibold text-green-800">
+                                ${precioCompraIndividual.toFixed(2)}
+                              </p>
+                              <p className="text-xs text-green-600">por unidad</p>
+                            </div>
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                              <label className="block text-xs font-medium text-blue-700 mb-1">Tasa Dólar</label>
+                              <p className="text-sm font-semibold text-blue-800">
+                                RD$ {tasaDolar.toFixed(2)}
+                              </p>
+                              <p className="text-xs text-blue-600">por USD</p>
+                            </div>
+
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                              <label className="block text-xs font-medium text-purple-700 mb-1">Total USD</label>
+                              <p className="text-sm font-semibold text-purple-800">
+                                ${precioCompraTotal.toFixed(2)}
+                              </p>
+                              <p className="text-xs text-purple-600">todas las unidades</p>
+                            </div>
+
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                              <label className="block text-xs font-medium text-orange-700 mb-1">Total RD$</label>
+                              <p className="text-sm font-semibold text-orange-800">
+                                RD$ {precioEnPesos.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                              </p>
+                              <p className="text-xs text-orange-600">equivalente en pesos</p>
+                            </div>
+
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                              <label className="block text-xs font-medium text-yellow-700 mb-1">Descuento</label>
+                              <p className="text-sm font-semibold text-yellow-800">{color.descuento_porcentaje || 0}%</p>
+                              <p className="text-xs text-yellow-600">
+                                {color.fecha_compra || 'Sin fecha'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Chasis registrados con mejor visualización */}
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-2 flex items-center">
+                              <Package className="h-3 w-3 mr-1" />
+                              Números de Chasis ({color.chasis.filter(c => c.trim()).length})
+                            </label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                              {color.chasis.filter(c => c.trim()).map((chasis, chasisIndex) => (
+                                <div key={chasisIndex} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex items-center justify-between">
+                                  <span className="text-xs font-mono text-gray-700 truncate">{chasis}</span>
+                                  <span className="text-xs text-gray-500 ml-2">#{chasisIndex + 1}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Mensaje si no hay inventario */}
+              {inventarioRegistrado.length === 0 && nuevoStock.length === 0 && (
                 <div className="text-center py-8 bg-gray-50 rounded-lg">
                   <Palette className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600">No hay colores agregados</p>
                   <p className="text-gray-500 text-sm mt-1">
                     Agrega al menos un color con su cantidad en stock
                   </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {formData.colores.map((color, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                      <div className="flex justify-between items-start mb-4">
-                        <h4 className="font-medium text-gray-900">Color {index + 1}</h4>
-                        {!isReadOnly && (
-                          <button
-                            type="button"
-                            onClick={() => removeColor(index)}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Información básica del color */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Color *</label>
-                          <input
-                            type="text"
-                            value={color.color}
-                            onChange={(e) => updateColor(index, 'color', e.target.value)}
-                            readOnly={isReadOnly}
-                            placeholder="Ej: Rojo, Azul, Negro..."
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              errors[`color_${index}`] ? 'border-red-500' : 'border-gray-300'
-                            } ${isReadOnly ? 'bg-gray-50' : 'bg-white'}`}
-                          />
-                          {errors[`color_${index}`] && (
-                            <p className="text-red-500 text-sm mt-1">{errors[`color_${index}`]}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={color.cantidad_stock}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              // Permitir campo vacío para que el usuario pueda editarlo libremente
-                              if (value === '') {
-                                updateColor(index, 'cantidad_stock', 0);
-                              } else {
-                                const numValue = parseInt(value);
-                                if (!isNaN(numValue) && numValue >= 0) {
-                                  updateColor(index, 'cantidad_stock', numValue);
-                                }
-                              }
-                            }}
-                            readOnly={isReadOnly}
-                            placeholder="Cantidad de motos"
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              errors[`cantidad_${index}`] ? 'border-red-500' : 'border-gray-300'
-                            } ${isReadOnly ? 'bg-gray-50' : 'bg-white'}`}
-                          />
-                          {errors[`cantidad_${index}`] && (
-                            <p className="text-red-500 text-sm mt-1">{errors[`cantidad_${index}`]}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={color.descuento_porcentaje}
-                            onChange={(e) => updateColor(index, 'descuento_porcentaje', parseFloat(e.target.value) || 0)}
-                            readOnly={isReadOnly}
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              errors[`descuento_${index}`] ? 'border-red-500' : 'border-gray-300'
-                            } ${isReadOnly ? 'bg-gray-50' : 'bg-white'}`}
-                          />
-                          {errors[`descuento_${index}`] && (
-                            <p className="text-red-500 text-sm mt-1">{errors[`descuento_${index}`]}</p>
-                          )}
-                        </div>
-
-                      </div>
-
-                      {/* Información de compra específica */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <h5 className="text-sm font-semibold text-blue-900 mb-3 flex items-center">
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Información de Compra Específica (Opcional)
-                        </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Precio Compra Individual
-                            </label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={color.precio_compra_individual || ''}
-                              onChange={(e) => updateColor(index, 'precio_compra_individual', e.target.value ? parseFloat(e.target.value) : undefined)}
-                              readOnly={isReadOnly}
-                              placeholder="Precio específico de este lote"
-                              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                isReadOnly ? 'bg-gray-50' : 'bg-white'
-                              }`}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              Si es diferente al precio base del modelo
-                            </p>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Tasa del Dólar
-                            </label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={color.tasa_dolar || ''}
-                              onChange={(e) => updateColor(index, 'tasa_dolar', e.target.value ? parseFloat(e.target.value) : undefined)}
-                              readOnly={isReadOnly}
-                              placeholder="Ej: 58.50"
-                              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                isReadOnly ? 'bg-gray-50' : 'bg-white'
-                              }`}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              Tasa al momento de la compra
-                            </p>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Fecha de Compra
-                            </label>
-                            <input
-                              type="date"
-                              value={color.fecha_compra || ''}
-                              onChange={(e) => updateColor(index, 'fecha_compra', e.target.value)}
-                              readOnly={isReadOnly}
-                              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                isReadOnly ? 'bg-gray-50' : 'bg-white'
-                              }`}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              Fecha de compra de este stock
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Cálculo de precio en pesos */}
-                        {color.precio_compra_individual && color.tasa_dolar && (
-                          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
-                            <div className="text-sm">
-                              <span className="text-green-700 font-medium">
-                                Precio en RD$: {(color.precio_compra_individual * color.tasa_dolar).toLocaleString('es-DO', {
-                                  style: 'currency',
-                                  currency: 'DOP',
-                                  minimumFractionDigits: 0
-                                })}
-                              </span>
-                              <span className="text-gray-500 text-xs ml-2">
-                                (${color.precio_compra_individual} × RD${color.tasa_dolar})
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Números de Chasis */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Números de Chasis *
-                          </label>
-                          {!isReadOnly && color.cantidad_stock > 1 && color.chasis[0]?.trim() && (
-                            <button
-                              type="button"
-                              onClick={() => applyChasisAutoFill(index)}
-                              className="flex items-center px-2 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
-                              title="Auto-completar chasis basado en el primer número"
-                            >
-                              <Wand2 className="h-3 w-3 mr-1" />
-                              Auto-completar
-                            </button>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 mb-2">
-                          Se requiere un número de chasis único para cada unidad ({color.cantidad_stock} unidades)
-                        </p>
-                        {color.chasis[0]?.trim() && color.cantidad_stock > 1 && (
-                          <div className="text-xs text-blue-600 mb-2 p-2 bg-blue-50 rounded border border-blue-200">
-                            💡 <strong>Tip:</strong> Ingresa el primer chasis completo y usa "Auto-completar" para generar los siguientes automáticamente
-                          </div>
-                        )}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {color.chasis.map((chasis, chasisIndex) => {
-                              const isFirstChasis = chasisIndex === 0;
-                              const pattern = isFirstChasis && chasis.trim() ? extractChasisPattern(chasis.trim()) : null;
-                              
-                              return (
-                                <div key={chasisIndex} className={isFirstChasis ? 'md:col-span-2 lg:col-span-3' : ''}>
-                                  {isFirstChasis && (
-                                    <label className="text-xs font-medium text-blue-600 mb-1 block">
-                                      Chasis Base (usado para generar los siguientes)
-                                    </label>
-                                  )}
-                                  <input
-                                    type="text"
-                                    value={chasis}
-                                    onChange={(e) => updateChasis(index, chasisIndex, e.target.value)}
-                                    readOnly={isReadOnly}
-                                    placeholder={isFirstChasis ? "Ej: TBLPCL4A02B002222" : `Chasis ${chasisIndex + 1}...`}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                      isReadOnly ? 'bg-gray-50' : 'bg-white'
-                                    } ${!chasis.trim() ? 'border-red-300 bg-red-50' : isFirstChasis ? 'border-blue-300 bg-blue-50' : 'border-gray-300'}`}
-                                  />
-                                  {pattern && (
-                                    <div className="text-xs text-green-600 mt-1">
-                                      ✅ Patrón detectado: <code className="bg-green-100 px-1 rounded">{pattern.prefix}</code> + números secuenciales
-                                    </div>
-                                  )}
-                                  {!chasis.trim() && (
-                                    <p className="text-red-500 text-xs mt-1">Chasis requerido</p>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {/* Errores de validación de chasis */}
-                          {errors[`chasis_${index}`] && (
-                            <p className="text-red-500 text-sm mt-2">{errors[`chasis_${index}`]}</p>
-                          )}
-                          {errors[`chasis_duplicados_${index}`] && (
-                            <p className="text-red-500 text-sm mt-2">{errors[`chasis_duplicados_${index}`]}</p>
-                          )}
-                      </div>
-
-                      {/* Precio con descuento */}
-                      {formData.precio_venta && color.descuento_porcentaje > 0 && (
-                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-green-700">Precio original:</span>
-                            <span className="text-green-700">{formatCurrency(Number(formData.precio_venta))}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm font-semibold">
-                            <span className="text-green-800">Precio con descuento ({color.descuento_porcentaje}%):</span>
-                            <span className="text-green-800">
-                              {formatCurrency(calculatePriceWithDiscount(Number(formData.precio_venta), color.descuento_porcentaje))}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
