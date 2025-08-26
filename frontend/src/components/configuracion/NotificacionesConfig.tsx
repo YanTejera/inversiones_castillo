@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { colors } from '../../styles/colors';
 
+// Get API base URL (same logic as api.ts)
+const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_URL || 
+    (window.location.hostname.includes('onrender.com') 
+      ? 'https://inversiones-castillo.onrender.com/api' 
+      : 'http://localhost:8000/api');
+};
+
 // Funciones de prueba para API
 const testNotificationAPI = async () => {
   const token = localStorage.getItem('token');
@@ -10,7 +18,7 @@ const testNotificationAPI = async () => {
   }
 
   try {
-    const response = await fetch('http://localhost:8000/api/notificaciones/resumen/', {
+    const response = await fetch(`${getApiBaseUrl()}/notificaciones/resumen/`, {
       method: 'GET',
       headers: {
         'Authorization': `Token ${token}`,
@@ -37,7 +45,7 @@ const createTestNotification = async () => {
   }
 
   try {
-    const response = await fetch('http://localhost:8000/api/notificaciones/crear-rapida/', {
+    const response = await fetch(`${getApiBaseUrl()}/notificaciones/crear-rapida/`, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${token}`,
@@ -80,7 +88,7 @@ const generateAlerts = async () => {
 
     let createdCount = 0;
     for (const notif of notifications) {
-      const response = await fetch('http://localhost:8000/api/notificaciones/crear-rapida/', {
+      const response = await fetch(`${getApiBaseUrl()}/notificaciones/crear-rapida/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -142,7 +150,7 @@ export default function NotificacionesConfig({ className = '' }: NotificacionesC
       }
 
       try {
-        const response = await fetch('http://localhost:8000/api/notificaciones/preferencias/', {
+        const response = await fetch(`${getApiBaseUrl()}/notificaciones/preferencias/`, {
           method: 'GET',
           headers: {
             'Authorization': `Token ${token}`,
@@ -236,7 +244,7 @@ export default function NotificacionesConfig({ className = '' }: NotificacionesC
 
   const savePreferences = async (preferencesToSave: typeof preferences, token: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/notificaciones/preferencias/', {
+      const response = await fetch(`${getApiBaseUrl()}/notificaciones/preferencias/`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Token ${token}`,

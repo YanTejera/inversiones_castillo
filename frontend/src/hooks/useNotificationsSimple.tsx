@@ -74,10 +74,19 @@ const getNotificationStyle = (tipo: string, prioridad: string) => {
   };
 };
 
+// Get API base URL (same logic as api.ts)
+const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_URL || 
+    (window.location.hostname.includes('onrender.com') 
+      ? 'https://inversiones-castillo.onrender.com/api' 
+      : 'http://localhost:8000/api');
+};
+
 // Función helper para hacer llamadas a la API
 const apiCall = async (url: string, options?: RequestInit) => {
   const token = localStorage.getItem('token');
-  const response = await fetch(`http://localhost:8000${url}`, {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}${url}`, {
     ...options,
     headers: {
       'Authorization': token ? `Token ${token}` : '',
