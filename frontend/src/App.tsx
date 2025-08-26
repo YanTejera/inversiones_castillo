@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { NotificationProvider } from './hooks/useNotificationsSimple';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -22,37 +23,39 @@ import Configuracion from './pages/Configuracion';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="motos" element={<Motocicletas />} />
-            <Route path="proveedores" element={<Proveedores />} />
-            <Route path="proveedores/dashboard" element={<ProveedorDashboardPage />} />
-            <Route path="proveedores/reportes" element={<ProveedorReportsPage />} />
-            <Route path="proveedores/nuevo" element={<ProveedorNuevo />} />
-            <Route path="proveedores/:id" element={<ProveedorDetalle />} />
-            <Route path="proveedores/:id/editar" element={<ProveedorEditar />} />
-            <Route path="clientes" element={<Clientes />} />
-            <Route path="ventas" element={<Ventas />} />
-            <Route path="pagos" element={<Pagos />} />
-            <Route path="cobros" element={<CobrosPendientes />} />
-            <Route path="documentos" element={<Documentos />} />
-            <Route path="reportes" element={<Reportes />} />
-            <Route path="configuracion" element={<Configuracion />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Router>
+      <NotificationProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="motos" element={<Motocicletas />} />
+              <Route path="proveedores" element={<Proveedores />} />
+              <Route path="proveedores/dashboard" element={<ProveedorDashboardPage />} />
+              <Route path="proveedores/reportes" element={<ProveedorReportsPage />} />
+              <Route path="proveedores/nuevo" element={<ProveedorNuevo />} />
+              <Route path="proveedores/:id" element={<ProveedorDetalle />} />
+              <Route path="proveedores/:id/editar" element={<ProveedorEditar />} />
+              <Route path="clientes" element={<Clientes />} />
+              <Route path="ventas" element={<Ventas />} />
+              <Route path="pagos" element={<Pagos />} />
+              <Route path="cobros" element={<CobrosPendientes />} />
+              <Route path="documentos" element={<Documentos />} />
+              <Route path="reportes" element={<Reportes />} />
+              <Route path="configuracion" element={<Configuracion />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Router>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import NotificacionesBell from './NotificacionesBell';
+import NotificationCenter from './notificaciones/NotificationCenter';
 import MobileNavigation from './MobileNavigation';
 import {
   Menu,
@@ -17,6 +17,7 @@ import {
   LogOut,
   Settings,
   Building,
+  Bell,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -177,7 +178,7 @@ const Layout: React.FC = () => {
               </span>
             </div>
             <div className="flex-shrink-0">
-              <NotificacionesBell />
+              <NotificationCenter />
             </div>
           </div>
         </header>
@@ -199,7 +200,7 @@ const Layout: React.FC = () => {
               <div className="text-sm text-gray-600">
                 Bienvenido, {user?.first_name} {user?.last_name}
               </div>
-              <NotificacionesBell />
+              <NotificationCenter />
             </div>
           </div>
         </header>

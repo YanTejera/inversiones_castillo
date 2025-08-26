@@ -25,6 +25,7 @@ import {
   ShoppingCart
 } from 'lucide-react';
 import { usuarioService, type Usuario, type Rol, type EstadisticasUsuarios } from '../services/usuarioService';
+import NotificacionesConfig from '../components/configuracion/NotificacionesConfig';
 
 const Configuracion: React.FC = () => {
   const [activeTab, setActiveTab] = useState('perfil');
@@ -169,6 +170,12 @@ const Configuracion: React.FC = () => {
       label: 'Estadísticas', 
       icon: BarChart3, 
       available: currentUser?.rol_info?.puede_ver_reportes || currentUser?.es_admin 
+    },
+    { 
+      id: 'notificaciones', 
+      label: 'Notificaciones', 
+      icon: Bell, 
+      available: true 
     },
   ].filter(tab => tab.available);
 
@@ -915,6 +922,13 @@ const Configuracion: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Notificaciones */}
+            {activeTab === 'notificaciones' && (
+              <div className="p-6">
+                <NotificacionesConfig />
               </div>
             )}
           </div>

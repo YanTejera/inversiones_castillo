@@ -199,13 +199,6 @@ const MotoModeloDetalle: React.FC<MotoModeloDetalleProps> = ({
                     <Package className="h-5 w-5 mr-2" />
                     Inventario por Color
                   </h3>
-                  <button
-                    onClick={() => setShowAddInventario(!showAddInventario)}
-                    className="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 flex items-center text-sm"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Agregar Stock
-                  </button>
                 </div>
 
                 {/* Formulario para agregar inventario */}

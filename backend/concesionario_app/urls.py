@@ -32,7 +32,8 @@ def api_root(request):
             'motos': '/api/motos/',
             'ventas': '/api/ventas/',
             'pagos': '/api/pagos/',
-            'reportes': '/api/reportes/'
+            'reportes': '/api/reportes/',
+            'notificaciones': '/api/notificaciones/'
         }
     })
 
@@ -71,6 +72,7 @@ urlpatterns = [
     path('api/ventas/', include('ventas.urls')),
     path('api/pagos/', include('pagos.urls')),
     path('api/reportes/', include('reportes.urls')),
+    path('api/notificaciones/', include('notificaciones.urls')),
 ]
 
 # Catch-all pattern for frontend SPA routes (before static files)

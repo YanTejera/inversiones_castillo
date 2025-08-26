@@ -4,12 +4,15 @@ export const colors = {
   // Fondos
   background: {
     primary: 'bg-white',
+    primaryHover: 'bg-slate-50',
     secondary: 'bg-slate-50', // Más contrastado que gray-50
     tertiary: 'bg-slate-100', // Para tarjetas internas
     accent: 'bg-blue-50',
+    accentHover: 'bg-blue-100',
     success: 'bg-emerald-50',
     warning: 'bg-amber-50',
-    danger: 'bg-red-50'
+    danger: 'bg-red-50',
+    surface: 'bg-white' // Para dropdowns y modales
   },
   
   // Bordes más definidos y visibles
@@ -35,9 +38,12 @@ export const colors = {
   text: {
     primary: 'text-slate-900', // Negro más suave
     secondary: 'text-slate-700', // Gris medio con buen contraste
+    tertiary: 'text-slate-500', // Para texto terciario
     muted: 'text-slate-500', // Para texto secundario
     light: 'text-slate-400', // Para placeholders
+    white: 'text-white', // Texto blanco
     accent: 'text-blue-700',
+    accentHover: 'text-blue-800',
     success: 'text-emerald-700',
     warning: 'text-amber-700',
     danger: 'text-red-700'
