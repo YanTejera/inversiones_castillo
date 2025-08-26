@@ -114,7 +114,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiCall('/api/notificaciones/');
+      const response = await apiCall('/notificaciones/');
       setNotificaciones(response.results || []);
     } catch (err: any) {
       setError(err.message || 'Error al cargar notificaciones');
@@ -128,7 +128,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Cargar resumen
   const cargarResumen = useCallback(async () => {
     try {
-      const resumenData = await apiCall('/api/notificaciones/resumen/');
+      const resumenData = await apiCall('/notificaciones/resumen/');
       setResumen(resumenData);
     } catch (err: any) {
       console.error('Error cargando resumen:', err);
@@ -146,7 +146,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Marcar como leída
   const marcarComoLeida = useCallback(async (ids: number[]) => {
     try {
-      await apiCall('/api/notificaciones/marcar-leida/', {
+      await apiCall('/notificaciones/marcar-leida/', {
         method: 'POST',
         body: JSON.stringify({ notificacion_ids: ids }),
       });
@@ -177,7 +177,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Marcar todas como leídas
   const marcarTodasComoLeidas = useCallback(async () => {
     try {
-      await apiCall('/api/notificaciones/marcar-todas-leidas/', {
+      await apiCall('/notificaciones/marcar-todas-leidas/', {
         method: 'POST',
       });
       
@@ -207,7 +207,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     prioridad: string = 'media'
   ) => {
     try {
-      const nuevaNotificacion = await apiCall('/api/notificaciones/crear-rapida/', {
+      const nuevaNotificacion = await apiCall('/notificaciones/crear-rapida/', {
         method: 'POST',
         body: JSON.stringify({ titulo, mensaje, tipo, prioridad }),
       });
@@ -227,7 +227,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // Eliminar notificación
   const eliminarNotificacion = useCallback(async (id: number) => {
     try {
-      await apiCall(`/api/notificaciones/${id}/`, {
+      await apiCall(`/notificaciones/${id}/`, {
         method: 'DELETE',
       });
       
