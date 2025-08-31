@@ -1,6 +1,6 @@
-# 🏍️ Inversiones Castillo - Información de Desarrollo
+# [MOTO] Inversiones Castillo - Información de Desarrollo
 
-## 🚀 Inicio Rápido
+## [START] Inicio Rápido
 
 ### Windows
 ```bash
@@ -23,7 +23,7 @@ python start_server.py
 python manage.py runserver
 ```
 
-## 🌐 Enlaces de Producción
+## [WEB] Enlaces de Producción
 
 | Servicio | URL |
 |----------|-----|
@@ -32,13 +32,13 @@ python manage.py runserver
 | **Admin Panel** | https://inversiones-castillo-backend.onrender.com/admin/ |
 | **API Docs** | https://inversiones-castillo-backend.onrender.com/api/ |
 
-## 🔐 Credenciales de Producción
+## [AUTH] Credenciales de Producción
 
 - **Usuario:** `admin`
 - **Contraseña:** `admin123`
 - **Email:** `admin@inversionescastillo.com`
 
-## 🔧 Enlaces Locales (Desarrollo)
+## [LOCAL] Enlaces Locales (Desarrollo)
 
 | Servicio | URL |
 |----------|-----|
@@ -47,7 +47,7 @@ python manage.py runserver
 | **Admin Panel** | http://localhost:8000/admin/ |
 | **API** | http://localhost:8000/api/ |
 
-## 💡 Comandos Útiles
+## [TIPS] Comandos Útiles
 
 ```bash
 # Mostrar información de producción
@@ -87,7 +87,7 @@ python manage.py runserver_with_info --no-info
 - **Backend:** Django + Django REST Framework
 - **Autenticación:** JWT + Session Authentication
 
-## 🔄 Flujo de Desarrollo
+## [FLOW] Flujo de Desarrollo
 
 1. **Iniciar servidor local:**
    ```bash
@@ -141,4 +141,4 @@ python manage.py migrate
 
 ---
 
-💡 **Tip:** Ejecuta `python manage.py show_production_info` en cualquier momento para ver esta información.
+[TIP] **Tip:** Ejecuta `python manage.py show_production_info` en cualquier momento para ver esta información.

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import Usuario, Rol, Cliente, Fiador, Documento
+from .models import Usuario, Rol, Cliente, Fiador, Documento, PermisoGranular, RolPermiso
 
 class RolSerializer(serializers.ModelSerializer):
     nombre_rol_display = serializers.CharField(source='get_nombre_rol_display', read_only=True)
@@ -108,23 +108,12 @@ class ClienteSerializer(serializers.ModelSerializer):
     documentos = DocumentoSerializer(many=True, read_only=True)
     nombre_completo = serializers.CharField(read_only=True)
     
-    # Campos calculados para estado de pagos
-    estado_pago = serializers.SerializerMethodField()
-    dias_atraso = serializers.SerializerMethodField()
-    saldo_total_pendiente = serializers.SerializerMethodField()
-    cuota_actual = serializers.SerializerMethodField()
-    proximo_pago = serializers.SerializerMethodField()
-    total_cuotas_vencidas = serializers.SerializerMethodField()
-    ventas_activas = serializers.SerializerMethodField()
-    
     class Meta:
         model = Cliente
         fields = ['id', 'nombre', 'apellido', 'direccion', 'ciudad', 'pais', 
                  'cedula', 'telefono', 'celular', 'email', 'estado_civil', 
                  'fecha_nacimiento', 'ocupacion', 'ingresos', 'referencias_personales',
-                 'foto_perfil', 'fecha_registro', 'nombre_completo', 'fiador', 'documentos',
-                 'estado_pago', 'dias_atraso', 'saldo_total_pendiente', 'cuota_actual',
-                 'proximo_pago', 'total_cuotas_vencidas', 'ventas_activas']
+                 'foto_perfil', 'fecha_registro', 'nombre_completo', 'fiador', 'documentos']
     
     def get_estado_pago(self, obj):
         """Calcula el estado de pago del cliente basado en cuotas vencidas"""
@@ -263,7 +252,7 @@ class ClienteSerializer(serializers.ModelSerializer):
             from django.conf import settings
             
             imagen_url = str(instance.foto_perfil)
-            print(f"📸 [Cliente] DEBUG={settings.DEBUG}, Foto original: {imagen_url}")
+            print(f"[IMG] [Cliente] DEBUG={settings.DEBUG}, Foto original: {imagen_url}")
             
             if settings.DEBUG:
                 base_url = 'http://localhost:8000'
@@ -272,6 +261,147 @@ class ClienteSerializer(serializers.ModelSerializer):
                 full_url = f"{settings.MEDIA_URL}{imagen_url}"
             
             representation['foto_perfil'] = full_url
-            print(f"📸 [Cliente] URL final: {full_url}")
+            print(f"[IMG] [Cliente] URL final: {full_url}")
         
         return representation
+
+class ClienteDetalleSerializer(ClienteSerializer):
+    """Serializer extendido para detalles completos del cliente incluyendo ventas y pagos"""
+    
+    # Campos calculados para estado de pagos
+    estado_pago = serializers.SerializerMethodField()
+    dias_atraso = serializers.SerializerMethodField()
+    saldo_total_pendiente = serializers.SerializerMethodField()
+    cuota_actual = serializers.SerializerMethodField()
+    proximo_pago = serializers.SerializerMethodField()
+    total_cuotas_vencidas = serializers.SerializerMethodField()
+    ventas_activas = serializers.SerializerMethodField()
+    
+    class Meta(ClienteSerializer.Meta):
+        fields = ClienteSerializer.Meta.fields + [
+            'estado_pago', 'dias_atraso', 'saldo_total_pendiente', 'cuota_actual',
+            'proximo_pago', 'total_cuotas_vencidas', 'ventas_activas'
+        ]
+
+# ===== SERIALIZERS DE PERMISOS GRANULARES =====
+
+class PermisoGranularSerializer(serializers.ModelSerializer):
+    """Serializer para permisos granulares"""
+    categoria_display = serializers.CharField(source='get_categoria_display', read_only=True)
+    
+    class Meta:
+        model = PermisoGranular
+        fields = ['id', 'codigo', 'nombre', 'descripcion', 'categoria', 'categoria_display', 
+                 'es_critico', 'activo', 'fecha_creacion']
+        read_only_fields = ['fecha_creacion']
+
+class RolPermisoSerializer(serializers.ModelSerializer):
+    """Serializer para la relación rol-permiso"""
+    permiso_info = PermisoGranularSerializer(source='permiso', read_only=True)
+    concedido_por_info = serializers.CharField(source='concedido_por.nombre_completo', read_only=True)
+    
+    class Meta:
+        model = RolPermiso
+        fields = ['id', 'rol', 'permiso', 'permiso_info', 'concedido_por', 'concedido_por_info', 
+                 'fecha_asignacion', 'activo']
+        read_only_fields = ['fecha_asignacion']
+
+class RolConPermisosSerializer(serializers.ModelSerializer):
+    """Serializer extendido para roles con sus permisos granulares"""
+    nombre_rol_display = serializers.CharField(source='get_nombre_rol_display', read_only=True)
+    permisos_granulares = RolPermisoSerializer(many=True, read_only=True)
+    permisos_activos = serializers.SerializerMethodField()
+    total_permisos = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Rol
+        fields = ['id', 'nombre_rol', 'nombre_rol_display', 'descripcion', 
+                 'puede_gestionar_usuarios', 'puede_ver_reportes', 'puede_gestionar_motos',
+                 'puede_crear_ventas', 'puede_gestionar_pagos', 'puede_ver_finanzas',
+                 'puede_configurar_sistema', 'permisos_granulares', 'permisos_activos', 'total_permisos']
+    
+    def get_permisos_activos(self, obj):
+        """Obtiene solo los permisos activos del rol"""
+        return obj.permisos_granulares.filter(
+            permiso__activo=True, 
+            activo=True
+        ).count()
+    
+    def get_total_permisos(self, obj):
+        """Obtiene el total de permisos del rol"""
+        return obj.permisos_granulares.count()
+
+class UsuarioConPermisosSerializer(serializers.ModelSerializer):
+    """Serializer extendido para usuarios con información de permisos"""
+    rol_info = RolConPermisosSerializer(source='rol', read_only=True)
+    nombre_completo = serializers.CharField(read_only=True)
+    es_master = serializers.BooleanField(read_only=True)
+    es_admin = serializers.BooleanField(read_only=True)
+    permisos_usuario = serializers.SerializerMethodField()
+    permisos_por_categoria = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Usuario
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'nombre_completo',
+                 'telefono', 'rol', 'rol_info', 'estado', 'fecha_creacion', 'ultimo_acceso',
+                 'foto_perfil', 'tema_oscuro', 'notificaciones_email', 'idioma', 
+                 'es_master', 'es_admin', 'permisos_usuario', 'permisos_por_categoria']
+    
+    def get_permisos_usuario(self, obj):
+        """Obtiene la lista de códigos de permisos del usuario"""
+        return obj.obtener_permisos()
+    
+    def get_permisos_por_categoria(self, obj):
+        """Obtiene los permisos organizados por categoría"""
+        return obj.obtener_permisos_por_categoria()
+
+class AsignarPermisoSerializer(serializers.Serializer):
+    """Serializer para asignar permisos a un rol"""
+    rol_id = serializers.IntegerField()
+    permiso_id = serializers.IntegerField()
+    activo = serializers.BooleanField(default=True)
+    
+    def validate_rol_id(self, value):
+        try:
+            rol = Rol.objects.get(id=value)
+            return value
+        except Rol.DoesNotExist:
+            raise serializers.ValidationError("Rol no encontrado")
+    
+    def validate_permiso_id(self, value):
+        try:
+            permiso = PermisoGranular.objects.get(id=value)
+            if not permiso.activo:
+                raise serializers.ValidationError("El permiso no está activo")
+            return value
+        except PermisoGranular.DoesNotExist:
+            raise serializers.ValidationError("Permiso no encontrado")
+    
+    def save(self):
+        rol = Rol.objects.get(id=self.validated_data['rol_id'])
+        permiso = PermisoGranular.objects.get(id=self.validated_data['permiso_id'])
+        
+        rol_permiso, created = RolPermiso.objects.get_or_create(
+            rol=rol,
+            permiso=permiso,
+            defaults={
+                'activo': self.validated_data['activo'],
+                'concedido_por': self.context['request'].user
+            }
+        )
+        
+        if not created:
+            # Si ya existe, actualizar solo el estado activo
+            rol_permiso.activo = self.validated_data['activo']
+            rol_permiso.concedido_por = self.context['request'].user
+            rol_permiso.save()
+        
+        return rol_permiso
+
+class PermisosUsuarioResponseSerializer(serializers.Serializer):
+    """Serializer para la respuesta de permisos de usuario (para el frontend)"""
+    permisos = serializers.ListField(child=serializers.CharField())
+    permisos_por_categoria = serializers.DictField()
+    rol = serializers.CharField()
+    es_master = serializers.BooleanField()
+    es_admin = serializers.BooleanField()

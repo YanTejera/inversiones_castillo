@@ -12,10 +12,10 @@ def show_startup_info():
     except ImportError:
         # Si no se puede importar, mostrar información básica
         print("\n" + "="*60)
-        print("🏍️  INVERSIONES CASTILLO - SERVIDOR INICIADO")
+        print("[MOTO] INVERSIONES CASTILLO - SERVIDOR INICIADO")
         print("="*60)
-        print("🌐 Producción: https://inversiones-castillo-frontend.vercel.app")
-        print("🔐 Admin: admin/admin123")
+        print("[WEB] Producción: https://inversiones-castillo-frontend.vercel.app")
+        print("[ADMIN] Admin: admin/admin123")
         print("="*60 + "\n")
 
 

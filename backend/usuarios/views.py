@@ -6,11 +6,13 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import login
 from django.db import models
 from django.shortcuts import get_object_or_404
-from .models import Usuario, Rol, Cliente, Fiador, Documento
+from .models import Usuario, Rol, Cliente, Fiador, Documento, PermisoGranular, RolPermiso
 from .serializers import (
     UsuarioSerializer, UsuarioUpdateSerializer, CambiarPasswordSerializer,
     RolSerializer, LoginSerializer, 
-    ClienteSerializer, FiadorSerializer, DocumentoSerializer
+    ClienteSerializer, ClienteDetalleSerializer, FiadorSerializer, DocumentoSerializer,
+    PermisoGranularSerializer, RolPermisoSerializer, RolConPermisosSerializer,
+    UsuarioConPermisosSerializer, AsignarPermisoSerializer, PermisosUsuarioResponseSerializer
 )
 
 class LoginView(generics.GenericAPIView):
@@ -26,7 +28,9 @@ class LoginView(generics.GenericAPIView):
         
         return Response({
             'token': token.key,
-            'user': UsuarioSerializer(user).data
+            'user': UsuarioSerializer(user).data,
+            'permisos': user.obtener_permisos(),
+            'permisos_por_categoria': user.obtener_permisos_por_categoria()
         })
 
 @api_view(['POST'])
@@ -75,7 +79,7 @@ class ClienteListCreateView(generics.ListCreateAPIView):
 
 class ClienteDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Cliente.objects.all()
-    serializer_class = ClienteSerializer
+    serializer_class = ClienteDetalleSerializer
 
 class FiadorListCreateView(generics.ListCreateAPIView):
     queryset = Fiador.objects.all()
@@ -273,4 +277,162 @@ class ConfiguracionSistemaView(APIView):
                 'notificaciones_disponibles': True,
                 'cambio_idioma_disponible': True
             }
+        })
+
+# ===== VISTAS DE PERMISOS GRANULARES =====
+
+class PermisosGranularesListView(generics.ListAPIView):
+    """Vista para listar todos los permisos granulares"""
+    queryset = PermisoGranular.objects.filter(activo=True).order_by('categoria', 'nombre')
+    serializer_class = PermisoGranularSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # Solo usuarios con permiso pueden ver la lista completa
+        if not (self.request.user.es_master or self.request.user.tiene_permiso('usuarios.view_usuarios')):
+            return PermisoGranular.objects.none()
+        
+        queryset = super().get_queryset()
+        categoria = self.request.query_params.get('categoria', None)
+        if categoria:
+            queryset = queryset.filter(categoria=categoria)
+        return queryset
+
+class RolesConPermisosView(generics.ListAPIView):
+    """Vista para listar roles con sus permisos granulares"""
+    queryset = Rol.objects.all()
+    serializer_class = RolConPermisosSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        if not (self.request.user.es_master or self.request.user.tiene_permiso('usuarios.manage_permissions')):
+            return Rol.objects.none()
+        return super().get_queryset()
+
+class RolPermisosDetailView(APIView):
+    """Vista para obtener/modificar permisos de un rol específico"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, rol_id):
+        if not (request.user.es_master or request.user.tiene_permiso('usuarios.manage_permissions')):
+            return Response({'error': 'No tiene permisos para gestionar permisos'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
+        rol = get_object_or_404(Rol, id=rol_id)
+        serializer = RolConPermisosSerializer(rol)
+        return Response(serializer.data)
+
+class AsignarPermisoView(APIView):
+    """Vista para asignar/desasignar permisos a roles"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        if not (request.user.es_master or request.user.tiene_permiso('usuarios.manage_permissions')):
+            return Response({'error': 'No tiene permisos para asignar permisos'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = AsignarPermisoSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            rol_permiso = serializer.save()
+            return Response(RolPermisoSerializer(rol_permiso).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request):
+        if not (request.user.es_master or request.user.tiene_permiso('usuarios.manage_permissions')):
+            return Response({'error': 'No tiene permisos para remover permisos'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
+        rol_id = request.data.get('rol_id')
+        permiso_id = request.data.get('permiso_id')
+        
+        if not rol_id or not permiso_id:
+            return Response({'error': 'rol_id y permiso_id son requeridos'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            rol_permiso = RolPermiso.objects.get(rol_id=rol_id, permiso_id=permiso_id)
+            rol_permiso.delete()
+            return Response({'message': 'Permiso removido exitosamente'})
+        except RolPermiso.DoesNotExist:
+            return Response({'error': 'Relación rol-permiso no encontrada'}, 
+                          status=status.HTTP_404_NOT_FOUND)
+
+class PermisosUsuarioView(APIView):
+    """Vista para obtener los permisos del usuario actual"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        data = {
+            'permisos': user.obtener_permisos(),
+            'permisos_por_categoria': user.obtener_permisos_por_categoria(),
+            'rol': user.rol.get_nombre_rol_display(),
+            'es_master': user.es_master,
+            'es_admin': user.es_admin,
+        }
+        
+        serializer = PermisosUsuarioResponseSerializer(data)
+        return Response(serializer.data)
+
+class UsuariosConPermisosView(generics.ListAPIView):
+    """Vista para listar usuarios con información detallada de permisos"""
+    queryset = Usuario.objects.select_related('rol').filter(estado=True)
+    serializer_class = UsuarioConPermisosSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        if not self.request.user.tiene_permiso('usuarios.view_usuarios'):
+            return Usuario.objects.none()
+        return super().get_queryset()
+
+class ValidarPermisoView(APIView):
+    """Vista para validar si un usuario tiene un permiso específico"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        codigo_permiso = request.data.get('codigo_permiso')
+        if not codigo_permiso:
+            return Response({'error': 'codigo_permiso es requerido'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        tiene_permiso = request.user.tiene_permiso(codigo_permiso)
+        return Response({
+            'codigo_permiso': codigo_permiso,
+            'tiene_permiso': tiene_permiso,
+            'usuario': request.user.username,
+            'rol': request.user.rol.get_nombre_rol_display()
+        })
+
+class EstadisticasPermisosView(APIView):
+    """Vista para obtener estadísticas de permisos del sistema"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        if not (request.user.es_master or request.user.tiene_permiso('usuarios.manage_permissions')):
+            return Response({'error': 'No tiene permisos para ver estadísticas de permisos'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
+        total_permisos = PermisoGranular.objects.filter(activo=True).count()
+        permisos_criticos = PermisoGranular.objects.filter(activo=True, es_critico=True).count()
+        
+        permisos_por_categoria = {}
+        for categoria, label in PermisoGranular.CATEGORIA_CHOICES:
+            count = PermisoGranular.objects.filter(categoria=categoria, activo=True).count()
+            permisos_por_categoria[label] = count
+        
+        roles_stats = []
+        for rol in Rol.objects.all():
+            permisos_asignados = rol.permisos_granulares.filter(permiso__activo=True, activo=True).count()
+            usuarios_con_rol = Usuario.objects.filter(rol=rol, estado=True).count()
+            roles_stats.append({
+                'rol': rol.get_nombre_rol_display(),
+                'permisos_asignados': permisos_asignados,
+                'usuarios_activos': usuarios_con_rol
+            })
+        
+        return Response({
+            'total_permisos': total_permisos,
+            'permisos_criticos': permisos_criticos,
+            'permisos_por_categoria': permisos_por_categoria,
+            'roles_estadisticas': roles_stats
         })

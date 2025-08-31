@@ -42,7 +42,7 @@ LOGGING = {
 
 # Configuración específica para plan gratuito
 if config('USE_SQLITE', default=False, cast=bool):
-    print("🆓 Running on FREE plan with SQLite!")
+    print("[FREE] Running on FREE plan with SQLite!")
     
     # Crear directorio para SQLite si no existe
     os.makedirs(BASE_DIR / 'db_data', exist_ok=True)

@@ -437,3 +437,136 @@ class TestImageView(APIView):
                 {'error': 'Modelo no encontrado'}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class AnalyticsAvanzadosView(APIView):
+    """Vista para métricas avanzadas de inventario"""
+    
+    def get(self, request):
+        try:
+            from django.db.models import Sum, Count, Avg, F, Q
+            from ventas.models import VentaDetalle
+            from datetime import datetime, timedelta
+            
+            # Obtener todos los modelos con inventario
+            modelos = MotoModelo.objects.filter(activa=True).prefetch_related('inventario')
+            
+            # 1. ANÁLISIS ABC - Basado en valor de inventario
+            modelos_con_valor = []
+            valor_total_inventario = 0
+            
+            for modelo in modelos:
+                stock_total = sum(item.cantidad_stock for item in modelo.inventario.all())
+                valor_inventario = float(modelo.precio_venta) * stock_total
+                valor_total_inventario += valor_inventario
+                
+                if stock_total > 0:  # Solo incluir modelos con stock
+                    modelos_con_valor.append({
+                        'modelo': modelo,
+                        'stock_total': stock_total,
+                        'valor_inventario': valor_inventario,
+                        'precio_unitario': float(modelo.precio_venta)
+                    })
+            
+            # Ordenar por valor de inventario descendente
+            modelos_con_valor.sort(key=lambda x: x['valor_inventario'], reverse=True)
+            
+            # Calcular clasificación ABC
+            abc_analysis = {'A': [], 'B': [], 'C': []}
+            valor_acumulado = 0
+            
+            for item in modelos_con_valor:
+                porcentaje_acumulado = (valor_acumulado + item['valor_inventario']) / valor_total_inventario * 100
+                
+                if porcentaje_acumulado <= 80:  # A: 80% del valor
+                    categoria = 'A'
+                elif porcentaje_acumulado <= 95:  # B: siguiente 15%
+                    categoria = 'B'
+                else:  # C: último 5%
+                    categoria = 'C'
+                
+                abc_analysis[categoria].append({
+                    'modelo_id': item['modelo'].id,
+                    'nombre': f"{item['modelo'].marca} {item['modelo'].modelo}",
+                    'stock': item['stock_total'],
+                    'valor_inventario': item['valor_inventario'],
+                    'porcentaje_valor': item['valor_inventario'] / valor_total_inventario * 100
+                })
+                
+                valor_acumulado += item['valor_inventario']
+            
+            # 2. MÉTRICAS DE ROTACIÓN
+            fecha_inicio = datetime.now() - timedelta(days=365)
+            
+            metricas_rotacion = []
+            for modelo in modelos:
+                ventas_ano = VentaDetalle.objects.filter(
+                    moto__marca=modelo.marca,
+                    moto__modelo=modelo.modelo,
+                    venta__fecha_venta__gte=fecha_inicio
+                ).aggregate(
+                    total_vendido=Sum('cantidad') or 0,
+                    ingresos_total=Sum(F('precio_unitario') * F('cantidad'))
+                )
+                
+                stock_actual = sum(item.cantidad_stock for item in modelo.inventario.all())
+                stock_promedio = (stock_actual + (ventas_ano['total_vendido'] or 0)) / 2
+                
+                rotacion_anual = (ventas_ano['total_vendido'] or 0) / stock_promedio if stock_promedio > 0 else 0
+                dias_promedio_venta = 365 / rotacion_anual if rotacion_anual > 0 else 0
+                
+                if rotacion_anual >= 6:
+                    eficiencia = 'alta'
+                elif rotacion_anual >= 2:
+                    eficiencia = 'media'
+                else:
+                    eficiencia = 'baja'
+                
+                if stock_actual > 0 or (ventas_ano['total_vendido'] or 0) > 0:
+                    metricas_rotacion.append({
+                        'modelo_id': modelo.id,
+                        'nombre': f"{modelo.marca} {modelo.modelo}",
+                        'stock_actual': stock_actual,
+                        'ventas_ano': ventas_ano['total_vendido'] or 0,
+                        'rotacion_anual': round(rotacion_anual, 2),
+                        'dias_promedio_venta': round(dias_promedio_venta, 1),
+                        'eficiencia': eficiencia,
+                        'ingresos_ano': float(ventas_ano['ingresos_total'] or 0)
+                    })
+            
+            total_modelos_activos = len([m for m in modelos_con_valor if m['stock_total'] > 0])
+            stock_total_unidades = sum(m['stock_total'] for m in modelos_con_valor)
+            
+            return Response({
+                'abc_analysis': {
+                    'categoria_a': {
+                        'modelos': abc_analysis['A'],
+                        'cantidad_modelos': len(abc_analysis['A']),
+                        'porcentaje_modelos': len(abc_analysis['A']) / total_modelos_activos * 100 if total_modelos_activos > 0 else 0
+                    },
+                    'categoria_b': {
+                        'modelos': abc_analysis['B'],
+                        'cantidad_modelos': len(abc_analysis['B']),
+                        'porcentaje_modelos': len(abc_analysis['B']) / total_modelos_activos * 100 if total_modelos_activos > 0 else 0
+                    },
+                    'categoria_c': {
+                        'modelos': abc_analysis['C'],
+                        'cantidad_modelos': len(abc_analysis['C']),
+                        'porcentaje_modelos': len(abc_analysis['C']) / total_modelos_activos * 100 if total_modelos_activos > 0 else 0
+                    }
+                },
+                'rotacion_inventario': sorted(metricas_rotacion, key=lambda x: x['rotacion_anual'], reverse=True),
+                'metricas_generales': {
+                    'valor_total_inventario': valor_total_inventario,
+                    'total_modelos_activos': total_modelos_activos,
+                    'stock_total_unidades': stock_total_unidades,
+                    'rotacion_promedio': sum(m['rotacion_anual'] for m in metricas_rotacion) / len(metricas_rotacion) if metricas_rotacion else 0,
+                    'valor_promedio_por_unidad': valor_total_inventario / stock_total_unidades if stock_total_unidades > 0 else 0
+                }
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Error al generar analytics: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

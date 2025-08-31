@@ -46,4 +46,21 @@ urlpatterns = [
     
     # Configuración del sistema
     path('configuracion/', views.ConfiguracionSistemaView.as_view(), name='configuracion-sistema'),
+    
+    # ===== RUTAS DE PERMISOS GRANULARES =====
+    # Permisos granulares
+    path('permisos/', views.PermisosGranularesListView.as_view(), name='permisos-list'),
+    path('permisos/usuario/', views.PermisosUsuarioView.as_view(), name='permisos-usuario'),
+    path('permisos/validar/', views.ValidarPermisoView.as_view(), name='validar-permiso'),
+    path('permisos/estadisticas/', views.EstadisticasPermisosView.as_view(), name='estadisticas-permisos'),
+    
+    # Roles con permisos
+    path('roles-permisos/', views.RolesConPermisosView.as_view(), name='roles-permisos'),
+    path('roles-permisos/<int:rol_id>/', views.RolPermisosDetailView.as_view(), name='rol-permisos-detail'),
+    
+    # Gestión de permisos
+    path('asignar-permiso/', views.AsignarPermisoView.as_view(), name='asignar-permiso'),
+    
+    # Usuarios con permisos detallados
+    path('usuarios-permisos/', views.UsuariosConPermisosView.as_view(), name='usuarios-permisos'),
 ]

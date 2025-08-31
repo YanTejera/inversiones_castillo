@@ -98,7 +98,7 @@ def crear_notificacion_cliente_nuevo(sender, instance, created, **kwargs):
             datos_adicionales={
                 'cliente_id': instance.id,
                 'nombre_completo': f'{instance.nombre} {instance.apellido}',
-                'documento': instance.documento
+                'cedula': instance.cedula
             }
         )
 

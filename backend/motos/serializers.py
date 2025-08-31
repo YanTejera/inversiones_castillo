@@ -1,5 +1,10 @@
 from rest_framework import serializers
-from .models import Moto, MotoModelo, MotoInventario, Proveedor
+from .models import (
+    Moto, MotoModelo, MotoInventario, Proveedor,
+    FacturaProveedor, PagoProveedor, OrdenCompra, DetalleOrdenCompra,
+    Almacen, Zona, Pasillo, Ubicacion, 
+    MovimientoInventario, MotoInventarioLocation
+)
 
 class MotoSerializer(serializers.ModelSerializer):
     ganancia = serializers.ReadOnlyField()
@@ -21,7 +26,7 @@ class MotoSerializer(serializers.ModelSerializer):
             from django.conf import settings
             
             imagen_url = str(instance.imagen)
-            print(f"🖼️ [Moto] DEBUG={settings.DEBUG}, Imagen original: {imagen_url}")
+            print(f"[IMG] [Moto] DEBUG={settings.DEBUG}, Imagen original: {imagen_url}")
             
             if settings.DEBUG:
                 base_url = 'http://localhost:8000'
@@ -30,7 +35,7 @@ class MotoSerializer(serializers.ModelSerializer):
                 full_url = f"{settings.MEDIA_URL}{imagen_url}"
             
             representation['imagen'] = full_url
-            print(f"🖼️ [Moto] URL final: {full_url}")
+            print(f"[IMG] [Moto] URL final: {full_url}")
         
         return representation
 
@@ -95,8 +100,8 @@ class MotoModeloSerializer(serializers.ModelSerializer):
             from django.conf import settings
             
             imagen_url = str(instance.imagen)
-            print(f"🖼️ [MotoModelo] DEBUG={settings.DEBUG}, Imagen original: {imagen_url}")
-            print(f"🖼️ [MotoModelo] MEDIA_URL={settings.MEDIA_URL}")
+            print(f"[IMG] [MotoModelo] DEBUG={settings.DEBUG}, Imagen original: {imagen_url}")
+            print(f"[IMG] [MotoModelo] MEDIA_URL={settings.MEDIA_URL}")
             
             # Usar la configuración de Django para generar la URL
             if settings.DEBUG:
@@ -107,7 +112,7 @@ class MotoModeloSerializer(serializers.ModelSerializer):
                 full_url = f"{settings.MEDIA_URL}{imagen_url}"
             
             representation['imagen'] = full_url
-            print(f"🖼️ [MotoModelo] URL final: {full_url}")
+            print(f"[IMG] [MotoModelo] URL final: {full_url}")
         
         # Agregar resumen de colores disponibles
         inventario_resumen = {}
@@ -247,12 +252,12 @@ class MotoModeloCreateSerializer(serializers.ModelSerializer):
         import logging
         
         logger = logging.getLogger(__name__)
-        print(f"🔄 UPDATING MODEL {instance.id} with validated_data: {validated_data}")
+        print(f"[UPDATE] UPDATING MODEL {instance.id} with validated_data: {validated_data}")
         logger.debug(f"Updating model {instance.id} with validated_data: {validated_data}")
         
         # Extraer inventario_data antes de actualizar el modelo
         inventario_data_str = validated_data.pop('inventario_data', None)
-        print(f"📦 INVENTARIO DATA STRING: {inventario_data_str}")
+        print(f"[INV] INVENTARIO DATA STRING: {inventario_data_str}")
         logger.debug(f"Inventario data string: {inventario_data_str}")
         
         # Actualizar campos básicos del modelo
@@ -309,7 +314,7 @@ class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedor
         fields = [
-            'id', 'nombre', 'nombre_comercial', 'tipo_proveedor', 'ruc', 'cedula', 
+            'id', 'nombre', 'nombre_comercial', 'tipo_proveedor', 'rnc', 'cedula', 
             'registro_mercantil', 'telefono', 'telefono2', 'email', 'sitio_web',
             'direccion', 'ciudad', 'provincia', 'pais', 'codigo_postal',
             'persona_contacto', 'cargo_contacto', 'telefono_contacto', 'email_contacto',
@@ -330,7 +335,7 @@ class ProveedorCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedor
         fields = [
-            'nombre', 'nombre_comercial', 'tipo_proveedor', 'ruc', 'cedula',
+            'nombre', 'nombre_comercial', 'tipo_proveedor', 'rnc', 'cedula',
             'registro_mercantil', 'telefono', 'telefono2', 'email', 'sitio_web',
             'direccion', 'ciudad', 'provincia', 'pais', 'codigo_postal',
             'persona_contacto', 'cargo_contacto', 'telefono_contacto', 'email_contacto',
@@ -339,10 +344,10 @@ class ProveedorCreateSerializer(serializers.ModelSerializer):
         ]
     
     def validate(self, data):
-        # Validar que al menos RUC o cédula esté presente
-        if not data.get('ruc') and not data.get('cedula'):
+        # Validar que al menos RNC o cédula esté presente
+        if not data.get('rnc') and not data.get('cedula'):
             raise serializers.ValidationError({
-                'non_field_errors': ['Debe proporcionar al menos RUC o cédula del proveedor.']
+                'non_field_errors': ['Debe proporcionar al menos RNC o cédula del proveedor.']
             })
         
         # Validar que la dirección esté presente
@@ -378,3 +383,270 @@ class ProveedorListSerializer(serializers.ModelSerializer):
     
     def get_total_motocicletas(self, obj):
         return obj.total_motocicletas()
+
+
+# ===== SERIALIZERS DE CONTABILIDAD =====
+
+class FacturaProveedorSerializer(serializers.ModelSerializer):
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre_completo', read_only=True)
+    dias_vencimiento = serializers.ReadOnlyField()
+    esta_vencida = serializers.ReadOnlyField()
+    monto_pendiente = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = FacturaProveedor
+        fields = [
+            'id', 'proveedor', 'proveedor_nombre', 'numero_factura', 'tipo_factura',
+            'fecha_emision', 'fecha_vencimiento', 'subtotal', 'impuestos', 'descuento',
+            'total', 'moneda', 'estado', 'descripcion', 'archivo_factura',
+            'dias_vencimiento', 'esta_vencida', 'monto_pendiente',
+            'fecha_creacion', 'creado_por'
+        ]
+        read_only_fields = ['fecha_creacion', 'creado_por']
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['creado_por'] = request.user
+        return super().create(validated_data)
+
+
+class PagoProveedorSerializer(serializers.ModelSerializer):
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre_completo', read_only=True)
+    factura_numero = serializers.CharField(source='factura.numero_factura', read_only=True)
+    
+    class Meta:
+        model = PagoProveedor
+        fields = [
+            'id', 'proveedor', 'proveedor_nombre', 'factura', 'factura_numero',
+            'numero_pago', 'fecha_pago', 'monto', 'moneda', 'metodo_pago',
+            'numero_referencia', 'banco', 'notas', 'comprobante',
+            'fecha_creacion', 'registrado_por'
+        ]
+        read_only_fields = ['fecha_creacion', 'registrado_por']
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['registrado_por'] = request.user
+        return super().create(validated_data)
+
+
+class DetalleOrdenCompraSerializer(serializers.ModelSerializer):
+    modelo_nombre = serializers.CharField(source='modelo_moto.__str__', read_only=True)
+    cantidad_pendiente = serializers.ReadOnlyField()
+    esta_completo = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = DetalleOrdenCompra
+        fields = [
+            'id', 'modelo_moto', 'modelo_nombre', 'color', 'cantidad_solicitada',
+            'cantidad_recibida', 'precio_unitario', 'subtotal', 'notas',
+            'cantidad_pendiente', 'esta_completo'
+        ]
+
+
+class OrdenCompraSerializer(serializers.ModelSerializer):
+    proveedor_nombre = serializers.CharField(source='proveedor.nombre_completo', read_only=True)
+    dias_para_entrega = serializers.ReadOnlyField()
+    esta_atrasada = serializers.ReadOnlyField()
+    detalles = DetalleOrdenCompraSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = OrdenCompra
+        fields = [
+            'id', 'proveedor', 'proveedor_nombre', 'numero_orden', 'fecha_orden',
+            'fecha_entrega_esperada', 'estado', 'prioridad', 'subtotal', 'impuestos',
+            'descuento', 'total', 'moneda', 'notas', 'condiciones_especiales',
+            'dias_para_entrega', 'esta_atrasada', 'detalles',
+            'fecha_creacion', 'creado_por'
+        ]
+        read_only_fields = ['fecha_creacion', 'creado_por']
+    
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['creado_por'] = request.user
+        return super().create(validated_data)
+
+
+# ====================
+# SERIALIZERS DE UBICACIONES FÍSICAS
+# ====================
+
+class AlmacenSerializer(serializers.ModelSerializer):
+    """Serializer para almacenes"""
+    total_zonas = serializers.SerializerMethodField()
+    total_ubicaciones = serializers.SerializerMethodField()
+    ocupacion_total = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Almacen
+        fields = [
+            'id', 'nombre', 'codigo', 'direccion', 'descripcion', 
+            'activo', 'fecha_creacion', 'total_zonas', 'total_ubicaciones', 
+            'ocupacion_total'
+        ]
+    
+    def get_total_zonas(self, obj):
+        return obj.zonas.filter(activo=True).count()
+    
+    def get_total_ubicaciones(self, obj):
+        return Ubicacion.objects.filter(
+            pasillo__zona__almacen=obj,
+            activo=True
+        ).count()
+    
+    def get_ocupacion_total(self, obj):
+        return 0  # Simplificado por ahora
+
+
+class ZonaSerializer(serializers.ModelSerializer):
+    """Serializer para zonas"""
+    almacen_nombre = serializers.CharField(source='almacen.nombre', read_only=True)
+    almacen_codigo = serializers.CharField(source='almacen.codigo', read_only=True)
+    ocupacion_actual = serializers.ReadOnlyField()
+    porcentaje_ocupacion = serializers.ReadOnlyField()
+    total_pasillos = serializers.SerializerMethodField()
+    total_ubicaciones = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Zona
+        fields = [
+            'id', 'almacen', 'almacen_nombre', 'almacen_codigo',
+            'nombre', 'codigo', 'tipo', 'capacidad_maxima', 'descripcion',
+            'activo', 'ocupacion_actual', 'porcentaje_ocupacion',
+            'total_pasillos', 'total_ubicaciones'
+        ]
+    
+    def get_total_pasillos(self, obj):
+        return obj.pasillos.filter(activo=True).count()
+    
+    def get_total_ubicaciones(self, obj):
+        return Ubicacion.objects.filter(
+            pasillo__zona=obj,
+            activo=True
+        ).count()
+
+
+class PasilloSerializer(serializers.ModelSerializer):
+    """Serializer para pasillos"""
+    zona_nombre = serializers.CharField(source='zona.nombre', read_only=True)
+    zona_codigo = serializers.CharField(source='zona.codigo', read_only=True)
+    almacen_nombre = serializers.CharField(source='zona.almacen.nombre', read_only=True)
+    total_ubicaciones = serializers.SerializerMethodField()
+    ubicaciones_ocupadas = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Pasillo
+        fields = [
+            'id', 'zona', 'zona_nombre', 'zona_codigo', 'almacen_nombre',
+            'nombre', 'codigo', 'numero_orden', 'activo',
+            'total_ubicaciones', 'ubicaciones_ocupadas'
+        ]
+    
+    def get_total_ubicaciones(self, obj):
+        return obj.ubicaciones.filter(activo=True).count()
+    
+    def get_ubicaciones_ocupadas(self, obj):
+        return obj.ubicaciones.filter(
+            activo=True,
+            inventario_items__isnull=False
+        ).distinct().count()
+
+
+class UbicacionSerializer(serializers.ModelSerializer):
+    """Serializer para ubicaciones específicas"""
+    codigo_completo = serializers.ReadOnlyField()
+    direccion_legible = serializers.ReadOnlyField()
+    ocupacion_actual = serializers.ReadOnlyField()
+    disponible = serializers.ReadOnlyField()
+    espacios_libres = serializers.ReadOnlyField()
+    
+    # Información jerárquica
+    pasillo_nombre = serializers.CharField(source='pasillo.nombre', read_only=True)
+    zona_nombre = serializers.CharField(source='pasillo.zona.nombre', read_only=True)
+    almacen_nombre = serializers.CharField(source='pasillo.zona.almacen.nombre', read_only=True)
+    
+    # Información de inventario
+    inventario_items = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Ubicacion
+        fields = [
+            'id', 'pasillo', 'pasillo_nombre', 'zona_nombre', 'almacen_nombre',
+            'nombre', 'codigo', 'codigo_completo', 'direccion_legible',
+            'tipo', 'nivel', 'posicion', 'capacidad_maxima',
+            'largo_cm', 'ancho_cm', 'alto_cm',
+            'qr_code_uuid', 'qr_code_generado', 'fecha_ultimo_qr',
+            'activo', 'reservado', 'notas', 'fecha_creacion',
+            'ocupacion_actual', 'disponible', 'espacios_libres',
+            'inventario_items'
+        ]
+        read_only_fields = ['qr_code_uuid']
+    
+    def get_inventario_items(self, obj):
+        # Simplificado por ahora - retornar lista vacía hasta integrar inventario
+        return []
+
+
+class MovimientoInventarioSerializer(serializers.ModelSerializer):
+    """Serializer para movimientos de inventario"""
+    # Información del item de inventario
+    inventario_modelo = serializers.CharField(
+        source='inventario_item.modelo.marca', read_only=True
+    )
+    inventario_modelo_nombre = serializers.CharField(
+        source='inventario_item.modelo.modelo', read_only=True
+    )
+    inventario_color = serializers.CharField(
+        source='inventario_item.color', read_only=True
+    )
+    
+    # Información de ubicaciones
+    ubicacion_origen_codigo = serializers.CharField(
+        source='ubicacion_origen.codigo_completo', read_only=True
+    )
+    ubicacion_destino_codigo = serializers.CharField(
+        source='ubicacion_destino.codigo_completo', read_only=True
+    )
+    
+    class Meta:
+        model = MovimientoInventario
+        fields = [
+            'id', 'inventario_item', 'inventario_modelo', 'inventario_modelo_nombre',
+            'inventario_color', 'ubicacion_origen', 'ubicacion_origen_codigo',
+            'ubicacion_destino', 'ubicacion_destino_codigo',
+            'tipo_movimiento', 'cantidad', 'motivo', 'observaciones',
+            'usuario_responsable', 'fecha_movimiento', 'confirmado',
+            'numero_documento'
+        ]
+
+
+class MotoInventarioLocationSerializer(serializers.ModelSerializer):
+    """Serializer para asignaciones de ubicación"""
+    inventario_info = serializers.SerializerMethodField()
+    ubicacion_info = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = MotoInventarioLocation
+        fields = [
+            'id', 'inventario', 'ubicacion', 'fecha_asignacion', 
+            'fecha_actualizacion', 'inventario_info', 'ubicacion_info'
+        ]
+    
+    def get_inventario_info(self, obj):
+        return {
+            'id': obj.inventario.id,
+            'modelo': f"{obj.inventario.modelo.marca} {obj.inventario.modelo.modelo}",
+            'color': obj.inventario.color,
+            'cantidad': 1,  # Simplificado - cada asignación es una unidad
+        }
+    
+    def get_ubicacion_info(self, obj):
+        return {
+            'id': obj.ubicacion.id,
+            'codigo': obj.ubicacion.codigo_completo,
+            'nombre': obj.ubicacion.nombre,
+            'direccion': obj.ubicacion.direccion_legible
+        }

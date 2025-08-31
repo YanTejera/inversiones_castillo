@@ -1,4 +1,5 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Permission, Group
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
 class Rol(models.Model):
@@ -26,6 +27,51 @@ class Rol(models.Model):
     
     def __str__(self):
         return f"{self.get_nombre_rol_display()}"
+
+class PermisoGranular(models.Model):
+    """Modelo para gestionar permisos granulares del sistema"""
+    
+    CATEGORIA_CHOICES = [
+        ('motos', 'Motocicletas e Inventario'),
+        ('proveedores', 'Proveedores y Compras'),
+        ('clientes', 'Clientes y Ventas'),
+        ('finanzas', 'Finanzas y Contabilidad'),
+        ('reportes', 'Reportes y Analytics'),
+        ('usuarios', 'Usuarios y Sistema'),
+        ('configuracion', 'Configuración'),
+    ]
+    
+    codigo = models.CharField(max_length=100, unique=True, help_text="Código único del permiso (ej: motos.view_precio_compra)")
+    nombre = models.CharField(max_length=200, help_text="Nombre descriptivo del permiso")
+    descripcion = models.TextField(help_text="Descripción detallada del permiso")
+    categoria = models.CharField(max_length=50, choices=CATEGORIA_CHOICES)
+    es_critico = models.BooleanField(default=False, help_text="Permiso crítico que requiere aprobación especial")
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Permiso Granular'
+        verbose_name_plural = 'Permisos Granulares'
+        ordering = ['categoria', 'nombre']
+    
+    def __str__(self):
+        return f"{self.categoria}.{self.codigo.split('.')[-1]} - {self.nombre}"
+
+class RolPermiso(models.Model):
+    """Relación entre roles y permisos granulares"""
+    rol = models.ForeignKey(Rol, on_delete=models.CASCADE, related_name='permisos_granulares')
+    permiso = models.ForeignKey(PermisoGranular, on_delete=models.CASCADE, related_name='roles')
+    concedido_por = models.ForeignKey('Usuario', on_delete=models.SET_NULL, null=True, blank=True)
+    fecha_asignacion = models.DateTimeField(auto_now_add=True)
+    activo = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = 'Permiso de Rol'
+        verbose_name_plural = 'Permisos de Roles'
+        unique_together = ['rol', 'permiso']
+    
+    def __str__(self):
+        return f"{self.rol.nombre_rol} - {self.permiso.codigo}"
 
 class Usuario(AbstractUser):
     telefono = models.CharField(max_length=20, blank=True, null=True)
@@ -60,12 +106,67 @@ class Usuario(AbstractUser):
         return self.rol.nombre_rol in ['master', 'admin']
     
     def puede_acceder_a(self, permiso):
-        """Verifica si el usuario puede acceder a una funcionalidad específica"""
+        """Verifica si el usuario puede acceder a una funcionalidad específica (método legacy)"""
         if not self.estado:
             return False
         if self.es_master:
             return True
         return getattr(self.rol, permiso, False)
+    
+    def tiene_permiso(self, codigo_permiso):
+        """Verifica si el usuario tiene un permiso granular específico"""
+        if not self.estado:
+            return False
+        if self.es_master:
+            return True
+        
+        # Verificar permisos granulares del rol
+        return self.rol.permisos_granulares.filter(
+            permiso__codigo=codigo_permiso,
+            permiso__activo=True,
+            activo=True
+        ).exists()
+    
+    def obtener_permisos(self):
+        """Obtiene todos los permisos granulares del usuario"""
+        if not self.estado:
+            return []
+        if self.es_master:
+            # Master tiene todos los permisos
+            return list(PermisoGranular.objects.filter(activo=True).values_list('codigo', flat=True))
+        
+        return list(
+            self.rol.permisos_granulares.filter(
+                permiso__activo=True,
+                activo=True
+            ).values_list('permiso__codigo', flat=True)
+        )
+    
+    def obtener_permisos_por_categoria(self):
+        """Obtiene permisos organizados por categoría"""
+        if not self.estado:
+            return {}
+        
+        if self.es_master:
+            permisos = PermisoGranular.objects.filter(activo=True)
+        else:
+            permisos = PermisoGranular.objects.filter(
+                roles__rol=self.rol,
+                roles__activo=True,
+                activo=True
+            )
+        
+        permisos_por_categoria = {}
+        for permiso in permisos:
+            if permiso.categoria not in permisos_por_categoria:
+                permisos_por_categoria[permiso.categoria] = []
+            permisos_por_categoria[permiso.categoria].append({
+                'codigo': permiso.codigo,
+                'nombre': permiso.nombre,
+                'descripcion': permiso.descripcion
+            })
+        
+        return permisos_por_categoria
 
 class Cliente(models.Model):
     nombre = models.CharField(max_length=100)
@@ -142,7 +243,7 @@ class Documento(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='documentos')
     propietario = models.CharField(max_length=10, choices=PROPIETARIO_CHOICES, default='cliente')
     tipo_documento = models.CharField(max_length=20, choices=TIPO_DOCUMENTO_CHOICES)
-    descripcion = models.TextField()
+    descripcion = models.TextField(blank=True, null=True)
     archivo = models.FileField(upload_to='documentos/', blank=True, null=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
