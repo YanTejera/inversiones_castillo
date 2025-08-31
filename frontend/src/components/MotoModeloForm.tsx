@@ -2157,10 +2157,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ mode }) => {
           <div className="flex justify-end space-x-3 mt-8 pt-6 border-t">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => navigate('/motos')}
               className="px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:bg-gray-800"
             >
-              {isReadOnly ? 'Cerrar' : 'Cancelar'}
+              {mode === 'view' ? 'Cerrar' : 'Cancelar'}
             </button>
             {!isReadOnly && (
               <button
