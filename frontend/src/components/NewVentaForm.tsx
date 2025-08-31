@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   ArrowLeft,
@@ -27,6 +28,7 @@ import LegalDocumentsStep from './VentaSteps/LegalDocumentsStep';
 import ReviewStep from './VentaSteps/ReviewStep';
 
 import type { Cliente, Moto, MotoModelo } from '../types';
+import { ventaService } from '../services/ventaService';
 
 export interface VentaFormData {
   // Customer Information
@@ -99,9 +101,7 @@ export interface VentaFormData {
 }
 
 interface NewVentaFormProps {
-  onClose: () => void;
-  onSave: (data: VentaFormData) => void;
-  onSaveDraft?: (data: VentaFormData) => void;
+  mode: 'create';
   initialData?: Partial<VentaFormData>;
 }
 
@@ -157,7 +157,8 @@ const STEPS = [
   }
 ];
 
-const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraft, initialData }) => {
+const NewVentaForm: React.FC<NewVentaFormProps> = ({ mode, initialData }) => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<VentaFormData>({
     customer: null,
@@ -301,15 +302,74 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraf
     }
   };
 
-  const handleSaveDraft = () => {
-    if (onSaveDraft) {
-      const draftData = {
-        ...formData,
-        isDraft: true,
-        draftId: formData.draftId || `draft_${Date.now()}`,
-        lastSaved: new Date().toISOString()
+
+  const handleSaveVenta = async (data: VentaFormData) => {
+    try {
+      if (!data.customer || !data.selectedMotorcycle) {
+        throw new Error('Faltan datos requeridos para la venta');
+      }
+
+      const totalAmount = data.selectedMotorcycle.precio_unitario * data.selectedMotorcycle.cantidad;
+
+      const ventaData = {
+        cliente_id: data.customer.id,
+        tipo_venta: data.paymentType,
+        motorcycle: {
+          tipo: data.selectedMotorcycle.tipo,
+          modelo_id: data.selectedMotorcycle.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.id : undefined,
+          moto_id: data.selectedMotorcycle.tipo === 'individual' ? data.selectedMotorcycle.moto?.id : undefined,
+          color: data.selectedMotorcycle.color,
+          chasis: data.selectedMotorcycle.chasis,
+          cantidad: data.selectedMotorcycle.cantidad,
+          precio_unitario: data.selectedMotorcycle.precio_unitario
+        },
+        payment: {
+          monto_total: totalAmount,
+          monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
+          cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
+          tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
+          pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
+          monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount
+        },
+        documentos: data.allSelectedDocuments || [],
+        observaciones: data.observations || ''
       };
-      onSaveDraft(draftData);
+
+      const newVenta = await ventaService.createVentaFromForm(ventaData);
+      alert(`Venta #${newVenta.id} registrada exitosamente!`);
+      navigate('/ventas');
+      
+    } catch (error) {
+      console.error('Error saving venta:', error);
+      alert(`Error al guardar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
+  };
+
+  const handleSaveDraft = async (data: VentaFormData) => {
+    try {
+      if (!data.customer) {
+        throw new Error('Debe seleccionar un cliente para guardar el borrador');
+      }
+
+      const draftResult = await ventaService.saveDraft({
+        cliente_id: data.customer.id,
+        draft_data: data,
+        draft_id: data.draftId
+      });
+
+      alert(`Borrador guardado exitosamente! ID: ${draftResult.id}`);
+      
+    } catch (error: any) {
+      console.error('Error guardando borrador:', error);
+      
+      let errorMessage = 'Error al guardar el borrador';
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -343,19 +403,19 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraf
       lastSaved: new Date().toISOString()
     };
 
-    onSave(finalData);
+    handleSaveVenta(finalData);
   };
 
   // Guardado automático cada 30 segundos (solo si hay datos mínimos)
   React.useEffect(() => {
     const interval = setInterval(() => {
-      if (formData.customer && onSaveDraft) {
-        handleSaveDraft();
+      if (formData.customer) {
+        handleSaveDraft(formData);
       }
     }, 30000); // 30 segundos
 
     return () => clearInterval(interval);
-  }, [formData, onSaveDraft]);
+  }, [formData]);
 
   const handleSave = handleFinalizeSale;
 
@@ -434,8 +494,8 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraf
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+    <div className="page-fade-in">
+      <div className="max-w-7xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white">
           <div className="flex-1">
@@ -464,7 +524,7 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraf
           </div>
           
           <button
-            onClick={onClose}
+            onClick={() => navigate('/ventas')}
             className="text-white hover:text-gray-200 transition-colors"
           >
             <X className="h-6 w-6" />
@@ -554,9 +614,9 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraf
 
           <div className="flex items-center space-x-3">
             {/* Botón de guardar borrador - siempre disponible si hay cliente */}
-            {formData.customer && onSaveDraft && (
+            {formData.customer && (
               <button
-                onClick={handleSaveDraft}
+                onClick={() => handleSaveDraft(formData)}
                 className="flex items-center px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-sm"
                 title="Guardar como borrador para continuar más tarde"
               >
@@ -568,7 +628,7 @@ const NewVentaForm: React.FC<NewVentaFormProps> = ({ onClose, onSave, onSaveDraf
             {currentStep === STEPS.length - 1 ? (
               <div className="flex space-x-2">
                 <button
-                  onClick={handleSaveDraft}
+                  onClick={() => handleSaveDraft(formData)}
                   className="flex items-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
                   title="Guardar sin finalizar (se puede completar después)"
                 >

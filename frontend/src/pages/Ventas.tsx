@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -17,7 +18,6 @@ import {
 } from 'lucide-react';
 const ImportExportManager = lazy(() => import('../components/dataManagement/ImportExportManager'));
 import { ventaService } from '../services/ventaService';
-import NewVentaForm, { type VentaFormData } from '../components/NewVentaForm';
 import CancelarVentaModal from '../components/CancelarVentaModal';
 import VentaDetalleModal from '../components/VentaDetalleModal';
 import ViewToggle from '../components/common/ViewToggle';
@@ -57,7 +57,6 @@ const Ventas: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [ventaACancelar, setVentaACancelar] = useState<Venta | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -195,13 +194,6 @@ const Ventas: React.FC = () => {
     }
   };
 
-  const openCreateModal = () => {
-    setShowCreateModal(true);
-  };
-
-  const closeCreateModal = () => {
-    setShowCreateModal(false);
-  };
 
   const openModal = (mode: 'view' | 'edit', venta?: Venta) => {
     setSelectedVenta(venta || null);
@@ -213,94 +205,7 @@ const Ventas: React.FC = () => {
     setSelectedVenta(null);
   };
 
-  const handleSaveDraft = async (data: VentaFormData) => {
-    try {
-      if (!data.customer) {
-        throw new Error('Debe seleccionar un cliente para guardar el borrador');
-      }
 
-      console.log('Guardando borrador de venta:', data);
-      
-      const draftResult = await ventaService.saveDraft({
-        cliente_id: data.customer.id,
-        draft_data: data,
-        draft_id: data.draftId
-      });
-
-      console.log('Borrador guardado exitosamente:', draftResult);
-      
-      // Mostrar mensaje de éxito
-      alert(`Borrador guardado exitosamente! ID: ${draftResult.id}`);
-      
-    } catch (error: any) {
-      console.error('Error guardando borrador:', error);
-      
-      let errorMessage = 'Error al guardar el borrador';
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      alert(`Error: ${errorMessage}`);
-    }
-  };
-
-  const handleFormSave = async (data: VentaFormData) => {
-    try {
-      console.log('Saving venta data:', data);
-      
-      if (!data.customer || !data.selectedMotorcycle) {
-        throw new Error('Faltan datos requeridos para la venta');
-      }
-
-      const totalAmount = data.selectedMotorcycle.precio_unitario * data.selectedMotorcycle.cantidad;
-
-      // Preparar datos para el nuevo servicio mejorado
-      const ventaData = {
-        cliente_id: data.customer.id,
-        tipo_venta: data.paymentType,
-        motorcycle: {
-          tipo: data.selectedMotorcycle.tipo,
-          modelo_id: data.selectedMotorcycle.tipo === 'modelo' ? data.selectedMotorcycle.modelo?.id : undefined,
-          moto_id: data.selectedMotorcycle.tipo === 'individual' ? data.selectedMotorcycle.moto?.id : undefined,
-          color: data.selectedMotorcycle.color,
-          chasis: data.selectedMotorcycle.chasis,
-          cantidad: data.selectedMotorcycle.cantidad,
-          precio_unitario: data.selectedMotorcycle.precio_unitario
-        },
-        payment: {
-          monto_total: totalAmount,
-          monto_inicial: data.paymentType === 'financiado' ? data.downPayment : totalAmount,
-          cuotas: data.paymentType === 'financiado' ? data.financingDetails.numberOfPayments : undefined,
-          tasa_interes: data.paymentType === 'financiado' ? data.financingDetails.interestRate : undefined,
-          pago_mensual: data.paymentType === 'financiado' ? data.financingDetails.paymentAmount : undefined,
-          monto_total_con_intereses: data.paymentType === 'financiado' ? data.financingDetails.totalAmount : totalAmount
-        },
-        documentos: data.allSelectedDocuments || [],
-        observaciones: data.observations || ''
-      };
-
-      console.log('Prepared venta data for API:', ventaData);
-
-      // Crear la venta usando el nuevo método mejorado
-      const newVenta = await ventaService.createVentaFromForm(ventaData);
-      console.log('Venta created successfully:', newVenta);
-      
-      // Recargar la lista de ventas
-      await loadVentas(currentPage, debouncedSearchTerm, activeFilters);
-      
-      // Cerrar el modal
-      closeCreateModal();
-      
-      // Mostrar mensaje de éxito
-      alert(`Venta #${newVenta.id} registrada exitosamente!`);
-      
-    } catch (error) {
-      console.error('Error saving venta:', error);
-      setError(`Error al guardar la venta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-    }
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -407,13 +312,13 @@ const Ventas: React.FC = () => {
               <Database className="h-4 w-4" />
               Importar/Exportar
             </button>
-            <button
-              onClick={openCreateModal}
+            <Link
+              to="/ventas/nueva"
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
               Nueva Venta
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -846,13 +751,13 @@ const Ventas: React.FC = () => {
           </p>
           {!searchTerm && !hasActiveFilters && (
             <div className="mt-6">
-              <button
-                onClick={openCreateModal}
+              <Link
+                to="/ventas/nueva"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
               >
                 <Plus className="h-4 w-4" />
                 Nueva Venta
-              </button>
+              </Link>
             </div>
           )}
         </div>
@@ -914,14 +819,6 @@ const Ventas: React.FC = () => {
       {/* Toast Container */}
       <ToastContainer />
 
-      {/* New Venta Form Modal */}
-      {showCreateModal && (
-        <NewVentaForm
-          onClose={closeCreateModal}
-          onSave={handleFormSave}
-          onSaveDraft={handleSaveDraft}
-        />
-      )}
 
       {/* Cancelar Venta Modal */}
       {showCancelModal && ventaACancelar && (

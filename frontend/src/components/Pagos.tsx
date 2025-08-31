@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
@@ -25,7 +26,6 @@ const ImportExportManager = lazy(() => import('./dataManagement/ImportExportMana
 import { pagoService } from '../services/pagoService';
 import { ventaService } from '../services/ventaService';
 import { cuotaService } from '../services/cuotaService';
-import PagoForm from './PagoForm';
 import CancelarPagoModal from './CancelarPagoModal';
 import { SkeletonCard, SkeletonList, SkeletonStats } from './Skeleton';
 import { useToast } from './Toast';
@@ -64,9 +64,6 @@ const Pagos: React.FC = () => {
   });
   const [resumenCobros, setResumenCobros] = useState<ResumenCobros | null>(null);
 
-  // Form state
-  const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState<'create' | 'edit' | 'view'>('create');
   const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
   const [selectedVenta, setSelectedVenta] = useState<Venta | null>(null);
 
@@ -191,25 +188,9 @@ const Pagos: React.FC = () => {
   // All filtering is now handled on the server side through advanced search
   const filteredPagos = pagos;
 
-  const handleCreatePago = (venta?: Venta) => {
-    setSelectedPago(null);
-    setSelectedVenta(venta || null);
-    setFormMode('create');
-    setShowForm(true);
-  };
-
-  const handleEditPago = (pago: Pago) => {
-    setSelectedPago(pago);
-    setSelectedVenta(pago.venta_info || null);
-    setFormMode('edit');
-    setShowForm(true);
-  };
-
   const handleViewPago = (pago: Pago) => {
     setSelectedPago(pago);
     setSelectedVenta(pago.venta_info || null);
-    setFormMode('view');
-    setShowForm(true);
   };
 
   const handleDeletePago = async (pago: Pago) => {
@@ -226,10 +207,6 @@ const Pagos: React.FC = () => {
     }
   };
 
-  const handleFormSave = async () => {
-    await loadPagos();
-    await loadResumenCobros();
-  };
 
   const handleCancelarPago = (pago: Pago) => {
     setPagoACancelar(pago);
@@ -396,13 +373,13 @@ const Pagos: React.FC = () => {
             <Database className="h-5 w-5" />
             <span>Importar/Exportar</span>
           </button>
-          <button
-            onClick={() => handleCreatePago()}
+          <Link
+            to="/pagos/nuevo"
             className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-blue-700 btn-press micro-glow"
           >
             <Plus className="h-5 w-5" />
             <span>Registrar Pago</span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -708,16 +685,6 @@ const Pagos: React.FC = () => {
         )}
       </div>
 
-      {/* Pago Form Modal */}
-      {showForm && (
-        <PagoForm
-          pago={selectedPago}
-          venta={selectedVenta}
-          mode={formMode}
-          onClose={() => setShowForm(false)}
-          onSave={handleFormSave}
-        />
-      )}
 
       {/* Cancel Pago Modal */}
       {showCancelModal && pagoACancelar && (

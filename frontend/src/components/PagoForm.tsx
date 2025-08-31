@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   X, 
   Save, 
@@ -16,12 +17,7 @@ import { cuotaService } from '../services/cuotaService';
 import type { Pago, Venta, ClienteFinanciado } from '../types';
 
 interface PagoFormProps {
-  pago?: Pago | null;
-  venta?: Venta;
-  cliente?: ClienteFinanciado | null; // Nuevo: cliente pre-seleccionado
   mode: 'create' | 'edit' | 'view';
-  onClose: () => void;
-  onSave: () => void;
 }
 
 interface FormData {
@@ -31,7 +27,12 @@ interface FormData {
   tipo_monto: 'pago_completo' | 'total_adeudado' | 'otro_monto';
 }
 
-const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, cliente, mode, onClose, onSave }) => {
+const PagoForm: React.FC<PagoFormProps> = ({ mode }) => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const [pago, setPago] = useState<Pago | null>(null);
+  const [venta, setVenta] = useState<Venta | null>(null);
+  const [cliente, setCliente] = useState<ClienteFinanciado | null>(null);
   const [formData, setFormData] = useState<FormData>({
     monto_pagado: pago?.monto_pagado?.toString() || '',
     tipo_pago: (pago?.tipo_pago as 'efectivo' | 'transferencia' | 'tarjeta' | 'cheque') || 'efectivo',
@@ -49,6 +50,30 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, cliente, mode, onClose
   const [clientesFinanciados, setClientesFinanciados] = useState<ClienteFinanciado[]>([]);
   const [selectedCliente, setSelectedCliente] = useState<ClienteFinanciado | null>(cliente || null);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Load initial data for edit mode
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (mode === 'edit' && id) {
+        try {
+          const pagoResponse = await pagoService.getPago(Number(id));
+          setPago(pagoResponse);
+          if (pagoResponse.venta_info) {
+            setVenta(pagoResponse.venta_info);
+          }
+          setFormData({
+            monto_pagado: pagoResponse.monto_pagado?.toString() || '',
+            tipo_pago: pagoResponse.tipo_pago as 'efectivo' | 'transferencia' | 'tarjeta' | 'cheque',
+            observaciones: pagoResponse.observaciones || '',
+            tipo_monto: 'otro_monto'
+          });
+        } catch (error) {
+          console.error('Error loading pago:', error);
+        }
+      }
+    };
+    loadInitialData();
+  }, [mode, id]);
 
   // Función para buscar clientes
   const buscarClientes = useCallback(async (term: string) => {
@@ -232,8 +257,7 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, cliente, mode, onClose
         });
       }
       
-      onSave();
-      onClose();
+      navigate('/pagos');
     } catch (error: any) {
       console.error('=== ERROR DETAILS ===');
       console.error('Full error object:', error);
@@ -297,8 +321,8 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, cliente, mode, onClose
   const ventaInfo = venta || selectedCliente;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="page-fade-in">
+      <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -306,7 +330,7 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, cliente, mode, onClose
             {mode === 'edit' && 'Editar Pago'}
             {mode === 'view' && 'Detalles del Pago'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => navigate('/pagos')} className="text-gray-400 hover:text-gray-600">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -641,7 +665,7 @@ const PagoForm: React.FC<PagoFormProps> = ({ pago, venta, cliente, mode, onClose
           <div className="flex justify-end space-x-3 mt-6 pt-6 border-t">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => navigate('/pagos')}
               className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
             >
               {isReadOnly ? 'Cerrar' : 'Cancelar'}

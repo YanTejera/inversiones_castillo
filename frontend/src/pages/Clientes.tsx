@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, useMemo, lazy } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -27,7 +28,6 @@ import {
 } from 'lucide-react';
 const ImportExportManager = lazy(() => import('../components/dataManagement/ImportExportManager'));
 import { clienteService } from '../services/clienteService';
-import ClienteForm from '../components/ClienteForm';
 import ClienteDetalle from '../components/ClienteDetalle';
 import ClienteDetalleCompleto from '../components/ClienteDetalleCompleto';
 import AdvancedSearch from '../components/AdvancedSearch';
@@ -55,9 +55,7 @@ const Clientes: React.FC = () => {
   const [showImportExportManager, setShowImportExportManager] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [showModal, setShowModal] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
-  const [modalMode, setModalMode] = useState<'view' | 'create' | 'edit'>('view');
   const [showDetalle, setShowDetalle] = useState(false);
   const [showDetalleCompleto, setShowDetalleCompleto] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -198,11 +196,6 @@ const Clientes: React.FC = () => {
     );
   };
 
-  const openModal = (mode: 'view' | 'create' | 'edit', cliente?: Cliente) => {
-    setModalMode(mode);
-    setSelectedCliente(cliente || null);
-    setShowModal(true);
-  };
 
   const handleViewDetalle = (cliente: Cliente) => {
     setSelectedCliente(cliente);
@@ -228,10 +221,6 @@ const Clientes: React.FC = () => {
   };
 
 
-  const handleEditClick = (e: React.MouseEvent, cliente: Cliente) => {
-    e.stopPropagation(); // Evita que se abra el detalle al hacer clic en editar
-    openModal('edit', cliente);
-  };
 
   const handleDeleteClick = (e: React.MouseEvent, cliente: Cliente) => {
     e.stopPropagation(); // Evita que se abra el detalle al hacer clic en eliminar
@@ -285,14 +274,6 @@ const Clientes: React.FC = () => {
   };
 
 
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedCliente(null);
-  };
-
-  const handleFormSave = () => {
-    loadClientes(currentPage);
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-CO');
@@ -386,14 +367,14 @@ const Clientes: React.FC = () => {
               <span className="hidden sm:inline">Importar/Exportar</span>
               <span className="sm:hidden">Datos</span>
             </button>
-            <button
-              onClick={() => openModal('create')}
+            <Link
+              to="/clientes/nuevo"
               className="touch-target bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg btn-press micro-glow flex items-center gap-2 transition-colors"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Nuevo Cliente</span>
               <span className="sm:hidden">Nuevo</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -590,13 +571,14 @@ const Clientes: React.FC = () => {
                             Contratos y Facturas
                           </button>
                           <div className="border-t border-gray-100 my-1"></div>
-                          <button
-                            onClick={(e) => handleEditClick(e, cliente)}
+                          <Link
+                            to={`/clientes/${cliente.id}/editar`}
+                            onClick={(e) => e.stopPropagation()}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
                           >
                             <Edit className="h-4 w-4" />
                             Editar
-                          </button>
+                          </Link>
                           <button
                             onClick={(e) => handleDeleteClick(e, cliente)}
                             className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
@@ -838,13 +820,13 @@ const Clientes: React.FC = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => openModal('edit', cliente)}
+                        <Link
+                          to={`/clientes/${cliente.id}/editar`}
                           className="touch-target-sm text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded"
                           title="Editar"
                         >
                           <Edit className="h-4 w-4" />
-                        </button>
+                        </Link>
                         <button
                           onClick={() => handleDelete(cliente)}
                           className="touch-target-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
@@ -871,13 +853,13 @@ const Clientes: React.FC = () => {
           </p>
           {!(searchTerm || Object.keys(filters).length > 0) && (
             <div className="mt-6">
-              <button
-                onClick={() => openModal('create')}
+              <Link
+                to="/clientes/nuevo"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 mx-auto"
               >
                 <Plus className="h-4 w-4" />
                 Nuevo Cliente
-              </button>
+              </Link>
             </div>
           )}
         </div>
@@ -924,15 +906,6 @@ const Clientes: React.FC = () => {
         </div>
       )}
 
-      {/* Cliente Form Modal */}
-      {showModal && (
-        <ClienteForm
-          cliente={selectedCliente}
-          mode={modalMode}
-          onClose={closeModal}
-          onSave={handleFormSave}
-        />
-      )}
         </>
       )}
 

@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Save, User, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, User, Phone, Mail, MapPin, Calendar, Briefcase, DollarSign, AlertCircle } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { clienteService } from '../services/clienteService';
 import { useToast } from './Toast';
 import type { Cliente } from '../types';
 
 interface ClienteFormProps {
-  cliente?: Cliente | null;
   mode: 'create' | 'edit' | 'view';
-  onClose: () => void;
-  onSave: () => void;
 }
 
 interface FormData {
@@ -25,8 +23,11 @@ interface FormData {
   referencias_personales: string;
 }
 
-const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSave }) => {
+const ClienteForm: React.FC<ClienteFormProps> = ({ mode }) => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { success, error: showError, warning } = useToast();
+  const [cliente, setCliente] = useState<Cliente | null>(null);
   const [formData, setFormData] = useState<FormData>({
     nombre: '',
     apellido: '',
@@ -45,6 +46,56 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string>('');
   const [isDirty, setIsDirty] = useState(false);
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        if (mode === 'edit' && id) {
+          const clienteResponse = await clienteService.getCliente(Number(id));
+          setCliente(clienteResponse);
+          
+          // Actualizar formData con los datos del cliente
+          setFormData({
+            nombre: clienteResponse.nombre || '',
+            apellido: clienteResponse.apellido || '',
+            cedula: clienteResponse.cedula || '',
+            telefono: clienteResponse.telefono || '',
+            email: clienteResponse.email || '',
+            direccion: clienteResponse.direccion || '',
+            fecha_nacimiento: clienteResponse.fecha_nacimiento || '',
+            estado_civil: clienteResponse.estado_civil || '',
+            ocupacion: clienteResponse.ocupacion || '',
+            ingresos: clienteResponse.ingresos?.toString() || '',
+            referencias_personales: clienteResponse.referencias_personales || ''
+          });
+        } else if (mode === 'create') {
+          // Reset form for create mode
+          setFormData({
+            nombre: '',
+            apellido: '',
+            cedula: '',
+            telefono: '',
+            email: '',
+            direccion: '',
+            fecha_nacimiento: '',
+            estado_civil: '',
+            ocupacion: '',
+            ingresos: '',
+            referencias_personales: ''
+          });
+          setErrors({});
+          setServerError('');
+          setIsDirty(false);
+        }
+      } catch (error) {
+        console.error('Error loading cliente:', error);
+        showError('Error al cargar los datos del cliente');
+      }
+    };
+    
+    loadInitialData();
+  }, [mode, id]);
 
   useEffect(() => {
     console.log('🔄 ClienteForm useEffect - cliente:', cliente, 'mode:', mode);
@@ -146,8 +197,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
         success('Cliente actualizado exitosamente');
       }
       
-      onSave();
-      onClose();
+      success('Cliente guardado exitosamente');
+      navigate('/clientes');
     } catch (error: any) {
       console.error('Error completo al guardar cliente:', error);
       
@@ -190,7 +241,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
     } finally {
       setLoading(false);
     }
-  }, [formData, mode, cliente, onSave, onClose, success, showError, validateForm]);
+  }, [formData, mode, cliente, success, showError, validateForm, navigate]);
 
   const isReadOnly = mode === 'view';
 
@@ -206,22 +257,37 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
   }, [mode]);
 
   return (
-    <div className="modal-overlay animate-fade-in">
-      <div className="modal-responsive max-w-4xl animate-scale-in">
-        {/* Header */}
-        <div className="flex items-center justify-between safe-top p-4 md:p-6 border-b border-gray-200 dark:border-gray-600">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">
-            {mode === 'create' && 'Crear Nuevo Cliente'}
-            {mode === 'edit' && 'Editar Cliente'}
-            {mode === 'view' && 'Detalles del Cliente'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="touch-target text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 btn-press micro-scale rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
-          >
-            <X className="h-5 w-5 md:h-6 md:w-6" />
-          </button>
+    <div className="page-fade-in">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate('/clientes')}
+              className="flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 mr-1" />
+              Volver
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {mode === 'create' && 'Crear Nuevo Cliente'}
+                {mode === 'edit' && 'Editar Cliente'}
+                {mode === 'view' && 'Detalles del Cliente'}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {mode === 'create' && 'Agrega un nuevo cliente al sistema'}
+                {mode === 'edit' && 'Modifica los datos del cliente'}
+                {mode === 'view' && 'Información detallada del cliente'}
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Form Container */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="p-4 md:p-6">
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="card-mobile">
@@ -464,7 +530,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
           <div className="form-actions-mobile mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-600 safe-bottom">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => navigate('/clientes')}
               className="touch-target w-full md:w-auto px-6 py-3 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 btn-press micro-scale"
             >
               {isReadOnly ? 'Cerrar' : 'Cancelar'}
@@ -490,6 +556,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
             )}
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

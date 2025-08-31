@@ -14,7 +14,16 @@
       "Bash(npx eslint:*)",
       "Bash(git add:*)",
       "Bash(python manage.py:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(set PYTHONIOENCODING=utf-8)",
+      "Bash(pip install:*)",
+      "Bash(cat:*)",
+      "Bash(venv\\Scripts\\activate:*)",
+      "Bash(source:*)",
+      "Bash(sed:*)",
+      "Bash(find:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": [],

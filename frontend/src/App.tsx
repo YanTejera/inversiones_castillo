@@ -8,6 +8,8 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
+import ClienteNuevo from './pages/ClienteNuevo';
+import ClienteEditar from './pages/ClienteEditar';
 import Motocicletas from './pages/Motocicletas';
 import MotoNueva from './pages/MotoNueva';
 import MotoEditar from './pages/MotoEditar';
@@ -18,7 +20,10 @@ import ProveedorEditar from './pages/ProveedorEditar';
 import ProveedorDashboardPage from './pages/ProveedorDashboardPage';
 import ProveedorReportsPage from './pages/ProveedorReportsPage';
 import Ventas from './pages/Ventas';
+import VentaNueva from './pages/VentaNueva';
 import Pagos from './pages/Pagos';
+import PagoNuevo from './pages/PagoNuevo';
+import PagoEditar from './pages/PagoEditar';
 import CobrosPendientes from './pages/CobrosPendientes';
 import Documentos from './pages/Documentos';
 import Reportes from './pages/Reportes';
@@ -58,8 +63,13 @@ function App() {
               <Route path="proveedores/:id" element={<ProveedorDetalle />} />
               <Route path="proveedores/:id/editar" element={<ProveedorEditar />} />
               <Route path="clientes" element={<Clientes />} />
+              <Route path="clientes/nuevo" element={<ClienteNuevo />} />
+              <Route path="clientes/:id/editar" element={<ClienteEditar />} />
               <Route path="ventas" element={<Ventas />} />
+              <Route path="ventas/nueva" element={<VentaNueva />} />
               <Route path="pagos" element={<Pagos />} />
+              <Route path="pagos/nuevo" element={<PagoNuevo />} />
+              <Route path="pagos/:id/editar" element={<PagoEditar />} />
               <Route path="cobros" element={<CobrosPendientes />} />
               <Route path="documentos" element={<Documentos />} />
               <Route path="reportes" element={<Reportes />} />
