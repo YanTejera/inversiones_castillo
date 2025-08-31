@@ -795,30 +795,33 @@ const Motocicletas: React.FC = () => {
 
   return (
     <div className="page-fade-in">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Motocicletas</h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      {/* Compact Header with Mobile Optimization */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+              Gestión de Motocicletas
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Administra el inventario de motocicletas
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setShowImportExportManager(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 btn-press micro-glow flex items-center gap-2"
+              className="flex-1 sm:flex-initial border-2 border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900 px-3 sm:px-4 py-2 rounded-lg btn-press transition-colors flex items-center justify-center gap-2 text-sm"
             >
               <Database className="h-4 w-4" />
-              Importar/Exportar
+              <span className="hidden sm:inline">Importar/Exportar</span>
+              <span className="sm:hidden">Importar</span>
             </button>
             {viewMode !== 'analytics' && viewMode !== 'locations' && (
               <button
                 onClick={() => openModal('create')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
+                className="flex-1 sm:flex-initial bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center justify-center gap-2 text-sm font-medium"
               >
                 <Plus className="h-4 w-4" />
-                {viewMode === 'modelos' ? 'Nueva Motocicleta' : 'Nueva Moto'}
+                Nueva Motocicleta
               </button>
             )}
           </div>
@@ -889,13 +892,17 @@ const Motocicletas: React.FC = () => {
       {viewMode !== 'analytics' && viewMode !== 'locations' && (
         <>
         <div className="mb-6 space-y-4">
-        {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 staggered-fade-in">
-          {(() => {
-            const stats = getFilterStats;
-            return (
-              <>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        {/* Statistics - Mobile vs Desktop Optimized */}
+        {(() => {
+          const stats = getFilterStats;
+          return (
+            <>
+              {/* Desktop Layout - Original Design */}
+              <div className="hidden md:grid md:grid-cols-4 gap-4 staggered-fade-in">
+                <div 
+                  className="bg-blue-50 border border-blue-200 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-150"
+                  onClick={() => handleFilterTypeChange('all')}
+                >
                   <div className="flex items-center">
                     <Bike className="h-5 w-5 text-blue-600 mr-2" />
                     <div>
@@ -904,25 +911,34 @@ const Motocicletas: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div 
+                  className="bg-green-50 border border-green-200 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-150"
+                  onClick={() => handleFilterTypeChange('new')}
+                >
                   <div className="flex items-center">
-                    <Car className="h-5 w-5 text-green-600 mr-2" />
+                    <Bike className="h-5 w-5 text-green-600 mr-2" />
                     <div>
                       <p className="text-sm font-medium text-green-900">Nuevas</p>
                       <p className="text-lg font-semibold text-green-700">{stats.newCount}</p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div 
+                  className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-150"
+                  onClick={() => handleFilterTypeChange('used')}
+                >
                   <div className="flex items-center">
-                    <Clock className="h-5 w-5 text-yellow-600 mr-2" />
+                    <Bike className="h-5 w-5 text-yellow-600 mr-2" />
                     <div>
                       <p className="text-sm font-medium text-yellow-900">Usadas</p>
                       <p className="text-lg font-semibold text-yellow-700">{stats.usedCount}</p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div 
+                  className="bg-red-50 border border-red-200 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-150"
+                  onClick={() => handleFilterTypeChange('out_of_stock')}
+                >
                   <div className="flex items-center">
                     <PackageX className="h-5 w-5 text-red-600 mr-2" />
                     <div>
@@ -931,62 +947,80 @@ const Motocicletas: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </>
-            );
-          })()}
-        </div>
+              </div>
 
-        {/* Controles de filtrado y visualización */}
+              {/* Mobile Layout - Hierarchical Design */}
+              <div className="md:hidden space-y-4 staggered-fade-in">
+                {/* Total Card - Large and Prominent on Mobile Only */}
+                <div 
+                  className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                  onClick={() => handleFilterTypeChange('all')}
+                >
+                  <div className="flex items-center justify-center">
+                    <Bike className="h-8 w-8 text-blue-600 dark:text-blue-400 mr-3" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-200">Total de Motocicletas</p>
+                      <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{stats.total}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Category Cards - Mobile 2-column layout */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div 
+                    className="aspect-square bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-105 flex flex-col items-center justify-center text-center"
+                    onClick={() => handleFilterTypeChange('new')}
+                  >
+                    <Bike className="h-6 w-6 text-green-600 dark:text-green-400 mb-2" />
+                    <p className="text-xs font-medium text-green-900 dark:text-green-200">Nuevas</p>
+                    <p className="text-xl font-bold text-green-700 dark:text-green-300">{stats.newCount}</p>
+                  </div>
+                  
+                  <div 
+                    className="aspect-square bg-yellow-50 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-600 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-105 flex flex-col items-center justify-center text-center"
+                    onClick={() => handleFilterTypeChange('used')}
+                  >
+                    <Bike className="h-6 w-6 text-yellow-700 dark:text-yellow-400 mb-2" />
+                    <p className="text-xs font-medium text-yellow-900 dark:text-yellow-200">Usadas</p>
+                    <p className="text-xl font-bold text-yellow-800 dark:text-yellow-300">{stats.usedCount}</p>
+                  </div>
+                  
+                  <div 
+                    className="aspect-square bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-3 cursor-pointer hover:shadow-md transition-all duration-150 hover:scale-105 flex flex-col items-center justify-center text-center col-span-2"
+                    onClick={() => handleFilterTypeChange('out_of_stock')}
+                  >
+                    <PackageX className="h-6 w-6 text-red-600 dark:text-red-400 mb-2" />
+                    <p className="text-xs font-medium text-red-900 dark:text-red-200">Sin Stock</p>
+                    <p className="text-xl font-bold text-red-700 dark:text-red-300">{stats.outOfStockCount}</p>
+                  </div>
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* Simplified Controls - No redundant filters */}
         <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-          {/* Filtros de tipo */}
+          {/* Active Filter Indicator */}
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Filtrar por:</span>
-            <div className="flex gap-1">
-              <button
-                onClick={() => handleFilterTypeChange('all')}
-                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
-                  filterType === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                Todas
-              </button>
-              <button
-                onClick={() => handleFilterTypeChange('new')}
-                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
-                  filterType === 'new'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                Nuevas
-              </button>
-              <button
-                onClick={() => handleFilterTypeChange('used')}
-                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
-                  filterType === 'used'
-                    ? 'bg-yellow-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                Usadas
-              </button>
-              <button
-                onClick={() => handleFilterTypeChange('out_of_stock')}
-                className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
-                  filterType === 'out_of_stock'
-                    ? 'bg-red-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                Sin Stock
-              </button>
-            </div>
+            <Filter className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filtro activo: 
+              <span className={`ml-1 px-2 py-1 text-xs rounded-full font-medium ${
+                filterType === 'all' ? 'bg-blue-100 text-blue-800' :
+                filterType === 'new' ? 'bg-green-100 text-green-800' :
+                filterType === 'used' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {filterType === 'all' ? 'Todas' :
+                 filterType === 'new' ? 'Nuevas' :
+                 filterType === 'used' ? 'Usadas' :
+                 'Sin Stock'}
+              </span>
+            </span>
           </div>
 
-          {/* Controles de vista */}
+          {/* View Controls */}
           <div className="flex items-center gap-4">
             {/* Agrupar por marca */}
             <label className="flex items-center gap-2 cursor-pointer">
@@ -996,8 +1030,8 @@ const Motocicletas: React.FC = () => {
                 onChange={(e) => handleGroupByBrandChange(e.target.checked)}
                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
               />
-              <Building className="h-4 w-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">Agrupar por marca</span>
+              <Building className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Agrupar por marca</span>
             </label>
 
             {/* Modo de visualización */}
@@ -1046,21 +1080,21 @@ const Motocicletas: React.FC = () => {
                 </div>
               )}
               
-              {/* Grid de elementos */}
+              {/* Grid de elementos - Mobile Optimized */}
               <div className={`
                 transition-all duration-300 ease-in-out
                 ${displayMode === 'grid' 
-                  ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+                  ? 'grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 lg:gap-6'
                   : 'space-y-4'
                 }
               `}>
                 {items.map((modelo) => (
                   displayMode === 'grid' ? (
-                    /* Vista en grilla */
+                    /* Vista en grilla - Mobile Optimized */
                     <div key={modelo.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border overflow-hidden card-hover animate-fade-in-up">
-                      {/* Imagen */}
+                      {/* Imagen - Square aspect ratio for mobile */}
                       <div 
-                        className="h-48 bg-gray-200 relative cursor-pointer hover:opacity-90 transition-opacity group"
+                        className="aspect-square md:h-48 md:aspect-auto bg-gray-200 relative cursor-pointer hover:opacity-90 transition-opacity group"
                         onClick={() => handleVerEspecificaciones(modelo)}
                         title="Click para ver especificaciones técnicas"
                       >
@@ -1112,14 +1146,14 @@ const Motocicletas: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Content */}
-                      <div className="p-6">
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {/* Content - Mobile Optimized */}
+                      <div className="p-3 md:p-4 lg:p-6">
+                        <div className="mb-3 md:mb-4">
+                          <div className="flex items-center justify-between mb-1 md:mb-2">
+                            <h3 className="text-sm md:text-lg font-semibold text-gray-900 dark:text-white truncate pr-2">
                               {modelo.marca} {modelo.modelo}
                             </h3>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
                               modelo.condicion?.toLowerCase()?.trim() === 'nueva' 
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-yellow-100 text-yellow-800'
@@ -1127,64 +1161,69 @@ const Motocicletas: React.FC = () => {
                               {modelo.condicion?.toLowerCase()?.trim() === 'nueva' ? 'Nueva' : 'Usada'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Año {modelo.ano}</p>
+                          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Año {modelo.ano}</p>
                         </div>
 
-                        {/* Colores Disponibles */}
-                        <div className="mb-4">
-                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Colores disponibles:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {Object.entries(modelo.colores_disponibles).map(([color, cantidad]) => (
+                        {/* Colores Disponibles - Mobile Optimized */}
+                        <div className="mb-3 md:mb-4">
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 hidden md:block">Colores disponibles:</p>
+                          <div className="flex flex-wrap gap-1 md:gap-2">
+                            {Object.entries(modelo.colores_disponibles).slice(0, 4).map(([color, cantidad]) => (
                               <div 
                                 key={color}
-                                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border border-blue-200"
+                                className="inline-flex items-center px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border border-blue-200"
                               >
                                 <div 
-                                  className="w-3 h-3 rounded-full mr-2 border border-gray-300 dark:border-gray-600"
+                                  className="w-2 md:w-3 h-2 md:h-3 rounded-full mr-1 md:mr-2 border border-gray-300 dark:border-gray-600"
                                   style={{ 
                                     backgroundColor: getColorCode(color),
                                     boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
                                   }}
                                 ></div>
-                                <span className="font-semibold">{color}</span>
-                                <span className="ml-1 px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded-full text-xs font-bold">
+                                <span className="font-semibold hidden md:inline">{color}</span>
+                                <span className="ml-1 px-1 md:px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded-full text-xs font-bold">
                                   {cantidad}
                                 </span>
                               </div>
                             ))}
+                            {Object.keys(modelo.colores_disponibles).length > 4 && (
+                              <span className="text-xs text-gray-400 py-1">+{Object.keys(modelo.colores_disponibles).length - 4}</span>
+                            )}
                             {Object.keys(modelo.colores_disponibles).length === 0 && (
                               <span className="text-xs text-gray-400 italic">Sin colores registrados</span>
                             )}
                           </div>
                         </div>
 
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Compra:</span>
-                            <span className="font-semibold text-orange-600">
+                        {/* Pricing and Stock - Mobile Optimized */}
+                        <div className="space-y-1 md:space-y-2 mb-3 md:mb-4">
+                          <div className="flex items-center justify-between text-xs md:text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Compra:</span>
+                            <span className="font-semibold text-orange-600 text-xs md:text-sm">
                               {formatCurrencyWithSymbol(modelo.precio_compra, modelo.moneda_compra || 'COP')}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Venta:</span>
-                            <span className="font-semibold text-green-600">
+                          <div className="flex items-center justify-between text-xs md:text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Venta:</span>
+                            <span className="font-semibold text-green-600 text-xs md:text-sm">
                               {formatCurrencyWithSymbol(modelo.precio_venta, modelo.moneda_venta || 'COP')}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Stock Total:</span>
-                            <span className={`font-semibold ${getStockStatusColor(modelo.total_stock)}`}>
-                              {modelo.total_stock} unidades
+                          <div className="flex items-center justify-between text-xs md:text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Stock:</span>
+                            <span className={`font-semibold ${getStockStatusColor(modelo.total_stock)} text-xs md:text-sm`}>
+                              {modelo.total_stock}
                             </span>
                           </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex justify-between items-center pt-4 border-t">
+                        {/* Actions - Mobile Optimized */}
+                        <div className="flex justify-between items-center pt-2 md:pt-4 border-t border-gray-200 dark:border-gray-700">
+                          {/* Quick Actions - Mobile Touch-friendly */}
                           <div className="flex space-x-1">
                             <button
                               onClick={() => openModal('edit', null, modelo)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transform hover:scale-110 transition-all duration-150 ease-in-out"
+                              className="touch-target-sm p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900 rounded-lg transform hover:scale-110 transition-all duration-150 ease-in-out"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
@@ -1192,7 +1231,7 @@ const Motocicletas: React.FC = () => {
                             <button
                               onClick={() => handleDeleteModelo(modelo)}
                               disabled={deletingModelo === modelo.id}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transform hover:scale-110 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                              className="touch-target-sm p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transform hover:scale-110 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                               title="Eliminar"
                             >
                               {deletingModelo === modelo.id ? (
@@ -1203,21 +1242,24 @@ const Motocicletas: React.FC = () => {
                             </button>
                           </div>
                           
-                          <div className="flex space-x-2">
+                          {/* Primary Actions - Mobile Optimized */}
+                          <div className="flex flex-col md:flex-row space-y-1 md:space-y-0 md:space-x-2">
                             <button
                               onClick={() => handleResumenModelo(modelo)}
-                              className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transform hover:scale-105 transition-all duration-150 ease-in-out"
+                              className="flex items-center justify-center px-2 md:px-3 py-1 bg-blue-600 text-white text-xs md:text-sm rounded hover:bg-blue-700 transform hover:scale-105 transition-all duration-150 ease-in-out"
                               title="Ver detalles completos y estadísticas"
                             >
-                              <Info className="h-4 w-4 mr-1" />
-                              Ver Detalles
+                              <Info className="h-3 md:h-4 w-3 md:w-4 mr-1" />
+                              <span className="hidden sm:inline">Ver Detalles</span>
+                              <span className="sm:hidden">Detalles</span>
                             </button>
                             {modelo.disponible && (
                               <button
                                 onClick={() => handleVentaDirecta(modelo)}
-                                className="flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transform hover:scale-105 transition-all duration-150 ease-in-out"
+                                className="flex items-center justify-center px-2 md:px-3 py-1 bg-green-600 text-white text-xs md:text-sm rounded hover:bg-green-700 transform hover:scale-105 transition-all duration-150 ease-in-out"
+                                title="Vender"
                               >
-                                <ShoppingCart className="h-4 w-4 mr-1" />
+                                <ShoppingCart className="h-3 md:h-4 w-3 md:w-4 mr-1" />
                                 Vender
                               </button>
                             )}

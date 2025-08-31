@@ -3,7 +3,6 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usePermisos } from '../contexts/PermisosContext';
 import NotificationCenter from './notificaciones/NotificationCenter';
-import MobileNavigation from './MobileNavigation';
 import DarkModeToggle from './DarkModeToggle';
 import {
   Menu,
@@ -197,7 +196,7 @@ const Layout: React.FC = () => {
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top bar - Mobile */}
-        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 lg:hidden iphone-header-fix">
+        <header className="fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 lg:relative lg:z-auto iphone-header-fix">
           <div className="flex items-center justify-between px-4">
             <button
               className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
@@ -246,17 +245,14 @@ const Layout: React.FC = () => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 relative overflow-y-auto focus:outline-none">
-          <div className="py-4 sm:py-6 pb-20 lg:pb-6 safe-x">
+        <main className="flex-1 relative overflow-y-auto focus:outline-none lg:pt-0 pt-16">
+          <div className="py-4 sm:py-6 pb-6 safe-x">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <Outlet />
             </div>
           </div>
         </main>
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileNavigation />
 
       {/* Sidebar overlay for mobile */}
       {sidebarOpen && (
