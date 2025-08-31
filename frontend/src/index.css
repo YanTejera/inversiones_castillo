@@ -1,9 +1,9 @@
+/* Import custom animations */
+@import './styles/animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import custom animations */
-@import './styles/animations.css';
 
 /* PWA Mobile App Styles */
 @layer base {
@@ -121,5 +121,65 @@
   
   .minimal-bottom-padding {
     padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  
+  /* Mobile Touch Targets - WCAG AA compliant 44px minimum */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] p-3 flex items-center justify-center;
+  }
+  
+  .touch-target-sm {
+    @apply min-h-[36px] min-w-[36px] p-2 flex items-center justify-center;
+  }
+  
+  .touch-target-lg {
+    @apply min-h-[48px] min-w-[48px] p-4 flex items-center justify-center;
+  }
+  
+  /* Mobile Modal Patterns */
+  .modal-mobile {
+    @apply fixed inset-0 p-4 m-0 max-w-none max-h-none bg-white dark:bg-gray-900;
+  }
+  
+  .modal-desktop {
+    @apply max-w-4xl max-h-[90vh] p-0 mx-auto mt-8 bg-white dark:bg-gray-700 rounded-lg;
+  }
+  
+  .modal-responsive {
+    @apply modal-mobile md:modal-desktop;
+  }
+  
+  /* Mobile-friendly form layouts */
+  .form-grid-mobile {
+    @apply grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6;
+  }
+  
+  .form-actions-mobile {
+    @apply flex flex-col space-y-3 md:flex-row md:space-y-0 md:space-x-3 md:justify-end;
+  }
+  
+  /* Mobile card spacing */
+  .card-mobile {
+    @apply p-4 space-y-3 md:p-6 md:space-y-4;
+  }
+  
+  /* Mobile table alternatives */
+  .mobile-card-row {
+    @apply p-4 border-b border-gray-200 dark:border-gray-700 space-y-2;
+  }
+  
+  /* Mobile navigation enhancements */
+  .mobile-nav-item {
+    @apply touch-target text-center flex-col space-y-1;
+  }
+  
+  /* Mobile input enhancements */
+  .input-mobile {
+    @apply text-base px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white;
+  }
+  
+  /* Mobile dropdown/select enhancements */
+  .select-mobile {
+    @apply text-base px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white appearance-none;
   }
 }

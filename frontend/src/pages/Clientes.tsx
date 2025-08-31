@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, lazy } from 'react';
 import { 
   Plus, 
   Search, 
@@ -22,8 +22,10 @@ import {
   ShoppingCart,
   Camera,
   FileText,
-  Settings
+  Settings,
+  Database
 } from 'lucide-react';
+const ImportExportManager = lazy(() => import('../components/dataManagement/ImportExportManager'));
 import { clienteService } from '../services/clienteService';
 import ClienteForm from '../components/ClienteForm';
 import ClienteDetalle from '../components/ClienteDetalle';
@@ -50,6 +52,7 @@ const Clientes: React.FC = () => {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showImportExportManager, setShowImportExportManager] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -139,70 +142,16 @@ const Clientes: React.FC = () => {
 
   const suggestions = useSearchSuggestions(clientes, searchFields, 10);
 
-  // Función para obtener datos persistentes del cliente
+  // Función para obtener datos del cliente (SOLO datos reales del API)
   const getClienteData = (cliente: Cliente): Cliente => {
-    const savedData = localStorage.getItem(`cliente_${cliente.id}`);
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      return { ...cliente, ...parsedData };
-    }
+    // INDICADOR DE VERSIÓN - Si ves este mensaje, no se generan datos fake
+    console.log('🔧 Clientes v2.0 - No fake data generation, using API data only');
     
-    // Generar datos solo si no existen
-    const newData = {
-      ...cliente,
-      foto_perfil: cliente.foto_perfil || undefined,
-      deuda_total: cliente.deuda_total || (Math.random() > 0.5 ? Math.floor(Math.random() * 5000000) + 1000000 : 0),
-      cuota_actual: cliente.cuota_actual || (Math.random() > 0.5 ? Math.floor(Math.random() * 500000) + 200000 : 0),
-      proximo_pago: cliente.proximo_pago || (Math.random() > 0.3 ? new Date(Date.now() + (Math.random() - 0.5) * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined),
-      dias_atraso: cliente.dias_atraso || (Math.random() > 0.7 ? Math.floor(Math.random() * 30) : 0),
-      estado_pago: cliente.estado_pago || (Math.random() > 0.7 ? 'atrasado' : (Math.random() > 0.5 ? 'proximo' : 'al_dia')),
-      score_credito: cliente.score_credito || Math.floor(Math.random() * 800) + 200,
-      nivel_lealtad: cliente.nivel_lealtad || (['bronce', 'plata', 'oro', 'platino'][Math.floor(Math.random() * 4)] as 'bronce' | 'plata' | 'oro' | 'platino'),
-      puntos_lealtad: cliente.puntos_lealtad || Math.floor(Math.random() * 1000) + 100,
-      compras_historicas: cliente.compras_historicas || Math.floor(Math.random() * 10) + 1,
-      pagos_a_tiempo: cliente.pagos_a_tiempo || Math.floor(Math.random() * 20) + 5,
-      total_pagos: cliente.total_pagos || Math.floor(Math.random() * 25) + 5,
-      cliente_desde: cliente.cliente_desde || cliente.fecha_registro
-    };
+    // Limpiar localStorage de datos fake previos
+    localStorage.removeItem(`cliente_${cliente.id}`);
     
-    // Agregar fiador y documentos si no existen
-    if (!newData.fiador && Math.random() > 0.6) {
-      // Generar fiador simulado para algunos clientes
-      newData.fiador = {
-        id: Date.now(),
-        nombre: ['Carlos', 'María', 'Luis', 'Ana', 'Jorge', 'Sofía'][Math.floor(Math.random() * 6)],
-        apellido: ['González', 'Martínez', 'López', 'García', 'Rodríguez', 'Hernández'][Math.floor(Math.random() * 6)],
-        cedula: Math.floor(Math.random() * 90000000) + 10000000 + '',
-        direccion: `Calle ${Math.floor(Math.random() * 100) + 1} #${Math.floor(Math.random() * 50)}-${Math.floor(Math.random() * 99)}`,
-        telefono: `30${Math.floor(Math.random() * 100000000) + 10000000}`,
-        ocupacion: ['Empleado', 'Comerciante', 'Profesional', 'Independiente'][Math.floor(Math.random() * 4)],
-        parentesco_cliente: ['Hermano/a', 'Padre/Madre', 'Tío/a', 'Primo/a', 'Amigo/a'][Math.floor(Math.random() * 5)],
-        cliente: cliente.id,
-        nombre_completo: ''
-      };
-      newData.fiador.nombre_completo = `${newData.fiador.nombre} ${newData.fiador.apellido}`;
-    }
-
-    // Guardar en localStorage
-    const dataToSave = {
-      foto_perfil: newData.foto_perfil,
-      deuda_total: newData.deuda_total,
-      cuota_actual: newData.cuota_actual,
-      proximo_pago: newData.proximo_pago,
-      dias_atraso: newData.dias_atraso,
-      estado_pago: newData.estado_pago,
-      score_credito: newData.score_credito,
-      nivel_lealtad: newData.nivel_lealtad,
-      puntos_lealtad: newData.puntos_lealtad,
-      compras_historicas: newData.compras_historicas,
-      pagos_a_tiempo: newData.pagos_a_tiempo,
-      total_pagos: newData.total_pagos,
-      cliente_desde: newData.cliente_desde,
-      fiador: newData.fiador
-    };
-    localStorage.setItem(`cliente_${cliente.id}`, JSON.stringify(dataToSave));
-    
-    return newData;
+    // Usar solo los datos del API sin modificaciones
+    return cliente;
   };
 
   const loadClientes = async (page = 1) => {
@@ -271,24 +220,8 @@ const Clientes: React.FC = () => {
   };
 
   const handleUpdateCliente = (clienteActualizado: Cliente) => {
-    // Guardar en localStorage
-    const dataToSave = {
-      foto_perfil: clienteActualizado.foto_perfil,
-      deuda_total: clienteActualizado.deuda_total,
-      cuota_actual: clienteActualizado.cuota_actual,
-      proximo_pago: clienteActualizado.proximo_pago,
-      dias_atraso: clienteActualizado.dias_atraso,
-      estado_pago: clienteActualizado.estado_pago,
-      score_credito: clienteActualizado.score_credito,
-      nivel_lealtad: clienteActualizado.nivel_lealtad,
-      puntos_lealtad: clienteActualizado.puntos_lealtad,
-      compras_historicas: clienteActualizado.compras_historicas,
-      pagos_a_tiempo: clienteActualizado.pagos_a_tiempo,
-      total_pagos: clienteActualizado.total_pagos,
-      cliente_desde: clienteActualizado.cliente_desde,
-      fiador: clienteActualizado.fiador
-    };
-    localStorage.setItem(`cliente_${clienteActualizado.id}`, JSON.stringify(dataToSave));
+    // NO guardar datos fake - solo actualizar la lista con datos del API
+    console.log('🔧 Clientes v2.0 - handleUpdateCliente: No localStorage fake data');
     
     // Actualizar cliente en la lista
     setClientes(prev => prev.map(c => c.id === clienteActualizado.id ? clienteActualizado : c));
@@ -380,21 +313,21 @@ const Clientes: React.FC = () => {
         <div className="mb-8 animate-fade-in-up">
           <div className="flex justify-between items-center">
             <div>
-              <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
-              <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-8 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+              <div className="h-4 w-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
             </div>
-            <div className="h-10 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           </div>
         </div>
 
         {/* Search and filters skeleton */}
         <div className="mb-6 space-y-4">
           <div className="flex gap-4">
-            <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
+            <div className="flex-1 h-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            <div className="h-10 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           </div>
           <div className="flex justify-end">
-            <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           </div>
         </div>
 
@@ -436,21 +369,32 @@ const Clientes: React.FC = () => {
   return (
     <div className="page-fade-in">
       {/* Header */}
-      <div className="mb-8 animate-fade-in-up">
-        <div className="flex justify-between items-center">
+      <div className="mb-6 md:mb-8 animate-fade-in-up">
+        <div className="flex flex-col space-y-4 md:flex-row md:justify-between md:items-center md:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Clientes</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Gestión de Clientes</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Administra la información de todos tus clientes
             </p>
           </div>
-          <button
-            onClick={() => openModal('create')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo Cliente
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowImportExportManager(true)}
+              className="touch-target bg-green-600 hover:bg-green-700 text-white px-3 md:px-4 py-2 rounded-lg btn-press micro-glow flex items-center gap-2 transition-colors"
+            >
+              <Database className="h-4 w-4" />
+              <span className="hidden sm:inline">Importar/Exportar</span>
+              <span className="sm:hidden">Datos</span>
+            </button>
+            <button
+              onClick={() => openModal('create')}
+              className="touch-target bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg btn-press micro-glow flex items-center gap-2 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nuevo Cliente</span>
+              <span className="sm:hidden">Nuevo</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -469,7 +413,7 @@ const Clientes: React.FC = () => {
         />
         
         <div className="flex justify-between items-center">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
             {filteredCount !== totalCount ? (
               <span>Mostrando {filteredCount} de {totalCount} clientes</span>
             ) : (
@@ -481,7 +425,7 @@ const Clientes: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-6">
           {error}
         </div>
       )}
@@ -501,7 +445,7 @@ const Clientes: React.FC = () => {
             return (
               <div 
                 key={cliente.id} 
-                className="bg-white rounded-lg shadow-md card-hover cursor-pointer border border-gray-200 animate-fade-in-up"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow border card-hover cursor-pointer border border-gray-200 dark:border-gray-700 animate-fade-in-up transition-colors"
                 onClick={() => handleClienteClick(cliente)}
               >
                 {/* Header con foto y datos básicos */}
@@ -585,10 +529,10 @@ const Clientes: React.FC = () => {
                       </div>
                       
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                           {cliente.nombre} {cliente.apellido}
                         </h3>
-                        <p className="text-sm text-gray-500">CC: {cliente.cedula}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">CC: {cliente.cedula}</p>
                         <div className="flex items-center mt-1">
                           <span className={`text-xs px-2 py-1 rounded-full font-medium ${getNivelColor(sistemaCredito.nivel)}`}>
                             {sistemaCredito.nivel.toUpperCase()}
@@ -606,21 +550,21 @@ const Clientes: React.FC = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                         }}
-                        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         title="Opciones"
                       >
                         <Settings className="h-4 w-4" />
                       </button>
                       
                       {/* Dropdown menu */}
-                      <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                      <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                         <div className="py-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleVentaRapida(cliente);
                             }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
                           >
                             <ShoppingCart className="h-4 w-4" />
                             Nueva Venta
@@ -630,7 +574,7 @@ const Clientes: React.FC = () => {
                               e.stopPropagation();
                               handlePagoCuota(cliente);
                             }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
                           >
                             <CreditCard className="h-4 w-4" />
                             Pago de Cuota
@@ -640,7 +584,7 @@ const Clientes: React.FC = () => {
                               e.stopPropagation();
                               handleContratosFacturas(cliente);
                             }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
                           >
                             <FileText className="h-4 w-4" />
                             Contratos y Facturas
@@ -648,14 +592,14 @@ const Clientes: React.FC = () => {
                           <div className="border-t border-gray-100 my-1"></div>
                           <button
                             onClick={(e) => handleEditClick(e, cliente)}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
                           >
                             <Edit className="h-4 w-4" />
                             Editar
                           </button>
                           <button
                             onClick={(e) => handleDeleteClick(e, cliente)}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
                           >
                             <Trash2 className="h-4 w-4" />
                             Eliminar
@@ -691,13 +635,13 @@ const Clientes: React.FC = () => {
                   {/* Información de contacto */}
                   <div className="space-y-1">
                     {cliente.telefono && (
-                      <div className="flex items-center text-sm text-gray-600">
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                         <Phone className="h-3 w-3 mr-2" />
                         {cliente.telefono}
                       </div>
                     )}
                     {cliente.email && (
-                      <div className="flex items-center text-sm text-gray-600">
+                      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                         <Mail className="h-3 w-3 mr-2" />
                         {cliente.email}
                       </div>
@@ -723,21 +667,21 @@ const Clientes: React.FC = () => {
         </div>
       ) : (
         /* List View */
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border overflow-hidden border dark:border-gray-700">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Contacto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Dirección
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Ingresos
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -745,9 +689,9 @@ const Clientes: React.FC = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredClientes.map((cliente) => (
-                  <tr key={cliente.id} className="hover:bg-gray-50">
+                  <tr key={cliente.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {/* Foto de perfil o avatar */}
@@ -821,10 +765,10 @@ const Clientes: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {cliente.nombre} {cliente.apellido}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
                             CC: {cliente.cedula}
                           </div>
                           <div className="flex items-center mt-1">
@@ -843,7 +787,7 @@ const Clientes: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
                         {cliente.telefono && (
                           <div className="flex items-center mb-1">
                             <Phone className="h-3 w-3 mr-1" />
@@ -851,7 +795,7 @@ const Clientes: React.FC = () => {
                           </div>
                         )}
                         {cliente.email && (
-                          <div className="flex items-center text-xs text-gray-500 mb-1">
+                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-1">
                             <Mail className="h-3 w-3 mr-1" />
                             {cliente.email}
                           </div>
@@ -872,7 +816,7 @@ const Clientes: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <div className="text-sm text-gray-900 dark:text-gray-100 max-w-xs truncate">
                         {cliente.direccion || 'Sin dirección'}
                       </div>
                     </td>
@@ -882,28 +826,28 @@ const Clientes: React.FC = () => {
                           {formatCurrency(cliente.ingresos)}
                         </span>
                       ) : (
-                        <span className="text-sm text-gray-400">No especificado</span>
+                        <span className="text-sm text-gray-400 dark:text-gray-500">No especificado</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => handleViewDetalle(cliente)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          className="touch-target-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                           title="Ver detalles"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => openModal('edit', cliente)}
-                          className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
+                          className="touch-target-sm text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded"
                           title="Editar"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(cliente)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          className="touch-target-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                           title="Eliminar"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -921,8 +865,8 @@ const Clientes: React.FC = () => {
       {filteredClientes.length === 0 && !loading && (
         <div className="text-center py-12">
           <User className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No hay clientes</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No hay clientes</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {(searchTerm || Object.keys(filters).length > 0) ? 'No se encontraron clientes con esa búsqueda.' : 'Comienza creando tu primer cliente.'}
           </p>
           {!(searchTerm || Object.keys(filters).length > 0) && (
@@ -946,7 +890,7 @@ const Clientes: React.FC = () => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
             >
               Anterior
             </button>
@@ -958,10 +902,10 @@ const Clientes: React.FC = () => {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
+                  className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     currentPage === page
                       ? 'bg-blue-600 text-white'
-                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                      : 'text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   {page}
@@ -972,7 +916,7 @@ const Clientes: React.FC = () => {
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
             >
               Siguiente
             </button>
@@ -992,25 +936,35 @@ const Clientes: React.FC = () => {
         </>
       )}
 
+      {/* Import/Export Manager */}
+      {showImportExportManager && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-8">Cargando...</div></div>}>
+          <ImportExportManager 
+            defaultType="clientes"
+            onClose={() => setShowImportExportManager(false)}
+          />
+        </Suspense>
+      )}
+
       {/* Toast Container */}
       <ToastContainer />
 
       {/* Modales personalizados */}
       {modalState.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full mx-4 shadow border dark:border-gray-700">
             {/* Modal de confirmación */}
             {modalState.type === 'confirm' && (
               <div className="p-6">
                 <div className="flex items-center mb-4">
                   <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
-                  <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{modalState.title}</h3>
                 </div>
-                <p className="text-gray-600 mb-6 whitespace-pre-line">{modalState.message}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6 whitespace-pre-line">{modalState.message}</p>
                 <div className="flex space-x-3">
                   <button
                     onClick={closeCustomModal}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1029,11 +983,11 @@ const Clientes: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center mb-4">
                   <CreditCard className="h-6 w-6 text-blue-600 mr-3" />
-                  <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{modalState.title}</h3>
                 </div>
                 <p className="text-gray-600 mb-4">{modalState.message}</p>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Monto del pago
                   </label>
                   <input
@@ -1041,13 +995,13 @@ const Clientes: React.FC = () => {
                     placeholder="Ingrese el monto"
                     value={formData.monto || ''}
                     onChange={(e) => setFormData({...formData, monto: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div className="flex space-x-3">
                   <button
                     onClick={closeCustomModal}
-                    className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1057,7 +1011,7 @@ const Clientes: React.FC = () => {
                         procesarPago(modalState.data, Number(formData.monto));
                       }
                     }}
-                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
                   >
                     Registrar Pago
                   </button>
@@ -1070,12 +1024,12 @@ const Clientes: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center mb-4">
                   <CheckCircle className="h-6 w-6 text-green-600 mr-3" />
-                  <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{modalState.title}</h3>
                 </div>
-                <p className="text-gray-600 mb-6 whitespace-pre-line">{modalState.message}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6 whitespace-pre-line">{modalState.message}</p>
                 <button
                   onClick={closeCustomModal}
-                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors"
                 >
                   Aceptar
                 </button>
@@ -1087,9 +1041,9 @@ const Clientes: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center mb-4">
                   <AlertTriangle className="h-6 w-6 text-blue-600 mr-3" />
-                  <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{modalState.title}</h3>
                 </div>
-                <p className="text-gray-600 mb-6 whitespace-pre-line">{modalState.message}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6 whitespace-pre-line">{modalState.message}</p>
                 <button
                   onClick={closeCustomModal}
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
@@ -1104,12 +1058,12 @@ const Clientes: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center mb-4">
                   <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
-                  <h3 className="text-lg font-semibold text-gray-900">{modalState.title}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{modalState.title}</h3>
                 </div>
-                <p className="text-gray-600 mb-6 whitespace-pre-line">{modalState.message}</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6 whitespace-pre-line">{modalState.message}</p>
                 <button
                   onClick={closeCustomModal}
-                  className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
                 >
                   Aceptar
                 </button>

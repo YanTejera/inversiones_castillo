@@ -47,7 +47,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    if (cliente) {
+    console.log('🔄 ClienteForm useEffect - cliente:', cliente, 'mode:', mode);
+    if (cliente && mode !== 'create') {
       setFormData({
         nombre: cliente.nombre || '',
         apellido: cliente.apellido || '',
@@ -61,8 +62,27 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
         ingresos: cliente.ingresos?.toString() || '',
         referencias_personales: cliente.referencias_personales || ''
       });
+    } else if (mode === 'create') {
+      // Always reset form for create mode
+      console.log('🆕 Resetting form for create mode');
+      setFormData({
+        nombre: '',
+        apellido: '',
+        cedula: '',
+        telefono: '',
+        email: '',
+        direccion: '',
+        fecha_nacimiento: '',
+        estado_civil: '',
+        ocupacion: '',
+        ingresos: '',
+        referencias_personales: ''
+      });
+      setErrors({});
+      setServerError('');
+      setIsDirty(false);
     }
-  }, [cliente]);
+  }, [cliente, mode]);
 
   // Optimized change handler with debouncing for validation
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -186,46 +206,46 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
   }, [mode]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-0 md:p-4 z-50 animate-fade-in">
+      <div className="modal-responsive w-full h-full md:h-auto overflow-y-auto animate-scale-in shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between safe-top p-4 md:p-6 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">
             {mode === 'create' && 'Crear Nuevo Cliente'}
             {mode === 'edit' && 'Editar Cliente'}
             {mode === 'view' && 'Detalles del Cliente'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 btn-press micro-scale p-1 rounded-full hover:bg-gray-100"
+            className="touch-target text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100 btn-press micro-scale rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5 md:h-6 md:w-6" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="card-mobile">
           {/* Server Error */}
           {serverError && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-md">
               <div className="flex">
                 <div>
-                  <p className="text-sm font-medium">Error al guardar:</p>
-                  <pre className="text-xs mt-1 whitespace-pre-wrap">{serverError}</pre>
+                  <p className="text-sm font-medium text-red-700 dark:text-red-400">Error al guardar:</p>
+                  <pre className="text-xs mt-1 whitespace-pre-wrap text-red-600 dark:text-red-400">{serverError}</pre>
                 </div>
               </div>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="form-grid-mobile">
             {/* Información Personal */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                 <User className="h-5 w-5 mr-2" />
                 Información Personal
               </h3>
               
               <div>
-                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Nombre *
                 </label>
                 <input
@@ -235,15 +255,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.nombre}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.nombre ? 'border-red-500' : 'border-gray-300'
-                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                  className={`input-mobile w-full ${
+                    errors.nombre ? 'border-red-500' : ''
+                  } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                 />
                 {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
               </div>
 
               <div>
-                <label htmlFor="apellido" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="apellido" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Apellido *
                 </label>
                 <input
@@ -253,15 +273,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.apellido}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.apellido ? 'border-red-500' : 'border-gray-300'
-                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    errors.apellido ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                 />
                 {errors.apellido && <p className="text-red-500 text-sm mt-1">{errors.apellido}</p>}
               </div>
 
               <div>
-                <label htmlFor="cedula" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="cedula" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Cédula *
                 </label>
                 <input
@@ -271,15 +291,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.cedula}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.cedula ? 'border-red-500' : 'border-gray-300'
-                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    errors.cedula ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                 />
                 {errors.cedula && <p className="text-red-500 text-sm mt-1">{errors.cedula}</p>}
               </div>
 
               <div>
-                <label htmlFor="fecha_nacimiento" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="fecha_nacimiento" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Calendar className="h-4 w-4 inline mr-1" />
                   Fecha de Nacimiento
                 </label>
@@ -290,14 +310,14 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.fecha_nacimiento}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isReadOnly ? 'bg-gray-50' : ''
+                  className={`input-mobile w-full ${
+                    isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                   }`}
                 />
               </div>
 
               <div>
-                <label htmlFor="estado_civil" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="estado_civil" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Estado Civil
                 </label>
                 <select
@@ -306,8 +326,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.estado_civil}
                   onChange={handleChange}
                   disabled={isReadOnly}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isReadOnly ? 'bg-gray-50' : ''
+                  className={`select-mobile w-full ${
+                    isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                   }`}
                 >
                   <option value="">Seleccionar...</option>
@@ -322,13 +342,13 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
 
             {/* Información de Contacto */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                 <Phone className="h-5 w-5 mr-2" />
                 Contacto y Ubicación
               </h3>
 
               <div>
-                <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Phone className="h-4 w-4 inline mr-1" />
                   Teléfono
                 </label>
@@ -339,14 +359,14 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.telefono}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isReadOnly ? 'bg-gray-50' : ''
+                  className={`input-mobile w-full ${
+                    isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                   }`}
                 />
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Mail className="h-4 w-4 inline mr-1" />
                   Email
                 </label>
@@ -357,15 +377,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.email}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
-                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                 />
                 {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
               </div>
 
               <div>
-                <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <MapPin className="h-4 w-4 inline mr-1" />
                   Dirección
                 </label>
@@ -376,14 +396,14 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   onChange={handleChange}
                   readOnly={isReadOnly}
                   rows={2}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isReadOnly ? 'bg-gray-50' : ''
+                  className={`input-mobile w-full ${
+                    isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                   }`}
                 />
               </div>
 
               <div>
-                <label htmlFor="ocupacion" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="ocupacion" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <Briefcase className="h-4 w-4 inline mr-1" />
                   Ocupación
                 </label>
@@ -394,14 +414,14 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.ocupacion}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    isReadOnly ? 'bg-gray-50' : ''
+                  className={`input-mobile w-full ${
+                    isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                   }`}
                 />
               </div>
 
               <div>
-                <label htmlFor="ingresos" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="ingresos" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   <DollarSign className="h-4 w-4 inline mr-1" />
                   Ingresos Mensuales
                 </label>
@@ -412,9 +432,9 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
                   value={formData.ingresos}
                   onChange={handleChange}
                   readOnly={isReadOnly}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.ingresos ? 'border-red-500' : 'border-gray-300'
-                  } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    errors.ingresos ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                 />
                 {errors.ingresos && <p className="text-red-500 text-sm mt-1">{errors.ingresos}</p>}
               </div>
@@ -423,7 +443,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
 
           {/* Referencias */}
           <div className="mt-6">
-            <label htmlFor="referencias_personales" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="referencias_personales" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Referencias Personales
             </label>
             <textarea
@@ -434,18 +454,18 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
               readOnly={isReadOnly}
               rows={3}
               placeholder="Nombres, teléfonos y relación con el cliente..."
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                isReadOnly ? 'bg-gray-50' : ''
+              className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 ${
+                isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
               }`}
             />
           </div>
 
           {/* Buttons */}
-          <div className="flex justify-end space-x-3 mt-8 pt-6 border-t">
+          <div className="form-actions-mobile mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-600 safe-bottom">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 btn-press micro-scale"
+              className="touch-target w-full md:w-auto px-6 py-3 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 btn-press micro-scale"
             >
               {isReadOnly ? 'Cerrar' : 'Cancelar'}
             </button>
@@ -453,7 +473,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center btn-press micro-glow"
+                className="touch-target w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center btn-press micro-glow"
               >
                 {loading ? (
                   <>

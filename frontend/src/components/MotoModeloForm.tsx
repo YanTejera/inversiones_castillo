@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   Save, 
@@ -12,6 +12,8 @@ import {
   Wand2 
 } from 'lucide-react';
 import { motoModeloService } from '../services/motoModeloService';
+import { proveedorService, type ProveedorListItem } from '../services/proveedorService';
+import { usePermisos } from '../contexts/PermisosContext';
 import type { MotoModelo } from '../types';
 
 interface MotoModeloFormProps {
@@ -41,6 +43,7 @@ interface FormData {
   precio_venta: string;
   moneda_compra: 'USD' | 'RD' | 'EUR' | 'COP';
   moneda_venta: 'USD' | 'RD' | 'EUR' | 'COP';
+  proveedor: string; // ID del proveedor
   activa: boolean;
   imagen?: File;
   colores: ColorInventario[];
@@ -73,9 +76,12 @@ interface FormData {
 }
 
 const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, onSave }) => {
+  const { tienePermiso, esMaster } = usePermisos();
+  
   // Separar inventario registrado del nuevo
   const [inventarioRegistrado, setInventarioRegistrado] = useState<ColorInventario[]>([]);
   const [nuevoStock, setNuevoStock] = useState<ColorInventario[]>([]);
+  const [proveedores, setProveedores] = useState<ProveedorListItem[]>([]);
   
   const [formData, setFormData] = useState<FormData>({
     marca: modelo?.marca || '',
@@ -87,6 +93,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     precio_venta: modelo?.precio_venta?.toString() || '',
     moneda_compra: modelo?.moneda_compra || 'USD',
     moneda_venta: modelo?.moneda_venta || 'RD',
+    proveedor: modelo?.proveedor?.toString() || '',
     activa: modelo?.activa ?? true,
     colores: [], // Ya no usamos este campo para el inventario
     // Especificaciones técnicas - Motor
@@ -150,6 +157,19 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       console.log('Inventario registrado:', inventarioExistente);
     }
   }, [modelo]);
+  
+  // Cargar proveedores
+  useEffect(() => {
+    const loadProveedores = async () => {
+      try {
+        const response = await proveedorService.getProveedores({ activo: true });
+        setProveedores(response.results);
+      } catch (error) {
+        console.error('Error loading proveedores:', error);
+      }
+    };
+    loadProveedores();
+  }, []);
   
   // Debug: Log cuando cambien los colores (removido para evitar loops)
 
@@ -251,6 +271,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
         precio_venta: Number(formData.precio_venta),
         moneda_compra: formData.moneda_compra,
         moneda_venta: formData.moneda_venta,
+        proveedor: formData.proveedor ? Number(formData.proveedor) : null,
         activa: formData.activa,
         // Especificaciones técnicas completas
         especificaciones: {
@@ -280,8 +301,12 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           velocidad_maxima: formData.velocidad_maxima || null,
           autonomia: formData.autonomia || null,
           emisiones: formData.emisiones || null
-        },
-        inventario_data: nuevoStock.map(color => ({
+        }
+      };
+
+      // Solo incluir inventario_data si realmente hay nuevo stock para agregar
+      if (nuevoStock.length > 0) {
+        submitData.inventario_data = nuevoStock.map(color => ({
           color: color.color,
           cantidad_stock: color.cantidad_stock,
           descuento_porcentaje: color.descuento_porcentaje || 0,
@@ -290,8 +315,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           precio_compra_individual: color.precio_compra_individual || null,
           tasa_dolar: color.tasa_dolar || null,
           fecha_compra: color.fecha_compra || null
-        }))
-      };
+        }));
+      }
 
       // Solo agregar la imagen si realmente hay una
       if (formData.imagen && formData.imagen instanceof File) {
@@ -324,15 +349,19 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       console.log('🚀 === DATOS ENVIADOS AL BACKEND ===');
       console.log('📋 Datos completos:', submitData);
       console.log('🔢 ID del modelo:', modelo?.id);
-      console.log('📦 Inventario data detallado:');
-      submitData.inventario_data.forEach((item, index) => {
-        console.log(`   Color ${index + 1}:`, {
-          color: item.color,
-          cantidad_stock: item.cantidad_stock,
-          chasis: item.chasis,
-          chasis_list: item.chasis_list
+      if (submitData.inventario_data) {
+        console.log('📦 Inventario data detallado:');
+        submitData.inventario_data.forEach((item, index) => {
+          console.log(`   Color ${index + 1}:`, {
+            color: item.color,
+            cantidad_stock: item.cantidad_stock,
+            chasis: item.chasis,
+            chasis_list: item.chasis_list
+          });
         });
-      });
+      } else {
+        console.log('📦 Sin cambios de inventario - inventario_data NO incluido');
+      }
       if (submitData.imagen) {
         console.log('🖼️ Imagen:', submitData.imagen.name, submitData.imagen.size);
       }
@@ -410,8 +439,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       }
       
       try {
-        // Crear el modelo sin inventario
-        const submitData = {
+        // Crear el modelo - datos básicos
+        const submitData: any = {
           marca: formData.marca,
           modelo: formData.modelo,
           ano: parseInt(formData.ano),
@@ -421,6 +450,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           precio_venta: parseFloat(formData.precio_venta),
           moneda_compra: formData.moneda_compra,
           moneda_venta: formData.moneda_venta,
+          proveedor: formData.proveedor ? Number(formData.proveedor) : null,
           activa: formData.activa,
           // Especificaciones técnicas
           especificaciones: {
@@ -777,17 +807,17 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-0 md:p-4 z-50">
+      <div className="modal-responsive max-w-6xl w-full h-full md:h-auto md:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 truncate pr-4">
+        <div className="flex items-center justify-between safe-top p-4 md:p-6 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white truncate pr-4">
             {mode === 'create' && 'Registrar Nueva Motocicleta'}
             {mode === 'edit' && 'Editar Motocicleta'}
             {mode === 'view' && 'Detalles de la Motocicleta'}
           </h2>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0">
-            <X className="h-6 w-6" />
+          <button onClick={onClose} className="touch-target text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full flex-shrink-0 transition-colors">
+            <X className="h-5 w-5 md:h-6 md:w-6" />
           </button>
         </div>
 
@@ -796,10 +826,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           <nav className="flex">
             <button
               onClick={() => setActiveTab('basico')}
-              className={`py-3 px-3 sm:px-6 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
+              className={`touch-target min-h-[44px] py-2 md:py-3 px-3 md:px-6 text-xs md:text-sm font-medium border-b-2 whitespace-nowrap ${
                 activeTab === 'basico'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               <div className="flex items-center">
@@ -810,10 +840,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
             </button>
             <button
               onClick={() => setActiveTab('colores')}
-              className={`py-3 px-3 sm:px-6 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
+              className={`touch-target min-h-[44px] py-2 md:py-3 px-3 md:px-6 text-xs md:text-sm font-medium border-b-2 whitespace-nowrap ${
                 activeTab === 'colores'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               <div className="flex items-center">
@@ -824,10 +854,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
             </button>
             <button
               onClick={() => setActiveTab('tecnicas')}
-              className={`py-3 px-3 sm:px-6 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
+              className={`touch-target min-h-[44px] py-2 md:py-3 px-3 md:px-6 text-xs md:text-sm font-medium border-b-2 whitespace-nowrap ${
                 activeTab === 'tecnicas'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               <div className="flex items-center">
@@ -853,42 +883,42 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Información Básica */}
               <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                <h3 className="text-base sm:text-lg font-medium text-gray-900 flex items-center">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white flex items-center">
                   <Bike className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                   Información del Modelo
                 </h3>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Marca *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Marca *</label>
                     <input
                       type="text"
                       value={formData.marca}
                       onChange={(e) => setFormData(prev => ({ ...prev, marca: e.target.value }))}
                       readOnly={isReadOnly}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.marca ? 'border-red-500' : 'border-gray-300'
-                      } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                        errors.marca ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                     />
                     {errors.marca && <p className="text-red-500 text-sm mt-1">{errors.marca}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Modelo *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Modelo *</label>
                     <input
                       type="text"
                       value={formData.modelo}
                       onChange={(e) => setFormData(prev => ({ ...prev, modelo: e.target.value }))}
                       readOnly={isReadOnly}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.modelo ? 'border-red-500' : 'border-gray-300'
-                      } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                        errors.modelo ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                     />
                     {errors.modelo && <p className="text-red-500 text-sm mt-1">{errors.modelo}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Año *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Año *</label>
                     <input
                       type="number"
                       value={formData.ano}
@@ -897,14 +927,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                       min="1900"
                       max={new Date().getFullYear() + 1}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.ano ? 'border-red-500' : 'border-gray-300'
-                      } ${isReadOnly ? 'bg-gray-50' : ''}`}
+                        errors.ano ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      } ${isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
                     />
                     {errors.ano && <p className="text-red-500 text-sm mt-1">{errors.ano}</p>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Condición *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Condición *</label>
                     <select
                       value={formData.condicion}
                       onChange={(e) => {
@@ -912,12 +942,34 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         setFormData(prev => ({ ...prev, condicion: e.target.value as 'nueva' | 'usada' }));
                       }}
                       disabled={isReadOnly}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        isReadOnly ? 'bg-gray-50' : ''
+                      className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                       }`}
                     >
                       <option value="nueva">Nueva</option>
                       <option value="usada">Usada</option>
+                    </select>
+                  </div>
+
+                  {/* Campo Proveedor */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Proveedor</label>
+                    <select
+                      value={formData.proveedor}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, proveedor: e.target.value }));
+                      }}
+                      disabled={isReadOnly}
+                      className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
+                      }`}
+                    >
+                      <option value="">Sin proveedor</option>
+                      {proveedores.map(proveedor => (
+                        <option key={proveedor.id} value={proveedor.id}>
+                          {proveedor.nombre_completo}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -930,126 +982,144 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         disabled={isReadOnly}
                         className="mr-2"
                       />
-                      <span className="text-sm font-medium text-gray-700">Modelo Activo</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Modelo Activo</span>
                     </label>
                   </div>
                 </div>
 
                 {/* Descripción */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
                   <textarea
                     value={formData.descripcion}
                     onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
                     readOnly={isReadOnly}
                     rows={3}
                     placeholder="Detalles adicionales del modelo..."
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      isReadOnly ? 'bg-gray-50' : ''
+                    className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                     }`}
                   />
                 </div>
 
-                {/* Precios */}
-                <h3 className="text-lg font-medium text-gray-900 flex items-center mt-6">
-                  <DollarSign className="h-5 w-5 mr-2" />
-                  Información de Precios
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Precio de Compra */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Compra *</label>
-                    <div className="flex gap-2">
-                      <select
-                        name="moneda_compra"
-                        value={formData.moneda_compra}
-                        onChange={handleChange}
-                        disabled={isReadOnly}
-                        className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
-                        }`}
-                      >
-                        <option value="USD">USD</option>
-                        <option value="RD">RD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="COP">COP</option>
-                      </select>
-                      <input
-                        type="number"
-                        value={formData.precio_compra}
-                        onChange={(e) => setFormData(prev => ({ ...prev, precio_compra: e.target.value }))}
-                        readOnly={isReadOnly}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.precio_compra ? 'border-red-500' : 'border-gray-300'
-                        } ${isReadOnly ? 'bg-gray-50' : ''}`}
-                      />
-                    </div>
-                    {formData.precio_compra && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {getCurrencySymbol(formData.moneda_compra)} {new Intl.NumberFormat('es-CO', {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        }).format(Number(formData.precio_compra))}
-                      </p>
-                    )}
-                    {errors.precio_compra && <p className="text-red-500 text-sm mt-1">{errors.precio_compra}</p>}
-                  </div>
+                {/* Precios - Solo mostrar si tiene permisos */}
+                {(tienePermiso('motos.view_precio_compra') || tienePermiso('motos.view_precio_venta') || esMaster) && (
+                  <>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center mt-6">
+                      <DollarSign className="h-5 w-5 mr-2" />
+                      Información de Precios
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Precio de Compra */}
+                      {(tienePermiso('motos.view_precio_compra') || esMaster) && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Precio de Compra *
+                            {!tienePermiso('motos.change_precio_compra') && !esMaster && (
+                              <span className="text-xs text-orange-600 ml-1">(Solo lectura)</span>
+                            )}
+                          </label>
+                          <div className="flex gap-2">
+                            <select
+                              name="moneda_compra"
+                              value={formData.moneda_compra}
+                              onChange={handleChange}
+                              disabled={isReadOnly || (!tienePermiso('motos.change_precio_compra') && !esMaster)}
+                              className={`px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                isReadOnly || (!tienePermiso('motos.change_precio_compra') && !esMaster) ? 'bg-gray-50 dark:bg-gray-800' : ''
+                              }`}
+                            >
+                              <option value="USD">USD</option>
+                              <option value="RD">RD</option>
+                              <option value="EUR">EUR</option>
+                              <option value="COP">COP</option>
+                            </select>
+                            <input
+                              type="number"
+                              value={formData.precio_compra}
+                              onChange={(e) => setFormData(prev => ({ ...prev, precio_compra: e.target.value }))}
+                              readOnly={isReadOnly || (!tienePermiso('motos.change_precio_compra') && !esMaster)}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                errors.precio_compra ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                              } ${isReadOnly || (!tienePermiso('motos.change_precio_compra') && !esMaster) ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
+                            />
+                          </div>
+                          {formData.precio_compra && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {getCurrencySymbol(formData.moneda_compra)} {new Intl.NumberFormat('es-CO', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              }).format(Number(formData.precio_compra))}
+                            </p>
+                          )}
+                          {errors.precio_compra && <p className="text-red-500 text-sm mt-1">{errors.precio_compra}</p>}
+                        </div>
+                      )}
 
-                  {/* Precio de Venta */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Venta *</label>
-                    <div className="flex gap-2">
-                      <select
-                        name="moneda_venta"
-                        value={formData.moneda_venta}
-                        onChange={handleChange}
-                        disabled={isReadOnly}
-                        className={`px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
-                        }`}
-                      >
-                        <option value="USD">USD</option>
-                        <option value="RD">RD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="COP">COP</option>
-                      </select>
-                      <input
-                        type="number"
-                        value={formData.precio_venta}
-                        onChange={(e) => setFormData(prev => ({ ...prev, precio_venta: e.target.value }))}
-                        readOnly={isReadOnly}
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.precio_venta ? 'border-red-500' : 'border-gray-300'
-                        } ${isReadOnly ? 'bg-gray-50' : ''}`}
-                      />
+                      {/* Precio de Venta */}
+                      {(tienePermiso('motos.view_precio_venta') || esMaster) && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Precio de Venta *
+                            {!tienePermiso('motos.change_precio_venta') && !esMaster && (
+                              <span className="text-xs text-orange-600 ml-1">(Solo lectura)</span>
+                            )}
+                          </label>
+                          <div className="flex gap-2">
+                            <select
+                              name="moneda_venta"
+                              value={formData.moneda_venta}
+                              onChange={handleChange}
+                              disabled={isReadOnly || (!tienePermiso('motos.change_precio_venta') && !esMaster)}
+                              className={`px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                isReadOnly || (!tienePermiso('motos.change_precio_venta') && !esMaster) ? 'bg-gray-50 dark:bg-gray-800' : ''
+                              }`}
+                            >
+                              <option value="USD">USD</option>
+                              <option value="RD">RD</option>
+                              <option value="EUR">EUR</option>
+                              <option value="COP">COP</option>
+                            </select>
+                            <input
+                              type="number"
+                              value={formData.precio_venta}
+                              onChange={(e) => setFormData(prev => ({ ...prev, precio_venta: e.target.value }))}
+                              readOnly={isReadOnly || (!tienePermiso('motos.change_precio_venta') && !esMaster)}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                errors.precio_venta ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                              } ${isReadOnly || (!tienePermiso('motos.change_precio_venta') && !esMaster) ? 'bg-gray-50 dark:bg-gray-800' : ''}`}
+                            />
+                          </div>
+                          {formData.precio_venta && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {getCurrencySymbol(formData.moneda_venta)} {new Intl.NumberFormat('es-CO', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              }).format(Number(formData.precio_venta))}
+                            </p>
+                          )}
+                          {errors.precio_venta && <p className="text-red-500 text-sm mt-1">{errors.precio_venta}</p>}
+                        </div>
+                      )}
                     </div>
-                    {formData.precio_venta && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {getCurrencySymbol(formData.moneda_venta)} {new Intl.NumberFormat('es-CO', {
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        }).format(Number(formData.precio_venta))}
-                      </p>
-                    )}
-                    {errors.precio_venta && <p className="text-red-500 text-sm mt-1">{errors.precio_venta}</p>}
-                  </div>
-                </div>
+                  </>
+                )}
                 
-                {/* Ganancia calculada - mostrar solo cuando ambos precios tienen datos */}
-                {formData.precio_compra && formData.precio_venta && (
+                {/* Ganancia calculada - mostrar solo cuando ambos precios tienen datos y tiene permisos */}
+                {formData.precio_compra && formData.precio_venta && (tienePermiso('motos.view_ganancia') || esMaster) && (
                   <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Ganancia Estimada
                     </label>
                     <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
                         <span>Compra: {getCurrencySymbol(formData.moneda_compra)} {new Intl.NumberFormat('es-CO', {
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0,
@@ -1080,7 +1150,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ganancia Calculada</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ganancia Calculada</label>
                     <div className="w-full px-3 py-2 bg-green-50 border border-green-200 rounded-md text-green-700 font-semibold">
                       {formatCurrency(gananciaCalculada)}
                     </div>
@@ -1090,7 +1160,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
 
               {/* Imagen */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                   <Camera className="h-5 w-5 mr-2" />
                   Imagen
                 </h3>
@@ -1127,10 +1197,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                        className="w-full px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
                       >
                         <Camera className="h-8 w-8 mx-auto text-gray-400" />
-                        <p className="text-sm text-gray-500 mt-2">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                           {imagePreview ? 'Cambiar imagen' : 'Subir imagen'}
                         </p>
                       </button>
@@ -1144,7 +1214,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
           {/* Tab Especificaciones Técnicas */}
           {activeTab === 'tecnicas' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                 <Package className="h-5 w-5 mr-2" />
                 Especificaciones Técnicas Completas
               </h3>
@@ -1159,7 +1229,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   </h4>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="tipo_motor" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="tipo_motor" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Tipo de Motor
                       </label>
                       <input
@@ -1170,14 +1240,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Motor de 4 tiempos, monocilíndrico"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="cilindrada" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="cilindrada" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Cilindrada
                       </label>
                       <input
@@ -1188,14 +1258,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 125 cc"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="potencia" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="potencia" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Potencia Máxima
                       </label>
                       <input
@@ -1206,14 +1276,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 8.5 HP @ 7,500 rpm"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="refrigeracion" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="refrigeracion" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Sistema de Refrigeración
                       </label>
                       <input
@@ -1224,14 +1294,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Por aire"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="arranque" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="arranque" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Sistema de Arranque
                       </label>
                       <input
@@ -1242,14 +1312,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Eléctrico y kick"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="transmision" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="transmision" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Transmisión
                       </label>
                       <input
@@ -1260,8 +1330,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 5 velocidades"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
@@ -1276,7 +1346,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   </h4>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="dimensiones" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="dimensiones" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Dimensiones (L x A x H)
                       </label>
                       <input
@@ -1287,14 +1357,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 1,950 x 720 x 1,040 mm"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="distancia_ejes" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="distancia_ejes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Distancia entre Ejes
                       </label>
                       <input
@@ -1305,14 +1375,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 1,285 mm"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="altura_asiento" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="altura_asiento" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Altura del Asiento
                       </label>
                       <input
@@ -1323,14 +1393,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 785 mm"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="peso_seco" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="peso_seco" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Peso en Seco
                       </label>
                       <input
@@ -1341,14 +1411,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 115 kg"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="tanque_combustible" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="tanque_combustible" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Capacidad de Combustible
                       </label>
                       <input
@@ -1359,14 +1429,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 13 litros"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="capacidad_carga" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="capacidad_carga" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Capacidad de Carga
                       </label>
                       <input
@@ -1377,8 +1447,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 150 kg"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
@@ -1393,7 +1463,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   </h4>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="freno_delantero" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="freno_delantero" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Freno Delantero
                       </label>
                       <input
@@ -1404,14 +1474,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Disco hidráulico de 220mm"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="freno_trasero" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="freno_trasero" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Freno Trasero
                       </label>
                       <input
@@ -1422,14 +1492,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Tambor de 130mm"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="llanta_delantera" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="llanta_delantera" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Llanta Delantera
                       </label>
                       <input
@@ -1440,14 +1510,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 2.75-18"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="llanta_trasera" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="llanta_trasera" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Llanta Trasera
                       </label>
                       <input
@@ -1458,14 +1528,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 3.00-18"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="suspension_delantera" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="suspension_delantera" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Suspensión Delantera
                       </label>
                       <input
@@ -1476,14 +1546,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Telescópica"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="suspension_trasera" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="suspension_trasera" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Suspensión Trasera
                       </label>
                       <input
@@ -1494,8 +1564,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Doble amortiguador"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
@@ -1510,7 +1580,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   </h4>
                   <div className="space-y-4">
                     <div>
-                      <label htmlFor="consumo" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="consumo" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Consumo de Combustible
                       </label>
                       <input
@@ -1521,14 +1591,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 50 km/litro"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="velocidad_maxima" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="velocidad_maxima" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Velocidad Máxima
                       </label>
                       <input
@@ -1539,14 +1609,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 95 km/h"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="autonomia" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="autonomia" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Autonomía
                       </label>
                       <input
@@ -1557,14 +1627,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: 650 km"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="emisiones" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="emisiones" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Estándar de Emisiones
                       </label>
                       <input
@@ -1575,8 +1645,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                         onChange={handleChange}
                         readOnly={isReadOnly}
                         placeholder="Ej: Euro 3"
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          isReadOnly ? 'bg-gray-50' : ''
+                        className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          isReadOnly ? 'bg-gray-50 dark:bg-gray-800' : ''
                         }`}
                       />
                     </div>
@@ -1585,32 +1655,32 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
               </div>
 
               {/* Resumen de especificaciones */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 mb-3">Resumen de Especificaciones Principales</h4>
+              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Resumen de Especificaciones Principales</h4>
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                   <div className="text-center">
-                    <div className="font-medium text-gray-900">{formData.cilindrada || '---'}</div>
-                    <div className="text-gray-600">Cilindrada</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{formData.cilindrada || '---'}</div>
+                    <div className="text-gray-600 dark:text-gray-400">Cilindrada</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-gray-900">{formData.potencia || '---'}</div>
-                    <div className="text-gray-600">Potencia</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{formData.potencia || '---'}</div>
+                    <div className="text-gray-600 dark:text-gray-400">Potencia</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-gray-900">{formData.peso_seco || '---'}</div>
-                    <div className="text-gray-600">Peso</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{formData.peso_seco || '---'}</div>
+                    <div className="text-gray-600 dark:text-gray-400">Peso</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-gray-900">{formData.tanque_combustible || '---'}</div>
-                    <div className="text-gray-600">Tanque</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{formData.tanque_combustible || '---'}</div>
+                    <div className="text-gray-600 dark:text-gray-400">Tanque</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-gray-900">{formData.consumo || '---'}</div>
-                    <div className="text-gray-600">Consumo</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{formData.consumo || '---'}</div>
+                    <div className="text-gray-600 dark:text-gray-400">Consumo</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-medium text-gray-900">{formData.velocidad_maxima || '---'}</div>
-                    <div className="text-gray-600">Vel. Máx.</div>
+                    <div className="font-medium text-gray-900 dark:text-white">{formData.velocidad_maxima || '---'}</div>
+                    <div className="text-gray-600 dark:text-gray-400">Vel. Máx.</div>
                   </div>
                 </div>
               </div>
@@ -1668,7 +1738,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   )}
 
                   {nuevoStock.length === 0 ? (
-                    <div className="text-center py-8 bg-white rounded-lg border-2 border-dashed border-green-300">
+                    <div className="text-center py-8 bg-white dark:bg-gray-700 rounded-lg border-2 border-dashed border-green-300">
                       <Palette className="h-12 w-12 text-green-400 mx-auto mb-4" />
                       <p className="text-green-700 font-medium">Listo para agregar nuevos colores</p>
                       <p className="text-green-600 text-sm mt-1">
@@ -1678,7 +1748,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                   ) : (
                     <div className="space-y-4">
                       {nuevoStock.map((color, index) => (
-                        <div key={index} className="border-2 border-green-200 rounded-lg p-6 bg-white">
+                        <div key={index} className="border-2 border-green-200 rounded-lg p-6 bg-white dark:bg-gray-700">
                           <div className="flex justify-between items-start mb-4">
                             <h4 className="font-medium text-green-800">Nuevo Color {index + 1}</h4>
                             <button
@@ -1693,15 +1763,15 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           {/* Información básica del color */}
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Color *</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color *</label>
                               <input
                                 type="text"
                                 value={color.color}
                                 onChange={(e) => updateColor(index, 'color', e.target.value)}
                                 placeholder="Ej: Rojo, Azul, Negro..."
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                  errors[`nuevo_color_${index}`] ? 'border-red-500' : 'border-gray-300'
-                                } bg-white`}
+                                  errors[`nuevo_color_${index}`] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                } bg-white dark:bg-gray-700`}
                               />
                               {errors[`nuevo_color_${index}`] && (
                                 <p className="text-red-500 text-sm mt-1">{errors[`nuevo_color_${index}`]}</p>
@@ -1709,7 +1779,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad *</label>
                               <input
                                 type="number"
                                 min="1"
@@ -1727,8 +1797,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                                 }}
                                 placeholder="Cantidad de motos"
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                  errors[`nuevo_cantidad_${index}`] ? 'border-red-500' : 'border-gray-300'
-                                } bg-white`}
+                                  errors[`nuevo_cantidad_${index}`] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                } bg-white dark:bg-gray-700`}
                               />
                               {errors[`nuevo_cantidad_${index}`] && (
                                 <p className="text-red-500 text-sm mt-1">{errors[`nuevo_cantidad_${index}`]}</p>
@@ -1736,7 +1806,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Precio de Compra *</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Precio de Compra *</label>
                               <input
                                 type="number"
                                 min="0"
@@ -1745,8 +1815,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                                 onChange={(e) => updateColor(index, 'precio_compra_individual', e.target.value ? parseFloat(e.target.value) : undefined)}
                                 placeholder="Precio unitario USD"
                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                  errors[`nuevo_precio_${index}`] ? 'border-red-500' : 'border-gray-300'
-                                } bg-white`}
+                                  errors[`nuevo_precio_${index}`] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                } bg-white dark:bg-gray-700`}
                               />
                               {errors[`nuevo_precio_${index}`] && (
                                 <p className="text-red-500 text-sm mt-1">{errors[`nuevo_precio_${index}`]}</p>
@@ -1754,7 +1824,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Tasa USD</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tasa USD</label>
                               <input
                                 type="number"
                                 min="0"
@@ -1762,7 +1832,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                                 value={color.tasa_dolar || ''}
                                 onChange={(e) => updateColor(index, 'tasa_dolar', e.target.value ? parseFloat(e.target.value) : undefined)}
                                 placeholder="Ej: 58.50"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700"
                               />
                             </div>
                           </div>
@@ -1770,7 +1840,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           {/* Segunda fila */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Descuento (%)</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descuento (%)</label>
                               <input
                                 type="number"
                                 min="0"
@@ -1779,17 +1849,17 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                                 value={color.descuento_porcentaje}
                                 onChange={(e) => updateColor(index, 'descuento_porcentaje', parseFloat(e.target.value) || 0)}
                                 placeholder="0"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700"
                               />
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Compra</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de Compra</label>
                               <input
                                 type="date"
                                 value={color.fecha_compra || ''}
                                 onChange={(e) => updateColor(index, 'fecha_compra', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700"
                               />
                             </div>
                           </div>
@@ -1819,7 +1889,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           {/* Números de Chasis */}
                           <div>
                             <div className="flex items-center justify-between mb-2">
-                              <label className="block text-sm font-medium text-gray-700">Números de Chasis *</label>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Números de Chasis *</label>
                               {color.cantidad_stock > 1 && color.chasis[0]?.trim() && (
                                 <button
                                   type="button"
@@ -1840,8 +1910,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                                   value={chasis}
                                   onChange={(e) => updateChasis(index, chasisIndex, e.target.value)}
                                   placeholder={`Chasis ${chasisIndex + 1}`}
-                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${
-                                    !chasis.trim() ? 'border-red-300' : 'border-gray-300'
+                                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 ${
+                                    !chasis.trim() ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                                   }`}
                                 />
                               ))}
@@ -1859,12 +1929,12 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
 
               {/* Sección 2: Inventario Registrado */}
               {inventarioRegistrado.length > 0 && (
-                <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6">
+                <div className="bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-medium text-gray-800 flex items-center mb-4">
                     <Package className="h-5 w-5 mr-2" />
                     Inventario Registrado (Solo Lectura)
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                     Este inventario ya está registrado en el sistema y no puede ser modificado para evitar errores.
                   </p>
                   
@@ -1897,11 +1967,11 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                       const precioEnPesos = precioCompraTotal * tasaDolar;
 
                       return (
-                        <div key={`registrado-${index}`} className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                        <div key={`registrado-${index}`} className="bg-white dark:bg-gray-700 border border-gray-200 rounded-lg p-4 hover:border-gray-300 dark:border-gray-600 transition-colors">
                           {/* Header con indicador de color */}
                           <div className="flex items-center mb-3">
                             <div 
-                              className="w-6 h-6 rounded-full border-2 border-gray-300 mr-3 shadow-sm"
+                              className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 mr-3 shadow-sm"
                               style={{ 
                                 backgroundColor: getColorIndicator(color.color),
                                 border: color.color.toLowerCase() === 'blanco' || color.color.toLowerCase() === 'white' ? 
@@ -1909,8 +1979,8 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                               }}
                               title={`Color: ${color.color}`}
                             ></div>
-                            <h4 className="text-lg font-semibold text-gray-900 capitalize">{color.color}</h4>
-                            <span className="ml-auto bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white capitalize">{color.color}</h4>
+                            <span className="ml-auto bg-gray-100 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-xs font-medium">
                               {color.cantidad_stock} unidades
                             </span>
                           </div>
@@ -1963,15 +2033,15 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
                           
                           {/* Chasis registrados con mejor visualización */}
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-2 flex items-center">
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                               <Package className="h-3 w-3 mr-1" />
                               Números de Chasis ({color.chasis.filter(c => c.trim()).length})
                             </label>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                               {color.chasis.filter(c => c.trim()).map((chasis, chasisIndex) => (
-                                <div key={chasisIndex} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex items-center justify-between">
-                                  <span className="text-xs font-mono text-gray-700 truncate">{chasis}</span>
-                                  <span className="text-xs text-gray-500 ml-2">#{chasisIndex + 1}</span>
+                                <div key={chasisIndex} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 rounded-lg px-3 py-2 flex items-center justify-between">
+                                  <span className="text-xs font-mono text-gray-700 dark:text-gray-300 truncate">{chasis}</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">#{chasisIndex + 1}</span>
                                 </div>
                               ))}
                             </div>
@@ -1985,10 +2055,10 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
 
               {/* Mensaje si no hay inventario */}
               {inventarioRegistrado.length === 0 && nuevoStock.length === 0 && (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <div className="text-center py-8 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <Palette className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No hay colores agregados</p>
-                  <p className="text-gray-500 text-sm mt-1">
+                  <p className="text-gray-600 dark:text-gray-400">No hay colores agregados</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                     Agrega al menos un color con su cantidad en stock
                   </p>
                 </div>
@@ -2001,7 +2071,7 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:bg-gray-800"
             >
               {isReadOnly ? 'Cerrar' : 'Cancelar'}
             </button>
