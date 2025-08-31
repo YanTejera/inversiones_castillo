@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  X, 
+  ArrowLeft, 
   Save, 
   Bike, 
   DollarSign, 
@@ -11,16 +11,14 @@ import {
   Camera,
   Wand2 
 } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motoModeloService } from '../services/motoModeloService';
 import { proveedorService, type ProveedorListItem } from '../services/proveedorService';
 import { usePermisos } from '../contexts/PermisosContext';
 import type { MotoModelo } from '../types';
 
 interface MotoModeloFormProps {
-  modelo?: MotoModelo | null;
   mode: 'create' | 'edit' | 'view';
-  onClose: () => void;
-  onSave: () => void;
 }
 
 interface ColorInventario {
@@ -75,8 +73,13 @@ interface FormData {
   emisiones: string;
 }
 
-const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, onSave }) => {
+const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ mode }) => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { tienePermiso, esMaster } = usePermisos();
+  
+  // Estado para el modelo (cuando es edit mode)
+  const [modelo, setModelo] = useState<MotoModelo | null>(null);
   
   // Separar inventario registrado del nuevo
   const [inventarioRegistrado, setInventarioRegistrado] = useState<ColorInventario[]>([]);
@@ -158,18 +161,85 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
     }
   }, [modelo]);
   
-  // Cargar proveedores
+  // Cargar datos iniciales
   useEffect(() => {
-    const loadProveedores = async () => {
+    const loadInitialData = async () => {
       try {
-        const response = await proveedorService.getProveedores({ activo: true });
-        setProveedores(response.results);
+        // Cargar proveedores
+        const proveedoresResponse = await proveedorService.getProveedores({ activo: true });
+        setProveedores(proveedoresResponse.results);
+        
+        // Cargar modelo si estamos en modo edit
+        if (mode === 'edit' && id) {
+          const modeloResponse = await motoModeloService.getMotoModelo(Number(id));
+          setModelo(modeloResponse);
+          
+          // Separar inventario registrado del nuevo
+          if (modeloResponse?.inventario && modeloResponse.inventario.length > 0) {
+            const inventarioExistente = modeloResponse.inventario.map(inv => ({
+              color: inv.color || '',
+              cantidad_stock: inv.cantidad_stock || 1,
+              descuento_porcentaje: inv.descuento_porcentaje || 0,
+              chasis: inv.chasis && inv.chasis.trim() 
+                ? inv.chasis.split(',').map(c => c.trim()) 
+                : [''],
+              precio_compra_individual: inv.precio_compra_individual || 0,
+              tasa_dolar: inv.tasa_dolar || 0,
+              fecha_compra: inv.fecha_compra || ''
+            }));
+            setInventarioRegistrado(inventarioExistente);
+          }
+          
+          // Actualizar formData con los datos del modelo
+          setFormData({
+            marca: modeloResponse.marca || '',
+            modelo: modeloResponse.modelo || '',
+            ano: modeloResponse.ano?.toString() || '',
+            condicion: modeloResponse.condicion || 'nueva',
+            descripcion: modeloResponse.descripcion || '',
+            precio_compra: modeloResponse.precio_compra?.toString() || '',
+            precio_venta: modeloResponse.precio_venta?.toString() || '',
+            moneda_compra: modeloResponse.moneda_compra || 'USD',
+            moneda_venta: modeloResponse.moneda_venta || 'RD',
+            proveedor: modeloResponse.proveedor?.toString() || '',
+            activa: modeloResponse.activa ?? true,
+            colores: [],
+            // Especificaciones técnicas
+            tipo_motor: modeloResponse.especificaciones?.tipo_motor || '',
+            cilindrada: modeloResponse.especificaciones?.cilindrada || '',
+            potencia: modeloResponse.especificaciones?.potencia || '',
+            refrigeracion: modeloResponse.especificaciones?.refrigeracion || '',
+            arranque: modeloResponse.especificaciones?.arranque || '',
+            transmision: modeloResponse.especificaciones?.transmision || '',
+            dimensiones: modeloResponse.especificaciones?.dimensiones || '',
+            distancia_ejes: modeloResponse.especificaciones?.distancia_ejes || '',
+            altura_asiento: modeloResponse.especificaciones?.altura_asiento || '',
+            peso_seco: modeloResponse.especificaciones?.peso_seco || '',
+            tanque_combustible: modeloResponse.especificaciones?.tanque_combustible || '',
+            capacidad_carga: modeloResponse.especificaciones?.capacidad_carga || '',
+            freno_delantero: modeloResponse.especificaciones?.freno_delantero || '',
+            freno_trasero: modeloResponse.especificaciones?.freno_trasero || '',
+            llanta_delantera: modeloResponse.especificaciones?.llanta_delantera || '',
+            llanta_trasera: modeloResponse.especificaciones?.llanta_trasera || '',
+            suspension_delantera: modeloResponse.especificaciones?.suspension_delantera || '',
+            suspension_trasera: modeloResponse.especificaciones?.suspension_trasera || '',
+            consumo: modeloResponse.especificaciones?.consumo || '',
+            velocidad_maxima: modeloResponse.especificaciones?.velocidad_maxima || '',
+            autonomia: modeloResponse.especificaciones?.autonomia || '',
+            emisiones: modeloResponse.especificaciones?.emisiones || ''
+          });
+          
+          if (modeloResponse.imagen) {
+            setImagePreview(modeloResponse.imagen);
+          }
+        }
       } catch (error) {
-        console.error('Error loading proveedores:', error);
+        console.error('Error loading initial data:', error);
       }
     };
-    loadProveedores();
-  }, []);
+    
+    loadInitialData();
+  }, [mode, id]);
   
   // Debug: Log cuando cambien los colores (removido para evitar loops)
 
@@ -377,10 +447,11 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       
       console.log('✅ Respuesta del backend:', response);
       console.log('🖼️ URL de imagen en respuesta:', response.imagen);
-      console.log('🔄 Cerrando formulario y recargando...');
+      console.log('🔄 Navegando de regreso a la lista...');
       
-      onSave();
-      onClose();
+      // Mostrar mensaje de éxito y navegar
+      alert('✅ Modelo de motocicleta guardado exitosamente');
+      navigate('/motos');
     } catch (error: any) {
       console.error('Error saving modelo:', error);
       console.error('Error response:', error.response?.data);
@@ -577,14 +648,14 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
       // Limpiar errores
       setErrors({});
       
-      // Actualizar datos del modelo sin cerrar el modal
-      onSave();
-      
       if (mode === 'create' && !modelo?.id) {
         alert(`✅ Modelo creado exitosamente y se agregaron ${nuevoStock.length} nuevos colores al inventario`);
       } else {
         alert(`✅ Se agregaron ${nuevoStock.length} nuevos colores al inventario`);
       }
+      
+      // Navegar de regreso a la lista
+      navigate('/motos');
 
     } catch (error: any) {
       console.error('Error guardando nuevo stock:', error);
@@ -807,20 +878,36 @@ const MotoModeloForm: React.FC<MotoModeloFormProps> = ({ modelo, mode, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-0 md:p-4 z-50">
-      <div className="modal-responsive max-w-6xl w-full h-full md:h-auto md:max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between safe-top p-4 md:p-6 border-b border-gray-200 dark:border-gray-600">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white truncate pr-4">
-            {mode === 'create' && 'Registrar Nueva Motocicleta'}
-            {mode === 'edit' && 'Editar Motocicleta'}
-            {mode === 'view' && 'Detalles de la Motocicleta'}
-          </h2>
-          <button onClick={onClose} className="touch-target text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full flex-shrink-0 transition-colors">
-            <X className="h-5 w-5 md:h-6 md:w-6" />
-          </button>
+    <div className="page-fade-in">
+      {/* Header */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate('/motos')}
+              className="flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 mr-1" />
+              Volver
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {mode === 'create' && 'Registrar Nueva Motocicleta'}
+                {mode === 'edit' && 'Editar Motocicleta'}
+                {mode === 'view' && 'Detalles de la Motocicleta'}
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {mode === 'create' && 'Agrega una nueva motocicleta al inventario'}
+                {mode === 'edit' && 'Modifica los datos de la motocicleta'}
+                {mode === 'view' && 'Información detallada de la motocicleta'}
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
 
+      {/* Form Container */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Tabs */}
         <div className="border-b border-gray-200 overflow-x-auto">
           <nav className="flex">

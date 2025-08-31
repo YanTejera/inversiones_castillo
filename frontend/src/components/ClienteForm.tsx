@@ -206,8 +206,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ cliente, mode, onClose, onSav
   }, [mode]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-0 md:p-4 z-50 animate-fade-in">
-      <div className="modal-responsive w-full h-full md:h-auto overflow-y-auto animate-scale-in shadow-2xl">
+    <div className="modal-overlay animate-fade-in">
+      <div className="modal-responsive max-w-4xl animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between safe-top p-4 md:p-6 border-b border-gray-200 dark:border-gray-600">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white">

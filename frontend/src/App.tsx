@@ -9,6 +9,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import Motocicletas from './pages/Motocicletas';
+import MotoNueva from './pages/MotoNueva';
+import MotoEditar from './pages/MotoEditar';
 import Proveedores from './pages/Proveedores';
 import ProveedorNuevo from './pages/ProveedorNuevo';
 import ProveedorDetalle from './pages/ProveedorDetalle';
@@ -47,6 +49,8 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="motos" element={<Motocicletas />} />
+              <Route path="motos/nueva" element={<MotoNueva />} />
+              <Route path="motos/:id/editar" element={<MotoEditar />} />
               <Route path="proveedores" element={<Proveedores />} />
               <Route path="proveedores/dashboard" element={<ProveedorDashboardPage />} />
               <Route path="proveedores/reportes" element={<ProveedorReportsPage />} />

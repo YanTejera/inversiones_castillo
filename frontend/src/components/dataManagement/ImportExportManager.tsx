@@ -278,8 +278,8 @@ const ImportExportManager: React.FC<ImportExportManagerProps> = ({ onClose, defa
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="modal-overlay">
+      <div className="modal-responsive max-w-4xl">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold text-gray-800">
@@ -473,8 +473,8 @@ const ImportExportManager: React.FC<ImportExportManagerProps> = ({ onClose, defa
 
           {/* Preview Modal */}
           {showPreview && importPreview && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
-              <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto m-4">
+            <div className="modal-overlay z-60">
+              <div className="modal-responsive max-w-4xl max-h-[80vh]">
                 <div className="flex justify-between items-center p-4 border-b">
                   <h3 className="text-lg font-semibold">Vista Previa de Importación</h3>
                   <button 

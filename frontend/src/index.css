@@ -7,7 +7,7 @@
 
 /* PWA Mobile App Styles */
 @layer base {
-  /* Mobile PWA optimizations */
+  /* Mobile PWA optimizations - Modified to fix modal scrolling */
   @media (max-width: 768px) {
     html {
       /* Full height for mobile PWA */
@@ -17,15 +17,13 @@
     }
     
     body {
-      /* Prevent iOS Safari address bar issues */
+      /* Prevent iOS Safari address bar issues but allow modal scrolling */
       height: 100%;
       height: 100vh;
       height: -webkit-fill-available;
-      overflow: hidden;
       overscroll-behavior: none;
       -webkit-overflow-scrolling: touch;
-      position: fixed;
-      width: 100%;
+      /* Removed position: fixed and overflow: hidden to allow modal scrolling */
     }
     
     #root {
@@ -136,13 +134,18 @@
     @apply min-h-[48px] min-w-[48px] p-4 flex items-center justify-center;
   }
   
-  /* Mobile Modal Patterns */
+  /* Improved Modal Patterns */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50;
+    backdrop-filter: blur(2px);
+  }
+  
   .modal-mobile {
-    @apply fixed inset-0 p-4 m-0 max-w-none max-h-none bg-white dark:bg-gray-900;
+    @apply w-full h-full max-w-none max-h-none p-0 m-0 bg-white dark:bg-gray-900 overflow-y-auto;
   }
   
   .modal-desktop {
-    @apply max-w-4xl max-h-[90vh] p-0 mx-auto mt-8 bg-white dark:bg-gray-700 rounded-lg;
+    @apply max-w-4xl max-h-[90vh] p-0 mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 overflow-y-auto;
   }
   
   .modal-responsive {

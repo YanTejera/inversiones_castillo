@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -77,9 +78,7 @@ const Motocicletas: React.FC = () => {
   });
   const [totalPages, setTotalPages] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const [selectedMoto, setSelectedMoto] = useState<Moto | null>(null);
-  const [selectedModelo, setSelectedModelo] = useState<MotoModelo | null>(null);
-  const [modalMode, setModalMode] = useState<'view' | 'create' | 'edit'>('view');
+  // Removed modal state - now using page navigation
   const [showDetalleModelo, setShowDetalleModelo] = useState(false);
   const [showVentaDirecta, setShowVentaDirecta] = useState(false);
   const [showResumenModelo, setShowResumenModelo] = useState(false);
@@ -282,47 +281,9 @@ const Motocicletas: React.FC = () => {
     }
   };
 
-  const openModal = (mode: 'view' | 'create' | 'edit', moto?: Moto, modelo?: MotoModelo) => {
-    setModalMode(mode);
-    setSelectedMoto(moto || null);
-    setSelectedModelo(modelo || null);
-    setShowModal(true);
-  };
+  // Modal functions removed - now using page navigation
 
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedMoto(null);
-    setSelectedModelo(null);
-  };
-
-  const handleFormSave = () => {
-    console.log('handleFormSave llamado, viewMode:', viewMode);
-    const editedModeloId = selectedModelo?.id;
-    const editedMotoId = selectedMoto?.id;
-    
-    // Pequeño delay para asegurar que el backend haya procesado la actualización
-    setTimeout(() => {
-      if (viewMode === 'modelos') {
-        console.log('Recargando modelos...');
-        console.log('Modelo editado ID:', editedModeloId);
-        loadModelos(currentPage, searchTerm);
-        if (modalMode === 'create') {
-          success('Modelo de motocicleta creado exitosamente');
-        } else if (modalMode === 'edit') {
-          success('Modelo de motocicleta actualizado exitosamente');
-        }
-      } else {
-        console.log('Recargando motos...');
-        console.log('Moto editada ID:', editedMotoId);
-        loadMotos(currentPage, searchTerm);
-        if (modalMode === 'create') {
-          success('Motocicleta creada exitosamente');
-        } else if (modalMode === 'edit') {
-          success('Motocicleta actualizada exitosamente');
-        }
-      }
-    }, 100);
-  };
+  // handleFormSave removed - no longer needed with page navigation
 
   const handleDeleteModelo = async (modelo: MotoModelo) => {
     if (window.confirm(`¿Estás seguro de eliminar el modelo ${modelo.marca} ${modelo.modelo} ${modelo.ano}?`)) {
@@ -816,13 +777,13 @@ const Motocicletas: React.FC = () => {
               <span className="sm:hidden">Importar</span>
             </button>
             {viewMode !== 'analytics' && viewMode !== 'locations' && (
-              <button
-                onClick={() => openModal('create')}
+              <Link
+                to="/motos/nueva"
                 className="flex-1 sm:flex-initial bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center justify-center gap-2 text-sm font-medium"
               >
                 <Plus className="h-4 w-4" />
                 Nueva Motocicleta
-              </button>
+              </Link>
             )}
           </div>
         </div>
@@ -1221,13 +1182,13 @@ const Motocicletas: React.FC = () => {
                         <div className="flex justify-between items-center pt-2 md:pt-4 border-t border-gray-200 dark:border-gray-700">
                           {/* Quick Actions - Mobile Touch-friendly */}
                           <div className="flex space-x-1">
-                            <button
-                              onClick={() => openModal('edit', null, modelo)}
+                            <Link
+                              to={`/motos/${modelo.id}/editar`}
                               className="touch-target-sm p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900 rounded-lg transform hover:scale-110 transition-all duration-150 ease-in-out"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
-                            </button>
+                            </Link>
                             <button
                               onClick={() => handleDeleteModelo(modelo)}
                               disabled={deletingModelo === modelo.id}
@@ -1372,13 +1333,13 @@ const Motocicletas: React.FC = () => {
                           
                           {/* Acciones - Responsive */}
                           <div className="flex items-center justify-center lg:justify-end space-x-1 flex-wrap gap-1">
-                            <button
-                              onClick={() => openModal('edit', null, modelo)}
+                            <Link
+                              to={`/motos/${modelo.id}/editar`}
                               className="p-2 text-green-600 hover:bg-green-50 rounded-lg flex-shrink-0 transform hover:scale-110 transition-all duration-150 ease-in-out"
                               title="Editar"
                             >
                               <Edit className="h-4 w-4" />
-                            </button>
+                            </Link>
                             <button
                               onClick={() => handleDeleteModelo(modelo)}
                               disabled={deletingModelo === modelo.id}
@@ -1653,66 +1614,19 @@ const Motocicletas: React.FC = () => {
           </p>
           {!searchTerm && (
             <div className="mt-6">
-              <button
-                onClick={() => openModal('create')}
+              <Link
+                to="/motos/nueva"
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 {viewMode === 'modelos' ? 'Agregar Modelo' : 'Agregar Motocicleta'}
-              </button>
+              </Link>
             </div>
           )}
         </div>
       )}
 
-      {/* Modals */}
-      {showModal && viewMode === 'modelos' && (
-        <Suspense fallback={
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="p-6">
-                <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
-                <div className="space-y-4">
-                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        }>
-          <MotoModeloForm
-            modelo={selectedModelo}
-            mode={modalMode}
-            isReadOnly={modalMode === 'view'}
-            onClose={closeModal}
-            onSave={handleFormSave}
-          />
-        </Suspense>
-      )}
-      
-      {showModal && viewMode === 'individual' && (
-        <Suspense fallback={
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border max-w-2xl w-full max-h-[90vh] overflow-hidden">
-              <div className="p-6">
-                <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
-                <div className="space-y-4">
-                  <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        }>
-          <MotoForm
-            moto={selectedMoto}
-            mode={modalMode}
-            onClose={closeModal}
-            onSave={handleFormSave}
-          />
-        </Suspense>
-      )}
+      {/* Modals removed - now using page navigation */}
 
       {showDetalleModelo && selectedModelo && (
         <Suspense fallback={
