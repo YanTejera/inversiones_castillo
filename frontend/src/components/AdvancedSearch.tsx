@@ -173,7 +173,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
           <select
             value={value}
             onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="">{filter.placeholder || `Todos ${filter.label.toLowerCase()}`}</option>
             {filter.options?.map((option) => (
@@ -190,7 +190,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
             type="date"
             value={value}
             onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           />
         );
 
@@ -203,14 +203,14 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
               value={startDate}
               onChange={(e) => handleFilterChange(filter.key, [e.target.value, endDate])}
               placeholder="Desde"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <input
               type="date"
               value={endDate}
               onChange={(e) => handleFilterChange(filter.key, [startDate, e.target.value])}
               placeholder="Hasta"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
         );
@@ -222,7 +222,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
             value={value}
             onChange={(e) => handleFilterChange(filter.key, e.target.value)}
             placeholder={filter.placeholder}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           />
         );
 
@@ -235,14 +235,14 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
               value={minValue}
               onChange={(e) => handleFilterChange(filter.key, [e.target.value, maxValue])}
               placeholder="Mínimo"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
             <input
               type="number"
               value={maxValue}
               onChange={(e) => handleFilterChange(filter.key, [minValue, e.target.value])}
               placeholder="Máximo"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
         );
@@ -252,7 +252,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
           <select
             value={value}
             onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           >
             <option value="">{filter.placeholder || 'Todos'}</option>
             <option value="true">Sí</option>
@@ -267,7 +267,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
             value={value}
             onChange={(e) => handleFilterChange(filter.key, e.target.value)}
             placeholder={filter.placeholder}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           />
         );
     }
@@ -298,7 +298,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
                 }}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {loading && (
                 <RefreshCw className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 animate-spin" />

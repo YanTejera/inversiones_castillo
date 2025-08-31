@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   FileText,
   Scale,
@@ -17,8 +17,10 @@ import {
   X,
   AlertCircle,
   Upload,
-  File
+  File,
+  Database
 } from 'lucide-react';
+const ImportExportManager = lazy(() => import('../components/dataManagement/ImportExportManager'));
 import { getAvailableVariables } from '../services/documentVariables';
 import ViewToggle from '../components/common/ViewToggle';
 import { useToast } from '../components/Toast';
@@ -1030,6 +1032,7 @@ const Documentos: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'legal' | 'client' | 'management'>('legal');
   const [documents, setDocuments] = useState<DocumentTemplate[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showImportExportManager, setShowImportExportManager] = useState(false);
   const [filterVisible, setFilterVisible] = useState('all'); // all, visible, hidden
   const [selectedDocument, setSelectedDocument] = useState<DocumentTemplate | null>(null);
   const [showEditor, setShowEditor] = useState(false);
@@ -1217,28 +1220,35 @@ const Documentos: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center animate-fade-in-up">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Documentos</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Documentos</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Administra plantillas de documentos legales y para clientes
           </p>
         </div>
+        <button
+          onClick={() => setShowImportExportManager(true)}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 btn-press micro-glow flex items-center gap-2"
+        >
+          <Database className="h-4 w-4" />
+          Importar/Exportar
+        </button>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('legal')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'legal'
                 ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
             <div className="flex items-center">
               <Scale className="h-4 w-4 mr-2" />
               Documentos Legales
-              <span className="ml-2 bg-gray-100 text-gray-600 py-1 px-2 rounded-full text-xs">
+              <span className="ml-2 bg-gray-100 text-gray-600 dark:text-gray-400 py-1 px-2 rounded-full text-xs">
                 {documents.filter(d => d.category === 'legal').length}
               </span>
             </div>
@@ -1248,13 +1258,13 @@ const Documentos: React.FC = () => {
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'client'
                 ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
             <div className="flex items-center">
               <User className="h-4 w-4 mr-2" />
               Documentos para Clientes
-              <span className="ml-2 bg-gray-100 text-gray-600 py-1 px-2 rounded-full text-xs">
+              <span className="ml-2 bg-gray-100 text-gray-600 dark:text-gray-400 py-1 px-2 rounded-full text-xs">
                 {documents.filter(d => d.category === 'client').length}
               </span>
             </div>
@@ -1264,7 +1274,7 @@ const Documentos: React.FC = () => {
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'management'
                 ? 'border-green-500 text-green-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'
             }`}
           >
             <div className="flex items-center">
@@ -1284,14 +1294,14 @@ const Documentos: React.FC = () => {
             placeholder="Buscar documentos..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         
         <select
           value={filterVisible}
           onChange={(e) => setFilterVisible(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">Todos los documentos</option>
           <option value="visible">Solo visibles</option>
@@ -1323,14 +1333,14 @@ const Documentos: React.FC = () => {
           {filteredDocuments.map((document) => (
             <div
               key={document.id}
-              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 border-blue-500"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow border-l-4 border-blue-500"
             >
               {/* Header */}
               <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                   {document.name}
                 </h3>
-                <p className="text-sm text-gray-600 line-clamp-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                   {document.description}
                 </p>
               </div>
@@ -1358,7 +1368,7 @@ const Documentos: React.FC = () => {
               {/* Variables */}
               {document.variables.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs text-gray-500 mb-2">Variables disponibles:</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Variables disponibles:</p>
                   <div className="flex flex-wrap gap-1">
                     {document.variables.slice(0, 3).map((variable) => (
                       <span
@@ -1369,7 +1379,7 @@ const Documentos: React.FC = () => {
                       </span>
                     ))}
                     {document.variables.length > 3 && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         +{document.variables.length - 3} más
                       </span>
                     )}
@@ -1378,13 +1388,13 @@ const Documentos: React.FC = () => {
               )}
 
               {/* Metadata */}
-              <div className="text-xs text-gray-500 mb-4">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                 <p>Modificado: {new Date(document.lastModified).toLocaleDateString('es-CO')}</p>
                 <p>Por: {document.createdBy}</p>
               </div>
 
               {/* Actions */}
-              <div className="flex justify-center space-x-4 pt-4 border-t border-gray-200">
+              <div className="flex justify-center space-x-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => handlePreviewDocument(document)}
                   className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -1395,7 +1405,7 @@ const Documentos: React.FC = () => {
                 </button>
                 <button
                   onClick={() => handlePrintDocument(document)}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 rounded-lg transition-colors"
                   title="Imprimir"
                 >
                   <Printer className="h-4 w-4" />
@@ -1415,51 +1425,51 @@ const Documentos: React.FC = () => {
         </div>
       ) : (
         /* List View */
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Documento
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Descripción
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Modificado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Variables
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredDocuments.map((document) => (
-                  <tr key={document.id} className="hover:bg-gray-50">
+                  <tr key={document.id} className="hover:bg-gray-50 dark:bg-gray-900">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className={`w-3 h-3 rounded-full mr-3 ${
                           !document.isVisible ? 'bg-gray-400' : 'bg-blue-500'
                         }`}></div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {document.name}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
                             {document.category === 'legal' ? 'Legal' : 'Cliente'}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <div className="text-sm text-gray-900 dark:text-white max-w-xs truncate">
                         {document.description}
                       </div>
                     </td>
@@ -1481,11 +1491,11 @@ const Documentos: React.FC = () => {
                       </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {new Date(document.lastModified).toLocaleDateString('es-CO')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         {document.variables.length} variables
                       </div>
                     </td>
@@ -1507,7 +1517,7 @@ const Documentos: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handlePrintDocument(document)}
-                          className="p-1 text-gray-600 hover:bg-gray-50 rounded"
+                          className="p-1 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 rounded"
                           title="Imprimir"
                         >
                           <Printer className="h-4 w-4" />
@@ -1523,7 +1533,7 @@ const Documentos: React.FC = () => {
                           onClick={() => handleToggleVisibility(document.id)}
                           className={`p-1 rounded ${
                             document.isVisible
-                              ? 'text-gray-600 hover:bg-gray-50'
+                              ? 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900'
                               : 'text-red-600 hover:bg-red-50'
                           }`}
                           title={document.isVisible ? 'Ocultar' : 'Mostrar'}
@@ -1544,8 +1554,8 @@ const Documentos: React.FC = () => {
       {filteredDocuments.length === 0 && activeTab !== 'management' && (
         <div className="text-center py-12">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No hay documentos</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No hay documentos</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {searchTerm ? 'No se encontraron documentos con ese criterio de búsqueda.' : 'No hay documentos disponibles en esta categoría.'}
           </p>
         </div>
@@ -1574,6 +1584,16 @@ const Documentos: React.FC = () => {
         />
       )}
 
+      {/* Import/Export Manager */}
+      {showImportExportManager && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white dark:bg-gray-800 rounded-lg p-8">Cargando...</div></div>}>
+          <ImportExportManager 
+            defaultType="documentos"
+            onClose={() => setShowImportExportManager(false)}
+          />
+        </Suspense>
+      )}
+
       {/* Toast Container */}
       <ToastContainer />
     </div>
@@ -1599,12 +1619,12 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, onClo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Editar Documento</h2>
-            <p className="text-gray-600">{document.name}</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Editar Documento</h2>
+            <p className="text-gray-600 dark:text-gray-400">{document.name}</p>
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -1613,7 +1633,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, onClo
             >
               Variables
             </button>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
               <X className="h-6 w-6" />
             </button>
           </div>
@@ -1622,14 +1642,14 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, onClo
         <div className="flex flex-1 overflow-hidden">
           {/* Variables Panel */}
           {showVariables && (
-            <div className="w-64 border-r bg-gray-50 p-4 overflow-y-auto">
-              <h3 className="font-semibold text-gray-900 mb-3">Variables Disponibles</h3>
+            <div className="w-64 border-r bg-gray-50 dark:bg-gray-900 p-4 overflow-y-auto">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Variables Disponibles</h3>
               <div className="space-y-2">
                 {document.variables.map((variable) => (
                   <button
                     key={variable}
                     onClick={() => insertVariable(variable)}
-                    className="w-full text-left p-2 text-sm bg-white border rounded-lg hover:bg-blue-50 hover:border-blue-300"
+                    className="w-full text-left p-2 text-sm bg-white dark:bg-gray-800 border rounded-lg hover:bg-blue-50 hover:border-blue-300"
                   >
                     {variable}
                   </button>
@@ -1645,8 +1665,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, onClo
 
           {/* Editor Area */}
           <div className="flex-1 flex flex-col">
-            <div className="p-4 border-b bg-gray-50">
-              <div className="text-sm text-gray-600">
+            <div className="p-4 border-b bg-gray-50 dark:bg-gray-900">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 Editor profesional con herramientas de formato. Las variables aparecerán resaltadas en azul.
               </div>
             </div>
@@ -1662,10 +1682,10 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, onClo
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end space-x-4 p-6 border-t bg-gray-50">
+        <div className="flex justify-end space-x-4 p-6 border-t bg-gray-50 dark:bg-gray-900">
           <button
             onClick={onClose}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+            className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 hover:bg-gray-100"
           >
             Cancelar
           </button>
@@ -1690,14 +1710,14 @@ interface DocumentPreviewProps {
 const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Vista Previa</h2>
-            <p className="text-gray-600">{document.name}</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Vista Previa</h2>
+            <p className="text-gray-600 dark:text-gray-400">{document.name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -1721,7 +1741,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, onClose }) 
             {document.content ? (
               <div dangerouslySetInnerHTML={{ __html: document.content }} />
             ) : (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <FileText className="mx-auto h-12 w-12 mb-4" />
                 <p>Este documento no tiene contenido aún.</p>
                 <p className="text-sm">Haga clic en "Editar" para agregar contenido.</p>
@@ -1731,10 +1751,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document, onClose }) 
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end space-x-4 p-6 border-t bg-gray-50">
+        <div className="flex justify-end space-x-4 p-6 border-t bg-gray-50 dark:bg-gray-900">
           <button
             onClick={onClose}
-            className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+            className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 hover:bg-gray-100"
           >
             Cerrar
           </button>
@@ -1825,7 +1845,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
       <div className="flex justify-between items-center">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-gray-900">Gestión de Documentos</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Gestión de Documentos</h2>
             {isSaving && (
               <div className="flex items-center gap-2 text-green-600 text-sm">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
@@ -1833,7 +1853,7 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
               </div>
             )}
           </div>
-          <p className="text-gray-600">Crear, editar y administrar documentos del sistema</p>
+          <p className="text-gray-600 dark:text-gray-400">Crear, editar y administrar documentos del sistema</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -1868,8 +1888,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
           <div className="flex items-center">
             <FileText className="h-8 w-8 text-blue-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{documents.length}</p>
             </div>
           </div>
         </div>
@@ -1877,8 +1897,8 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
           <div className="flex items-center">
             <Check className="h-8 w-8 text-green-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Completos</p>
-              <p className="text-2xl font-bold text-gray-900">{documents.filter(d => d.isComplete).length}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Completos</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{documents.filter(d => d.isComplete).length}</p>
             </div>
           </div>
         </div>
@@ -1886,58 +1906,58 @@ const DocumentManagement: React.FC<DocumentManagementProps> = ({
           <div className="flex items-center">
             <AlertCircle className="h-8 w-8 text-yellow-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">En Edición</p>
-              <p className="text-2xl font-bold text-gray-900">{documents.filter(d => !d.isComplete).length}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">En Edición</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{documents.filter(d => !d.isComplete).length}</p>
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
           <div className="flex items-center">
-            <EyeOff className="h-8 w-8 text-gray-600" />
+            <EyeOff className="h-8 w-8 text-gray-600 dark:text-gray-400" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Ocultos</p>
-              <p className="text-2xl font-bold text-gray-900">{documents.filter(d => !d.isVisible).length}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Ocultos</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{documents.filter(d => !d.isVisible).length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Lista de Documentos */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Todos los Documentos</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Todos los Documentos</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Documento
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Categoría
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Visibilidad
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Permisos
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {documents.map((document) => (
-                <tr key={document.id} className="hover:bg-gray-50">
+                <tr key={document.id} className="hover:bg-gray-50 dark:bg-gray-900">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{document.name}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">{document.description}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{document.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">{document.description}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -2140,10 +2160,10 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[95vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Nuevo Documento</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Nuevo Documento</h2>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -2158,7 +2178,7 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
               required
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Ej: Contrato de Venta"
             />
           </div>
@@ -2173,7 +2193,7 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
                 ...prev, 
                 category: e.target.value as DocumentTemplate['category'] 
               }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {categories.map(category => (
                 <option key={category.value} value={category.value}>
@@ -2191,7 +2211,7 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
               required
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={3}
               placeholder="Descripción del documento..."
             />
@@ -2226,15 +2246,15 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
               
               {/* Panel de variables */}
               {showVariables && (
-                <div className="w-80 bg-gray-50 rounded-lg p-4 border">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Variables Disponibles</h3>
+                <div className="w-80 bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Variables Disponibles</h3>
                   <div className="space-y-2 max-h-80 overflow-y-auto">
                     {availableVariables.map((variable) => (
                       <button
                         key={variable}
                         type="button"
                         onClick={() => insertVariable(variable)}
-                        className="w-full text-left px-3 py-2 text-xs bg-white hover:bg-blue-50 hover:text-blue-700 rounded border transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs bg-white dark:bg-gray-800 hover:bg-blue-50 hover:text-blue-700 rounded border transition-colors"
                       >
                         <span className="font-mono text-blue-600">{'{{'}</span>
                         <span className="font-mono">{variable}</span>
@@ -2242,8 +2262,8 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
                       </button>
                     ))}
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <p className="text-xs text-gray-600">
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       Haz clic en cualquier variable para insertarla en el cursor.
                     </p>
                   </div>
@@ -2254,7 +2274,7 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
             {/* Indicador de variables encontradas */}
             {formData.content && (
               <div className="mt-2">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Variables detectadas: {(formData.content.match(/\{\{([^}]+)\}\}/g) || []).length}
                 </p>
               </div>
@@ -2309,7 +2329,7 @@ const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 hover:bg-gray-50 dark:bg-gray-900"
             >
               Cancelar
             </button>
@@ -2456,10 +2476,10 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Importar Documento</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Importar Documento</h2>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -2474,7 +2494,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
               className={`relative border-2 border-dashed rounded-lg p-8 transition-colors ${
                 dragOver 
                   ? 'border-blue-400 bg-blue-50' 
-                  : 'border-gray-300 hover:border-gray-400'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
               } ${
                 isImporting ? 'opacity-50 pointer-events-none' : ''
               }`}
@@ -2485,12 +2505,12 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
               {isImporting ? (
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  <p className="text-sm text-gray-600">Importando archivo...</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Importando archivo...</p>
                 </div>
               ) : (
                 <div className="text-center">
                   <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-600">
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                     <strong>Arrastra un archivo aquí</strong> o{' '}
                     <label className="text-blue-600 hover:text-blue-700 cursor-pointer">
                       <span>selecciona un archivo</span>
@@ -2502,7 +2522,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
                       />
                     </label>
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Formatos soportados: PDF, DOCX, HTML, RTF, TXT, MD, CSV, JSON, XML
                   </p>
                 </div>
@@ -2523,7 +2543,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Nombre del documento"
                   />
                 </div>
@@ -2535,7 +2555,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as DocumentTemplate['category'] }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {categories.map(category => (
                       <option key={category.value} value={category.value}>
@@ -2553,7 +2573,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={2}
                   placeholder="Descripción del documento..."
                 />
@@ -2573,7 +2593,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
                       className={`px-3 py-1 rounded-full text-sm ${
                         formData.allowedRoles.includes(role)
                           ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                          : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                          : 'bg-gray-100 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       {role}
@@ -2588,7 +2608,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
                   Vista Previa del Contenido
                 </label>
                 <div 
-                  className="max-h-40 overflow-y-auto p-3 bg-gray-50 border rounded-md text-sm"
+                  className="max-h-40 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-900 border rounded-md text-sm"
                   dangerouslySetInnerHTML={{ __html: formData.content.substring(0, 500) + (formData.content.length > 500 ? '...' : '') }}
                 />
               </div>
@@ -2600,7 +2620,7 @@ const ImportDocumentModal: React.FC<ImportDocumentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 hover:bg-gray-100"
             >
               Cancelar
             </button>
@@ -2680,10 +2700,10 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[95vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Editar Documento</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Editar Documento</h2>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -2698,7 +2718,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
               required
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Ej: Contrato de Venta"
             />
           </div>
@@ -2713,7 +2733,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                 ...prev, 
                 category: e.target.value as DocumentTemplate['category'] 
               }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {categories.map(category => (
                 <option key={category.value} value={category.value}>
@@ -2731,7 +2751,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
               required
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               rows={3}
               placeholder="Descripción del documento..."
             />
@@ -2765,15 +2785,15 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
               
               {/* Panel de variables */}
               {showVariables && (
-                <div className="w-80 bg-gray-50 rounded-lg p-4 border">
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">Variables Disponibles</h3>
+                <div className="w-80 bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Variables Disponibles</h3>
                   <div className="space-y-2 max-h-80 overflow-y-auto">
                     {availableVariables.map((variable) => (
                       <button
                         key={variable}
                         type="button"
                         onClick={() => insertVariable(variable)}
-                        className="w-full text-left px-3 py-2 text-xs bg-white hover:bg-blue-50 hover:text-blue-700 rounded border transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs bg-white dark:bg-gray-800 hover:bg-blue-50 hover:text-blue-700 rounded border transition-colors"
                       >
                         <span className="font-mono text-blue-600">{"{"}</span>
                         <span className="font-mono text-blue-600">{"{"}</span>
@@ -2783,8 +2803,8 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
                       </button>
                     ))}
                   </div>
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    <p className="text-xs text-gray-600">
+                  <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       Haz clic en cualquier variable para insertarla en el cursor.
                     </p>
                   </div>
@@ -2795,7 +2815,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
             {/* Indicador de variables encontradas */}
             {formData.content && (
               <div className="mt-2">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Variables detectadas: {(formData.content.match(/\{\{([^}]+)\}\}/g) || []).length}
                 </p>
               </div>
@@ -2850,7 +2870,7 @@ const EditDocumentModal: React.FC<EditDocumentModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 hover:bg-gray-50 dark:bg-gray-900"
             >
               Cancelar
             </button>
@@ -2898,13 +2918,13 @@ const RoleManagementModal: React.FC<RoleManagementModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-md w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Gestionar Permisos</h2>
-            <p className="text-gray-600">{document.name}</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Gestionar Permisos</h2>
+            <p className="text-gray-600 dark:text-gray-400">{document.name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -2912,15 +2932,15 @@ const RoleManagementModal: React.FC<RoleManagementModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-3">Roles con Acceso</h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Roles con Acceso</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Selecciona qué roles pueden ver y usar este documento.
               </p>
             </div>
 
             <div className="space-y-3">
               {availableRoles.map(role => (
-                <label key={role} className="flex items-center p-3 border rounded-lg hover:bg-gray-50">
+                <label key={role} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 dark:bg-gray-900">
                   <input
                     type="checkbox"
                     checked={selectedRoles.includes(role)}
@@ -2928,8 +2948,8 @@ const RoleManagementModal: React.FC<RoleManagementModalProps> = ({
                     className="mr-3 h-4 w-4 text-blue-600"
                   />
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-900 capitalize">{role}</span>
-                    <p className="text-xs text-gray-500">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">{role}</span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {role === 'master' && 'Acceso total al sistema'}
                       {role === 'admin' && 'Administrador con permisos avanzados'}
                       {role === 'vendedor' && 'Vendedor con acceso a documentos comerciales'}
@@ -2945,7 +2965,7 @@ const RoleManagementModal: React.FC<RoleManagementModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 hover:bg-gray-50 dark:bg-gray-900"
             >
               Cancelar
             </button>

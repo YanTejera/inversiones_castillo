@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -15,8 +15,10 @@ import {
   Building,
   CheckCircle,
   XCircle,
-  AlertTriangle
+  AlertTriangle,
+  Database
 } from 'lucide-react';
+const ImportExportManager = lazy(() => import('./dataManagement/ImportExportManager'));
 import { proveedorService } from '../services/proveedorService';
 import { useWindowSize } from '../hooks/useWindowSize';
 import MobileTable from './MobileTable';
@@ -57,6 +59,7 @@ const ProveedoresList: React.FC = () => {
   const [proveedores, setProveedores] = useState<ProveedorListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showImportExportManager, setShowImportExportManager] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     estado: '',
@@ -117,9 +120,9 @@ const ProveedoresList: React.FC = () => {
   };
 
   const getEstadoColor = (estado: string, activo: boolean) => {
-    if (activo) return 'text-green-700 bg-green-50';
-    if (estado === 'suspendido') return 'text-yellow-700 bg-yellow-50';
-    return 'text-red-700 bg-red-50';
+    if (activo) return 'text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-900';
+    if (estado === 'suspendido') return 'text-yellow-700 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900';
+    return 'text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-900';
   };
 
   const clearFilters = () => {
@@ -153,10 +156,10 @@ const ProveedoresList: React.FC = () => {
         </div>
 
         {/* Table skeleton */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   {[...Array(6)].map((_, index) => (
                     <th key={index} className="px-6 py-3">
@@ -165,7 +168,7 @@ const ProveedoresList: React.FC = () => {
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, index) => (
                   <tr key={index} className="animate-pulse">
                     <td className="px-6 py-4"><div className="h-4 w-32 bg-gray-200 rounded"></div></td>
@@ -190,8 +193,8 @@ const ProveedoresList: React.FC = () => {
       label: 'Proveedor',
       render: (proveedor: ProveedorListItem) => (
         <div>
-          <div className="font-medium text-gray-900">{proveedor.nombre_completo}</div>
-          <div className="text-sm text-gray-500 flex items-center">
+          <div className="font-medium text-gray-900 dark:text-white">{proveedor.nombre_completo}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
             <Building className="h-4 w-4 mr-1" />
             {proveedor.tipo_proveedor}
           </div>
@@ -203,13 +206,13 @@ const ProveedoresList: React.FC = () => {
       label: 'Contacto',
       render: (proveedor: ProveedorListItem) => (
         <div>
-          <div className="text-sm text-gray-900">{proveedor.contacto_principal}</div>
-          <div className="text-xs text-gray-500 flex items-center">
+          <div className="text-sm text-gray-900 dark:text-white">{proveedor.contacto_principal}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
             <Phone className="h-3 w-3 mr-1" />
             {proveedor.telefono_principal}
           </div>
           {proveedor.email && (
-            <div className="text-xs text-gray-500 flex items-center">
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
               <Mail className="h-3 w-3 mr-1" />
               {proveedor.email}
             </div>
@@ -221,11 +224,11 @@ const ProveedoresList: React.FC = () => {
       key: 'ubicacion',
       label: 'Ubicación',
       render: (proveedor: ProveedorListItem) => (
-        <div className="text-sm text-gray-900 flex items-center">
+        <div className="text-sm text-gray-900 dark:text-white flex items-center">
           <MapPin className="h-4 w-4 mr-1 text-gray-400" />
           <div>
             <div>{proveedor.ciudad}</div>
-            <div className="text-xs text-gray-500">{proveedor.pais}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{proveedor.pais}</div>
           </div>
         </div>
       )
@@ -247,8 +250,8 @@ const ProveedoresList: React.FC = () => {
       label: 'Motocicletas',
       render: (proveedor: ProveedorListItem) => (
         <div className="text-center">
-          <div className="text-lg font-semibold text-gray-900">{proveedor.total_motocicletas}</div>
-          <div className="text-xs text-gray-500">Suministradas</div>
+          <div className="text-lg font-semibold text-gray-900 dark:text-white">{proveedor.total_motocicletas}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Suministradas</div>
         </div>
       )
     }
@@ -280,20 +283,27 @@ const ProveedoresList: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between animate-fade-in-up">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Proveedores</h1>
-          <p className="text-gray-600 mt-1">Administra la información de tus proveedores de motocicletas</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Proveedores</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Administra la información de tus proveedores de motocicletas</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
+          <button
+            onClick={() => setShowImportExportManager(true)}
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md shadow-sm text-sm font-medium hover:bg-green-700"
+          >
+            <Database className="h-4 w-4 mr-2" />
+            Importar/Exportar
+          </button>
           <Link
             to="/proveedores/dashboard"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900"
           >
             <Activity className="h-4 w-4 mr-2" />
             Dashboard
           </Link>
           <Link
             to="/proveedores/reportes"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900"
           >
             <BarChart3 className="h-4 w-4 mr-2" />
             Reportes
@@ -309,7 +319,7 @@ const ProveedoresList: React.FC = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white shadow rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div className="flex-1 max-w-lg">
             <div className="relative">
@@ -319,7 +329,7 @@ const ProveedoresList: React.FC = () => {
                 placeholder="Buscar proveedores..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -327,7 +337,7 @@ const ProveedoresList: React.FC = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900"
             >
               <Filter className="h-4 w-4 mr-2" />
               Filtros
@@ -348,11 +358,11 @@ const ProveedoresList: React.FC = () => {
         {showFilters && (
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estado</label>
               <select
                 value={filters.estado}
                 onChange={(e) => setFilters({ ...filters, estado: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Todos</option>
                 {getEstados().map(estado => (
@@ -362,11 +372,11 @@ const ProveedoresList: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Proveedor</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Proveedor</label>
               <select
                 value={filters.tipo_proveedor}
                 onChange={(e) => setFilters({ ...filters, tipo_proveedor: e.target.value })}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Todos</option>
                 {getTiposProveedor().map(tipo => (
@@ -376,7 +386,7 @@ const ProveedoresList: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado de Actividad</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Estado de Actividad</label>
               <select
                 value={filters.activo === undefined ? '' : filters.activo.toString()}
                 onChange={(e) => {
@@ -386,7 +396,7 @@ const ProveedoresList: React.FC = () => {
                     activo: value === '' ? undefined : value === 'true'
                   });
                 }}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Todos</option>
                 <option value="true">Solo Activos</option>
@@ -404,12 +414,12 @@ const ProveedoresList: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         {proveedores.length === 0 ? (
           <div className="text-center py-12">
             <Building className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay proveedores</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No hay proveedores</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Comienza agregando un nuevo proveedor.
             </p>
             <div className="mt-6">
@@ -431,25 +441,25 @@ const ProveedoresList: React.FC = () => {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   {columns.map((column) => (
                     <th
                       key={column.key}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       {column.label}
                     </th>
                   ))}
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {proveedores.map((proveedor) => (
-                  <tr key={proveedor.id} className="hover:bg-gray-50">
+                  <tr key={proveedor.id} className="hover:bg-gray-50 dark:bg-gray-900">
                     {columns.map((column) => (
                       <td key={column.key} className="px-6 py-4 whitespace-nowrap">
                         {column.render(proveedor)}
@@ -497,6 +507,16 @@ const ProveedoresList: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Import/Export Manager */}
+      {showImportExportManager && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white dark:bg-gray-800 rounded-lg p-8">Cargando...</div></div>}>
+          <ImportExportManager 
+            defaultType="proveedores"
+            onClose={() => setShowImportExportManager(false)}
+          />
+        </Suspense>
       )}
 
       {/* Toast Container */}

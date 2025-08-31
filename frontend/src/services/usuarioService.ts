@@ -95,6 +95,15 @@ export const usuarioService = {
     return response.data;
   },
 
+  async updateUserSettings(data: { 
+    tema_oscuro?: boolean;
+    notificaciones_email?: boolean;
+    idioma?: string;
+  }): Promise<Usuario> {
+    const response = await api.put('perfil/', data);
+    return response.data;
+  },
+
   async cambiarPassword(data: {
     password_actual: string;
     password_nueva: string;

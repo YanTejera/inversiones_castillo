@@ -156,7 +156,7 @@ const CobrosPendientes: React.FC = () => {
         </div>
 
         {/* Nav tabs skeleton */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-8">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-10 w-24 bg-gray-200 rounded-t animate-pulse"></div>
@@ -167,7 +167,7 @@ const CobrosPendientes: React.FC = () => {
         {/* Content skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 staggered-fade-in">
           {[...Array(4)].map((_, index) => (
-            <div key={index} className="bg-white rounded-lg p-6 shadow-sm border shimmer">
+            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border shimmer">
               <div className="flex items-center">
                 <div className="h-12 w-12 bg-gray-200 rounded animate-pulse mr-4"></div>
                 <div>
@@ -187,8 +187,8 @@ const CobrosPendientes: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between animate-fade-in-up">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Control de Cobros Pendientes</h1>
-          <p className="text-gray-600">Seguimiento de saldos y notificaciones de vencimientos</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Control de Cobros Pendientes</h1>
+          <p className="text-gray-600 dark:text-gray-400">Seguimiento de saldos y notificaciones de vencimientos</p>
         </div>
         <div className="flex space-x-2">
           <button
@@ -210,7 +210,7 @@ const CobrosPendientes: React.FC = () => {
 
 
       {/* Navigation Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
           {[
             { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -224,7 +224,7 @@ const CobrosPendientes: React.FC = () => {
               className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                 currentView === key
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -292,46 +292,46 @@ const CobrosPendientes: React.FC = () => {
 
           {/* Gráficos y resúmenes */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 staggered-fade-in">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Resumen de Cobros por Estado</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Resumen de Cobros por Estado</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-600">Cuotas Vencidas</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Cuotas Vencidas</span>
                   </div>
                   <span className="text-sm font-medium">{resumenCobros.cuotas_vencidas}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-600">Próximas a Vencer</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Próximas a Vencer</span>
                   </div>
                   <span className="text-sm font-medium">{resumenCobros.cuotas_proximas_vencer}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-600">Ventas de Alto Riesgo</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Ventas de Alto Riesgo</span>
                   </div>
                   <span className="text-sm font-medium">{resumenCobros.ventas_alto_riesgo}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Estado del Sistema</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Estado del Sistema</h3>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total de Clientes con Saldo</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Total de Clientes con Saldo</span>
                   <span className="text-sm font-medium">{clientesFinanciados.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Alertas Activas</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Alertas Activas</span>
                   <span className="text-sm font-medium">{alertasActivas.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Monto Total Pendiente</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Monto Total Pendiente</span>
                   <span className="text-sm font-medium">
                     {formatCurrency(clientesFinanciados.reduce((sum, cliente) => sum + cliente.saldo_pendiente, 0))}
                   </span>
@@ -346,7 +346,7 @@ const CobrosPendientes: React.FC = () => {
       {currentView === 'clientes' && (
         <div className="space-y-4">
           {/* Búsqueda */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center space-x-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
@@ -362,61 +362,61 @@ const CobrosPendientes: React.FC = () => {
           </div>
 
           {/* Lista de clientes */}
-          <div className="bg-white rounded-lg border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Cliente
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Venta
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Saldo Pendiente
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Próxima Cuota
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Estado
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Acciones
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {clientesFinanciados.map((cliente) => (
-                    <tr key={`${cliente.cliente_id}-${cliente.venta_id}`} className="hover:bg-gray-50">
+                    <tr key={`${cliente.cliente_id}-${cliente.venta_id}`} className="hover:bg-gray-50 dark:bg-gray-900">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{cliente.nombre_completo}</div>
-                          <div className="text-sm text-gray-500">{cliente.cedula}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{cliente.nombre_completo}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">{cliente.cedula}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm text-gray-900">Venta #{cliente.venta_id}</div>
-                          <div className="text-sm text-gray-500">{formatDate(cliente.fecha_venta)}</div>
+                          <div className="text-sm text-gray-900 dark:text-white">Venta #{cliente.venta_id}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">{formatDate(cliente.fecha_venta)}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-orange-600">
                           {formatCurrency(cliente.saldo_pendiente)}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           de {formatCurrency(cliente.monto_con_intereses)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {cliente.proxima_cuota && (
                           <div>
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-gray-900 dark:text-white">
                               {formatCurrency(cliente.proxima_cuota.monto)}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
                               {formatDate(cliente.proxima_cuota.fecha_vencimiento)}
                             </div>
                             {cliente.proxima_cuota.dias_vencido > 0 && (
@@ -465,59 +465,59 @@ const CobrosPendientes: React.FC = () => {
 
       {/* Cuotas Vencidas View */}
       {currentView === 'cuotas' && (
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Cuota
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Cliente / Venta
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Monto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Fecha Vencimiento
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Días Vencido
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Estado
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {cuotasVencidas.map((cuota) => (
-                  <tr key={cuota.id} className="hover:bg-gray-50">
+                  <tr key={cuota.id} className="hover:bg-gray-50 dark:bg-gray-900">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
                         Cuota #{cuota.numero_cuota}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {cuota.venta_info?.cliente_info?.nombre} {cuota.venta_info?.cliente_info?.apellido}
                         </div>
-                        <div className="text-sm text-gray-500">Venta #{cuota.venta}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Venta #{cuota.venta}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-red-600">
                         {formatCurrency(cuota.monto_cuota - cuota.monto_pagado)}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         de {formatCurrency(cuota.monto_cuota)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900 dark:text-white">
                           {formatDate(cuota.fecha_vencimiento)}
                         </span>
                       </div>
@@ -548,31 +548,31 @@ const CobrosPendientes: React.FC = () => {
 
       {/* Alertas View */}
       {currentView === 'alertas' && (
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tipo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Mensaje
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Fecha
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {alertasActivas.map((alerta) => (
-                  <tr key={alerta.id} className="hover:bg-gray-50">
+                  <tr key={alerta.id} className="hover:bg-gray-50 dark:bg-gray-900">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         alerta.tipo_alerta === 'vencida' ? 'bg-red-100 text-red-800' :
@@ -585,10 +585,10 @@ const CobrosPendientes: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{alerta.mensaje}</div>
+                      <div className="text-sm text-gray-900 dark:text-white">{alerta.mensaje}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-gray-900 dark:text-white">
                         {formatDate(alerta.fecha_creacion)}
                       </div>
                     </td>

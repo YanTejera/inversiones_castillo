@@ -36,8 +36,8 @@ const DistribucionVentasChart: React.FC<DistribucionVentasChartProps> = ({ data,
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-gray-800">{data.name}</p>
+        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+          <p className="font-semibold text-gray-800 dark:text-white">{data.name}</p>
           <p className="text-blue-600">
             Cantidad: {data.value} ventas
           </p>

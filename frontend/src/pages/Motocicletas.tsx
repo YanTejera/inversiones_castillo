@@ -21,7 +21,10 @@ import {
   Car,
   Clock,
   PackageX,
-  Building
+  Building,
+  BarChart3,
+  MapPin,
+  Database
 } from 'lucide-react';
 import { motoService } from '../services/motoService';
 import { motoModeloService } from '../services/motoModeloService';
@@ -31,10 +34,14 @@ const MotoModeloForm = lazy(() => import('../components/MotoModeloForm'));
 const MotoModeloDetalle = lazy(() => import('../components/MotoModeloDetalle'));
 const NewVentaForm = lazy(() => import('../components/NewVentaForm'));
 const EspecificacionesTecnicas = lazy(() => import('../components/EspecificacionesTecnicas'));
+const AdvancedInventoryAnalytics = lazy(() => import('../components/analytics/AdvancedInventoryAnalytics'));
+const LocationManager = lazy(() => import('../components/location/LocationManager'));
+const ImportExportManager = lazy(() => import('../components/dataManagement/ImportExportManager'));
 // import ResumenModelo from '../components/ResumenModelo';
 import ViewToggle from '../components/common/ViewToggle';
 import { SkeletonCard, SkeletonList, SkeletonStats } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
+import { usePermisos } from '../contexts/PermisosContext';
 import AdvancedSearch from '../components/AdvancedSearch';
 import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
 import { motocicletasFilters, getSearchPlaceholder } from '../config/searchFilters';
@@ -47,11 +54,13 @@ interface SearchFilters {
 
 const Motocicletas: React.FC = () => {
   const { success, error: showError, warning, info, ToastContainer } = useToast();
+  const { tienePermiso, esMaster } = usePermisos();
   const [motos, setMotos] = useState<Moto[]>([]);
   const [modelos, setModelos] = useState<MotoModelo[]>([]);
-  const [viewMode, setViewMode] = useState<'modelos' | 'individual'>('modelos');
+  const [viewMode, setViewMode] = useState<'modelos' | 'individual' | 'analytics' | 'locations'>('modelos');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showImportExportManager, setShowImportExportManager] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   
   // Advanced search setup
@@ -716,7 +725,7 @@ const Motocicletas: React.FC = () => {
         
         {/* Tabs skeleton */}
         <div className="mb-6">
-          <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
               <div className="h-10 w-24 bg-gray-200 rounded-t animate-pulse"></div>
               <div className="h-10 w-32 bg-gray-200 rounded-t animate-pulse"></div>
@@ -734,7 +743,7 @@ const Motocicletas: React.FC = () => {
           </div>
           
           {/* Controls skeleton */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
             <div className="flex items-center gap-2">
               <div className="h-4 w-4 bg-gray-300 rounded animate-pulse"></div>
               <div className="h-4 w-20 bg-gray-300 rounded animate-pulse"></div>
@@ -790,31 +799,42 @@ const Motocicletas: React.FC = () => {
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Motocicletas</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Motocicletas</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Administra el inventario de motocicletas
             </p>
           </div>
-          <button
-            onClick={() => openModal('create')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            {viewMode === 'modelos' ? 'Nueva Motocicleta' : 'Nueva Moto'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowImportExportManager(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 btn-press micro-glow flex items-center gap-2"
+            >
+              <Database className="h-4 w-4" />
+              Importar/Exportar
+            </button>
+            {viewMode !== 'analytics' && viewMode !== 'locations' && (
+              <button
+                onClick={() => openModal('create')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {viewMode === 'modelos' ? 'Nueva Motocicleta' : 'Nueva Moto'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="mb-6">
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setViewMode('modelos')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 viewMode === 'modelos'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
               }`}
             >
               <div className="flex items-center">
@@ -827,7 +847,7 @@ const Motocicletas: React.FC = () => {
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 viewMode === 'individual'
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
               }`}
             >
               <div className="flex items-center">
@@ -835,12 +855,40 @@ const Motocicletas: React.FC = () => {
                 Ver Inventario
               </div>
             </button>
+            <button
+              onClick={() => setViewMode('analytics')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                viewMode === 'analytics'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </div>
+            </button>
+            <button
+              onClick={() => setViewMode('locations')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                viewMode === 'locations'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center">
+                <MapPin className="h-4 w-4 mr-2" />
+                Ubicaciones
+              </div>
+            </button>
           </nav>
         </div>
       </div>
 
       {/* Filtros y Controles */}
-      <div className="mb-6 space-y-4">
+      {viewMode !== 'analytics' && viewMode !== 'locations' && (
+        <>
+        <div className="mb-6 space-y-4">
         {/* Estadísticas rápidas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 staggered-fade-in">
           {(() => {
@@ -889,7 +937,7 @@ const Motocicletas: React.FC = () => {
         </div>
 
         {/* Controles de filtrado y visualización */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
           {/* Filtros de tipo */}
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-gray-600" />
@@ -900,7 +948,7 @@ const Motocicletas: React.FC = () => {
                 className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'all'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
                 }`}
               >
                 Todas
@@ -910,7 +958,7 @@ const Motocicletas: React.FC = () => {
                 className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'new'
                     ? 'bg-green-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
                 }`}
               >
                 Nuevas
@@ -920,7 +968,7 @@ const Motocicletas: React.FC = () => {
                 className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'used'
                     ? 'bg-yellow-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
                 }`}
               >
                 Usadas
@@ -930,7 +978,7 @@ const Motocicletas: React.FC = () => {
                 className={`px-3 py-1 text-xs font-medium rounded-full btn-press micro-bounce ${
                   filterType === 'out_of_stock'
                     ? 'bg-red-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 hover:bg-gray-100 border border-gray-200 dark:border-gray-700'
                 }`}
               >
                 Sin Stock
@@ -946,7 +994,7 @@ const Motocicletas: React.FC = () => {
                 type="checkbox"
                 checked={groupByBrand}
                 onChange={(e) => handleGroupByBrandChange(e.target.checked)}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
               />
               <Building className="h-4 w-4 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">Agrupar por marca</span>
@@ -972,6 +1020,8 @@ const Motocicletas: React.FC = () => {
           className="animate-fade-in-up"
         />
       </div>
+        </>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -987,9 +1037,9 @@ const Motocicletas: React.FC = () => {
             <div key={brand} className="space-y-4">
               {/* Header de marca */}
               {groupByBrand && (
-                <div className="flex items-center gap-3 border-b border-gray-200 pb-2">
+                <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 pb-2">
                   <Building className="h-5 w-5 text-gray-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">{brand}</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{brand}</h2>
                   <span className="bg-gray-100 text-gray-600 text-sm px-2 py-1 rounded-full">
                     {items.length} {items.length === 1 ? 'modelo' : 'modelos'}
                   </span>
@@ -1007,7 +1057,7 @@ const Motocicletas: React.FC = () => {
                 {items.map((modelo) => (
                   displayMode === 'grid' ? (
                     /* Vista en grilla */
-                    <div key={modelo.id} className="bg-white rounded-lg shadow-md overflow-hidden card-hover animate-fade-in-up">
+                    <div key={modelo.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border overflow-hidden card-hover animate-fade-in-up">
                       {/* Imagen */}
                       <div 
                         className="h-48 bg-gray-200 relative cursor-pointer hover:opacity-90 transition-opacity group"
@@ -1066,7 +1116,7 @@ const Motocicletas: React.FC = () => {
                       <div className="p-6">
                         <div className="mb-4">
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                               {modelo.marca} {modelo.modelo}
                             </h3>
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -1077,12 +1127,12 @@ const Motocicletas: React.FC = () => {
                               {modelo.condicion?.toLowerCase()?.trim() === 'nueva' ? 'Nueva' : 'Usada'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-500">Año {modelo.ano}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Año {modelo.ano}</p>
                         </div>
 
                         {/* Colores Disponibles */}
                         <div className="mb-4">
-                          <p className="text-xs font-medium text-gray-500 mb-2">Colores disponibles:</p>
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Colores disponibles:</p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(modelo.colores_disponibles).map(([color, cantidad]) => (
                               <div 
@@ -1090,7 +1140,7 @@ const Motocicletas: React.FC = () => {
                                 className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-blue-50 text-blue-800 border border-blue-200"
                               >
                                 <div 
-                                  className="w-3 h-3 rounded-full mr-2 border border-gray-300"
+                                  className="w-3 h-3 rounded-full mr-2 border border-gray-300 dark:border-gray-600"
                                   style={{ 
                                     backgroundColor: getColorCode(color),
                                     boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.1)'
@@ -1177,7 +1227,7 @@ const Motocicletas: React.FC = () => {
                     </div>
                   ) : (
                     /* Vista en lista - Responsive */
-                    <div key={modelo.id} className="bg-white rounded-lg shadow-sm border micro-lift animate-fade-in-left">
+                    <div key={modelo.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 micro-lift animate-fade-in-left">
                       <div className="p-4">
                         {/* Layout móvil/desktop adaptativo */}
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -1219,10 +1269,10 @@ const Motocicletas: React.FC = () => {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="text-lg font-semibold text-gray-900 truncate">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                                     {modelo.marca} {modelo.modelo}
                                   </h3>
-                                  <p className="text-sm text-gray-500">Año {modelo.ano}</p>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">Año {modelo.ano}</p>
                                 </div>
                                 <span className={`px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
                                   modelo.condicion === 'nueva' 
@@ -1240,7 +1290,7 @@ const Motocicletas: React.FC = () => {
                                   {Object.entries(modelo.colores_disponibles).slice(0, 4).map(([color, cantidad]) => (
                                     <div 
                                       key={color}
-                                      className="w-4 h-4 rounded-full border border-gray-300"
+                                      className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
                                       style={{ backgroundColor: getColorCode(color) }}
                                       title={`${color}: ${cantidad} unidades`}
                                     ></div>
@@ -1328,7 +1378,7 @@ const Motocicletas: React.FC = () => {
                             {Object.entries(modelo.colores_disponibles).map(([color, cantidad]) => (
                               <div 
                                 key={color}
-                                className="w-4 h-4 rounded-full border border-gray-300"
+                                className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600"
                                 style={{ backgroundColor: getColorCode(color) }}
                                 title={`${color}: ${cantidad} unidades`}
                               ></div>
@@ -1343,16 +1393,16 @@ const Motocicletas: React.FC = () => {
             </div>
           ))}
         </div>
-      ) : (
+      ) : viewMode === 'individual' ? (
         /* Vista de Inventario Individual por Chasis */
         <div className="space-y-6">
           {Object.entries(getGroupedByBrand()).map(([brand, units]: [string, any[]]) => (
             <div key={brand} className="space-y-4">
               {/* Header de marca */}
               {groupByBrand && (
-                <div className="flex items-center gap-3 border-b border-gray-200 pb-2">
+                <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 pb-2">
                   <Building className="h-5 w-5 text-gray-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">{brand}</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{brand}</h2>
                   <span className="bg-blue-100 text-blue-600 text-sm px-2 py-1 rounded-full">
                     {units.length} {units.length === 1 ? 'unidad' : 'unidades'}
                   </span>
@@ -1360,48 +1410,48 @@ const Motocicletas: React.FC = () => {
               )}
               
               {/* Tabla de inventario individual */}
-              <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-900">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Motocicleta
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Color
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Chasis
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Fecha Ingreso
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Fecha Compra
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Precio Compra
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Tasa Dólar
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Precio Venta
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Ganancia
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                       {units.map((unit) => {
                         const ganancia = unit.tasa_dolar && unit.precio_compra_individual 
                           ? unit.precio_venta - (unit.precio_compra_individual * unit.tasa_dolar)
                           : unit.precio_venta - unit.precio_compra_individual;
                         
                         return (
-                          <tr key={unit.id} className="hover:bg-gray-50">
+                          <tr key={unit.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <div className="h-10 w-10 flex-shrink-0">
@@ -1431,10 +1481,10 @@ const Motocicletas: React.FC = () => {
                                   </div>
                                 </div>
                                 <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
+                                  <div className="text-sm font-medium text-gray-900 dark:text-white">
                                     {unit.marca} {unit.modelo}
                                   </div>
-                                  <div className="text-sm text-gray-500">
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">
                                     {unit.ano} • {unit.condicion === 'nueva' ? 'Nueva' : 'Usada'}
                                   </div>
                                 </div>
@@ -1443,19 +1493,19 @@ const Motocicletas: React.FC = () => {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <Circle 
-                                  className={`h-4 w-4 mr-2 fill-current ${unit.color.toLowerCase().includes('blanco') || unit.color.toLowerCase().includes('crema') ? 'border border-gray-300 rounded-full' : ''}`}
+                                  className={`h-4 w-4 mr-2 fill-current ${unit.color.toLowerCase().includes('blanco') || unit.color.toLowerCase().includes('crema') ? 'border border-gray-300 dark:border-gray-600 rounded-full' : ''}`}
                                   style={{ color: getColorStyle(unit.color) }}
                                 />
                                 <span className="text-sm font-medium text-gray-700">{unit.color}</span>
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="text-sm font-mono text-gray-900">{unit.chasis}</span>
+                              <span className="text-sm font-mono text-gray-900 dark:text-white">{unit.chasis}</span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {new Date(unit.fecha_ingreso).toLocaleDateString('es-CO')}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {unit.fecha_compra 
                                 ? new Date(unit.fecha_compra).toLocaleDateString('es-CO')
                                 : '-'
@@ -1467,7 +1517,7 @@ const Motocicletas: React.FC = () => {
                                   {getCurrencySymbol(unit.moneda_compra || 'USD')} {unit.precio_compra_individual?.toLocaleString()}
                                 </div>
                                 {unit.tasa_dolar && (
-                                  <div className="text-xs text-gray-500">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
                                     RD${(unit.precio_compra_individual * unit.tasa_dolar).toLocaleString()}
                                   </div>
                                 )}
@@ -1504,16 +1554,56 @@ const Motocicletas: React.FC = () => {
             </div>
           ))}
         </div>
-      )}
+      ) : viewMode === 'analytics' ? (
+        /* Vista de Analytics Avanzados */
+        <div className="analytics-section">
+          <Suspense fallback={
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-20 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }>
+            <AdvancedInventoryAnalytics />
+          </Suspense>
+        </div>
+      ) : viewMode === 'locations' ? (
+        /* Vista de Gestión de Ubicaciones */
+        <div className="locations-section">
+          <Suspense fallback={
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="h-20 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }>
+            <LocationManager />
+          </Suspense>
+        </div>
+      ) : null}
 
       {/* Empty State */}
       {((viewMode === 'modelos' && modelos.length === 0) || (viewMode === 'individual' && getAllInventoryUnits.length === 0)) && !loading && (
         <div className="text-center py-12">
           <Package className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
             {viewMode === 'modelos' ? 'No hay modelos de motocicletas' : 'No hay unidades en inventario'}
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {searchTerm 
               ? `No se encontraron ${viewMode === 'modelos' ? 'modelos' : 'unidades'} con esa búsqueda.` 
               : `Comienza agregando tu primer${viewMode === 'modelos' ? ' modelo de' : 'a'} motocicleta.`
@@ -1537,7 +1627,7 @@ const Motocicletas: React.FC = () => {
       {showModal && viewMode === 'modelos' && (
         <Suspense fallback={
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border max-w-4xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6">
                 <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
                 <div className="space-y-4">
@@ -1562,7 +1652,7 @@ const Motocicletas: React.FC = () => {
       {showModal && viewMode === 'individual' && (
         <Suspense fallback={
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border max-w-2xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6">
                 <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
                 <div className="space-y-4">
@@ -1585,7 +1675,7 @@ const Motocicletas: React.FC = () => {
       {showDetalleModelo && selectedModelo && (
         <Suspense fallback={
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border max-w-6xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6">
                 <div className="h-6 w-64 bg-gray-200 rounded animate-pulse mb-6"></div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1614,7 +1704,7 @@ const Motocicletas: React.FC = () => {
       {showVentaDirecta && selectedModelo && (
         <Suspense fallback={
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border max-w-3xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6">
                 <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
                 <div className="space-y-4">
@@ -1646,7 +1736,7 @@ const Motocicletas: React.FC = () => {
       {showEspecificaciones && modeloEspecificaciones && (
         <Suspense fallback={
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border max-w-4xl w-full max-h-[90vh] overflow-hidden">
               <div className="p-6">
                 <div className="h-6 w-56 bg-gray-200 rounded animate-pulse mb-6"></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1670,6 +1760,15 @@ const Motocicletas: React.FC = () => {
           <EspecificacionesTecnicas
             modelo={modeloEspecificaciones}
             onClose={() => setShowEspecificaciones(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Import/Export Manager */}
+      {showImportExportManager && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white dark:bg-gray-800 rounded-lg p-8">Cargando...</div></div>}>
+          <ImportExportManager 
+            onClose={() => setShowImportExportManager(false)}
           />
         </Suspense>
       )}

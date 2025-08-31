@@ -63,7 +63,7 @@ const ResumenCobrosDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
         <div className="animate-pulse">
           <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
@@ -81,9 +81,9 @@ const ResumenCobrosDashboard: React.FC = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Resumen de Cobros</h3>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Resumen de Cobros</h3>
         <Link 
           to="/cobros"
           className="text-blue-600 hover:text-blue-500 flex items-center text-sm"

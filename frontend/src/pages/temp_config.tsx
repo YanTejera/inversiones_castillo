@@ -37,13 +37,11 @@ import type {
   EstadisticasPermisos
 } from '../services/permisosService';
 import { usePermisos } from '../contexts/PermisosContext';
-import { useTheme } from '../contexts/ThemeContext';
 import NotificacionesConfig from '../components/configuracion/NotificacionesConfig';
 import GestionPermisosRoles from '../components/GestionPermisosRoles';
 
 const Configuracion: React.FC = () => {
   const { tienePermiso: tienePermisoCtx, esMaster } = usePermisos();
-  const { isDarkMode, toggleDarkMode, loading: themeLoading } = useTheme();
   const [activeTab, setActiveTab] = useState('perfil');
   const [loading, setLoading] = useState(false);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -388,7 +386,7 @@ const Configuracion: React.FC = () => {
         </div>
 
         {/* Tabs skeleton */}
-        <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+        <div className="border-b border-gray-200 mb-6">
           <nav className="-mb-px flex space-x-8">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-10 w-24 bg-gray-200 rounded-t animate-pulse"></div>
@@ -399,7 +397,7 @@ const Configuracion: React.FC = () => {
         {/* Content skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-200 dark:border-gray-700 shimmer">
+            <div className="bg-white rounded-lg p-6 shadow-sm border shimmer">
               <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
               <div className="space-y-4">
                 {[...Array(4)].map((_, i) => (
@@ -412,7 +410,7 @@ const Configuracion: React.FC = () => {
             </div>
           </div>
           <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-200 dark:border-gray-700 shimmer">
+            <div className="bg-white rounded-lg p-6 shadow-sm border shimmer">
               <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
@@ -433,11 +431,11 @@ const Configuracion: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
           <Settings className="h-8 w-8 mr-3" />
           Configuración del Sistema
         </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-gray-600">
           Gestiona tu perfil, usuarios y configuraciones del sistema
         </p>
       </div>
@@ -466,7 +464,7 @@ const Configuracion: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Navigation Sidebar */}
         <div className="lg:col-span-1">
-          <nav className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <nav className="bg-white rounded-lg shadow p-4">
             <ul className="space-y-2">
               {tabs.map((tab) => {
                 const IconComponent = tab.icon;
@@ -477,7 +475,7 @@ const Configuracion: React.FC = () => {
                       className={`w-full flex items-center px-3 py-2 rounded-md text-left transition-colors ${
                         activeTab === tab.id
                           ? 'bg-blue-600 text-white'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100'
+                          : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
                       <IconComponent className="h-5 w-5 mr-3" />
@@ -492,7 +490,7 @@ const Configuracion: React.FC = () => {
 
         {/* Main Content */}
         <div className="lg:col-span-3">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="bg-white rounded-lg shadow">
             {/* Mi Perfil */}
             {activeTab === 'perfil' && currentUser && (
               <div className="p-6">
@@ -507,69 +505,69 @@ const Configuracion: React.FC = () => {
                     <h3 className="font-medium mb-4">Información Personal</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nombre de Usuario
                         </label>
                         <input
                           type="text"
                           value={currentUser.username}
                           disabled
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Email
                         </label>
                         <input
                           type="email"
                           value={currentUser.email}
                           onChange={(e) => handleUpdatePerfil({ email: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nombre
                         </label>
                         <input
                           type="text"
                           value={currentUser.first_name}
                           onChange={(e) => handleUpdatePerfil({ first_name: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Apellido
                         </label>
                         <input
                           type="text"
                           value={currentUser.last_name}
                           onChange={(e) => handleUpdatePerfil({ last_name: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Teléfono
                         </label>
                         <input
                           type="text"
                           value={currentUser.telefono || ''}
                           onChange={(e) => handleUpdatePerfil({ telefono: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
                           Rol
                         </label>
                         <input
                           type="text"
                           value={currentUser?.rol_info?.nombre_rol_display || 'No definido'}
                           disabled
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
                         />
                       </div>
                     </div>
@@ -581,32 +579,26 @@ const Configuracion: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <Palette className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
-                          <span>Tema Oscuro</span>
+                          <Palette className="h-5 w-5 mr-2 text-gray-500" />
+                          <div>
+                            <span>Tema Oscuro</span>
+                            <p className="text-xs text-orange-600">En desarrollo</p>
+                          </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-not-allowed opacity-50">
                           <input
                             type="checkbox"
-                            checked={isDarkMode}
-                            onChange={toggleDarkMode}
-                            disabled={themeLoading}
+                            checked={false}
+                            disabled
                             className="sr-only peer"
                           />
-                          <div className={`w-11 h-6 rounded-full transition-colors ${
-                            isDarkMode 
-                              ? 'bg-blue-600' 
-                              : 'bg-gray-200'
-                          } after:content-[''] after:absolute after:top-[2px] ${
-                            isDarkMode ? 'after:left-[22px]' : 'after:left-[2px]'
-                          } after:bg-white dark:bg-gray-800 after:border-gray-300 dark:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
-                            themeLoading ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}></div>
+                          <div className="w-11 h-6 bg-gray-200 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                         </label>
                       </div>
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
+                          <Bell className="h-5 w-5 mr-2 text-gray-500" />
                           <div>
                             <span>Notificaciones Email</span>
                             <p className="text-xs text-orange-600">En desarrollo</p>
@@ -619,13 +611,13 @@ const Configuracion: React.FC = () => {
                             disabled
                             className="sr-only peer"
                           />
-                          <div className="w-11 h-6 bg-gray-200 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-gray-800 after:border-gray-300 dark:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                          <div className="w-11 h-6 bg-gray-200 rounded-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                         </label>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <Globe className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
+                          <Globe className="h-5 w-5 mr-2 text-gray-500" />
                           <div>
                             <span>Idioma</span>
                             <p className="text-xs text-orange-600">En desarrollo</p>
@@ -634,7 +626,7 @@ const Configuracion: React.FC = () => {
                         <select
                           value="es"
                           disabled
-                          className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 cursor-not-allowed opacity-50"
+                          className="px-3 py-1 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed opacity-50"
                         >
                           <option value="es">Español</option>
                           <option value="en">English</option>
@@ -661,7 +653,7 @@ const Configuracion: React.FC = () => {
                     {showPasswordForm && (
                       <form onSubmit={handlePasswordChange} className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
                             Contraseña Actual
                           </label>
                           <div className="relative">
@@ -670,7 +662,7 @@ const Configuracion: React.FC = () => {
                               value={passwordForm.password_actual}
                               onChange={(e) => setPasswordForm(prev => ({...prev, password_actual: e.target.value}))}
                               required
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
                             />
                             <button
                               type="button"
@@ -682,7 +674,7 @@ const Configuracion: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
                             Nueva Contraseña
                           </label>
                           <input
@@ -691,11 +683,11 @@ const Configuracion: React.FC = () => {
                             onChange={(e) => setPasswordForm(prev => ({...prev, password_nueva: e.target.value}))}
                             required
                             minLength={8}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
                             Confirmar Nueva Contraseña
                           </label>
                           <input
@@ -703,7 +695,7 @@ const Configuracion: React.FC = () => {
                             value={passwordForm.confirmar_password}
                             onChange={(e) => setPasswordForm(prev => ({...prev, confirmar_password: e.target.value}))}
                             required
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
                         <div className="flex space-x-3">
@@ -749,40 +741,40 @@ const Configuracion: React.FC = () => {
                 {/* Lista de Usuarios */}
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 dark:bg-gray-900">
+                    <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Usuario
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Rol
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Estado
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Último Acceso
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Acciones
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-gray-200">
                       {Array.isArray(usuarios) && usuarios.map((usuario) => (
                         <tr key={usuario.id} className={usuario.estado ? '' : 'bg-red-50'}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10">
                                 <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                  <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                                  <User className="h-5 w-5 text-gray-600" />
                                 </div>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                <div className="text-sm font-medium text-gray-900">
                                   {usuario.nombre_completo}
                                 </div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                <div className="text-sm text-gray-500">
                                   {usuario.email}
                                 </div>
                               </div>
@@ -802,7 +794,7 @@ const Configuracion: React.FC = () => {
                               {usuario.estado ? 'Activo' : 'Inactivo'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {usuario.ultimo_acceso 
                               ? new Date(usuario.ultimo_acceso).toLocaleDateString()
                               : 'Nunca'
@@ -881,11 +873,11 @@ const Configuracion: React.FC = () => {
                 </div>
 
                 {/* Usuarios por Rol */}
-                <div className="bg-white dark:bg-gray-800 border rounded-lg p-6">
+                <div className="bg-white border rounded-lg p-6">
                   <h3 className="text-lg font-medium mb-4">Usuarios por Rol</h3>
                   <div className="space-y-4">
                     {Object.entries(estadisticas.usuarios_por_rol).map(([rol, cantidad]) => (
-                      <div key={rol} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                      <div key={rol} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <span className="font-medium">{rol}</span>
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-semibold">
                           {cantidad}
@@ -913,136 +905,23 @@ const Configuracion: React.FC = () => {
               </div>
             )}
 
-            {/* Notificaciones */}
-            {activeTab === 'notificaciones' && (
-              <div className="p-6">
-                <NotificacionesConfig />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* Modal para crear/editar usuario */}
-      {showUserForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">
-                {editingUser ? 'Editar Usuario' : 'Crear Usuario'}
-              </h3>
-              <button
-                onClick={handleCancelCreateUser}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-400"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nombre de usuario *
-                </label>
-                <input
-                  type="text"
-                  value={userForm.username}
                   onChange={(e) => setUserForm({...userForm, username: e.target.value})}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <input
                   type="email"
                   value={userForm.email}
                   onChange={(e) => setUserForm({...userForm, email: e.target.value})}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Contraseña *
-                </label>
-                <input
-                  type="password"
-                  value={userForm.password}
-                  onChange={(e) => setUserForm({...userForm, password: e.target.value})}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  value={userForm.telefono}
-                  onChange={(e) => setUserForm({...userForm, telefono: e.target.value})}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Rol *
-                </label>
-                <select
-                  value={userForm.rol}
-                  onChange={(e) => setUserForm({...userForm, rol: e.target.value})}
-                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Seleccionar rol</option>
-                  {Array.isArray(roles) && roles.map((rol) => (
-                    <option key={rol.id} value={rol.id}>
-                      {rol.nombre_rol_display}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="usuario-activo"
-                  checked={userForm.estado}
-                  onChange={(e) => setUserForm({...userForm, estado: e.target.checked})}
-                  className="text-blue-600"
-                />
-                <label htmlFor="usuario-activo" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                  Usuario activo
-                </label>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  {editingUser ? 'Actualizar' : 'Crear'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancelCreateUser}
-                  className="flex-1 bg-gray-300 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Configuracion;
+                <label className="block text-sm font-medium text-gray-700 mb-1">

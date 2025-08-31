@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { 
   Search, 
   Plus, 
@@ -18,8 +18,10 @@ import {
   User,
   X,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Database
 } from 'lucide-react';
+const ImportExportManager = lazy(() => import('./dataManagement/ImportExportManager'));
 import { pagoService } from '../services/pagoService';
 import { ventaService } from '../services/ventaService';
 import { cuotaService } from '../services/cuotaService';
@@ -43,6 +45,7 @@ const Pagos: React.FC = () => {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [showImportExportManager, setShowImportExportManager] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -282,7 +285,7 @@ const Pagos: React.FC = () => {
       case 'cheque':
         return <Receipt className="h-4 w-4 text-orange-600" />;
       default:
-        return <DollarSign className="h-4 w-4 text-gray-600" />;
+        return <DollarSign className="h-4 w-4 text-gray-600 dark:text-gray-400" />;
     }
   };
 
@@ -302,7 +305,7 @@ const Pagos: React.FC = () => {
         {/* Resumen Cards Skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 staggered-fade-in">
           {[...Array(5)].map((_, index) => (
-            <div key={index} className="bg-white border rounded-lg p-4 shimmer">
+            <div key={index} className="bg-white dark:bg-gray-800 border rounded-lg p-4 shimmer">
               <div className="flex items-center">
                 <div className="h-8 w-8 bg-gray-200 rounded animate-pulse mr-3"></div>
                 <div>
@@ -315,7 +318,7 @@ const Pagos: React.FC = () => {
         </div>
 
         {/* Search and Filters Skeleton */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center space-x-4 mb-4">
             <div className="flex-1 h-10 bg-gray-200 rounded animate-pulse"></div>
             <div className="h-10 w-20 bg-gray-200 rounded animate-pulse"></div>
@@ -324,10 +327,10 @@ const Pagos: React.FC = () => {
         </div>
 
         {/* Table Skeleton */}
-        <div className="bg-white rounded-lg border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
                   {[...Array(8)].map((_, index) => (
                     <th key={index} className="px-6 py-3">
@@ -336,7 +339,7 @@ const Pagos: React.FC = () => {
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {[...Array(5)].map((_, index) => (
                   <tr key={index} className="animate-pulse">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -382,16 +385,25 @@ const Pagos: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between animate-fade-in-up">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Pagos</h1>
-          <p className="text-gray-600">Administra los pagos y cobros del sistema</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Pagos</h1>
+          <p className="text-gray-600 dark:text-gray-400">Administra los pagos y cobros del sistema</p>
         </div>
-        <button
-          onClick={() => handleCreatePago()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-blue-700 btn-press micro-glow"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Registrar Pago</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowImportExportManager(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-green-700 btn-press micro-glow"
+          >
+            <Database className="h-5 w-5" />
+            <span>Importar/Exportar</span>
+          </button>
+          <button
+            onClick={() => handleCreatePago()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center space-x-2 hover:bg-blue-700 btn-press micro-glow"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Registrar Pago</span>
+          </button>
+        </div>
       </div>
 
       {/* Resumen de Cobros */}
@@ -482,38 +494,38 @@ const Pagos: React.FC = () => {
       </div>
 
       {/* Tabla de Pagos */}
-      <div className="bg-white rounded-lg border border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Pago
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Venta / Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Monto
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Tipo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Fecha
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Cobrador
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <>
                   {[...Array(5)].map((_, index) => (
@@ -552,7 +564,7 @@ const Pagos: React.FC = () => {
               ) : pagos.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
-                    <div className="text-gray-500">
+                    <div className="text-gray-500 dark:text-gray-400">
                       <DollarSign className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                       <h3 className="text-lg font-medium mb-2">No hay pagos registrados</h3>
                       <p>No se encontraron pagos que coincidan con los criterios de búsqueda.</p>
@@ -561,15 +573,15 @@ const Pagos: React.FC = () => {
                 </tr>
               ) : (
                 pagos.map((pago) => (
-                  <tr key={pago.id} className="hover:bg-gray-50">
+                  <tr key={pago.id} className="hover:bg-gray-50 dark:bg-gray-900">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">#{pago.id}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">#{pago.id}</div>
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm text-gray-600">Venta #{pago.venta}</div>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Venta #{pago.venta}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {pago.venta_info?.cliente_info?.nombre} {pago.venta_info?.cliente_info?.apellido}
                         </div>
                       </div>
@@ -584,7 +596,7 @@ const Pagos: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getTipoPagoIcon(pago.tipo_pago)}
-                        <span className="ml-2 text-sm text-gray-900">
+                        <span className="ml-2 text-sm text-gray-900 dark:text-white">
                           {pago.tipo_pago.charAt(0).toUpperCase() + pago.tipo_pago.slice(1)}
                         </span>
                       </div>
@@ -593,14 +605,14 @@ const Pagos: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm text-gray-900 dark:text-white">
                           {formatDate(pago.fecha_pago)}
                         </span>
                       </div>
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-gray-900 dark:text-white">
                         {pago.usuario_cobrador_info?.first_name} {pago.usuario_cobrador_info?.last_name}
                       </div>
                     </td>
@@ -614,7 +626,7 @@ const Pagos: React.FC = () => {
                         {pago.estado === 'cancelado' ? 'Cancelado' : 'Completado'}
                       </span>
                       {pago.estado === 'cancelado' && pago.motivo_cancelacion_display && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {pago.motivo_cancelacion_display}
                         </div>
                       )}
@@ -649,19 +661,19 @@ const Pagos: React.FC = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200">
+          <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900 disabled:opacity-50"
               >
                 Anterior
               </button>
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900 disabled:opacity-50"
               >
                 Siguiente
               </button>
@@ -678,14 +690,14 @@ const Pagos: React.FC = () => {
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 disabled:opacity-50"
                   >
                     Anterior
                   </button>
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 disabled:opacity-50"
                   >
                     Siguiente
                   </button>
@@ -717,6 +729,16 @@ const Pagos: React.FC = () => {
           }}
           onConfirm={handleConfirmarCancelacion}
         />
+      )}
+
+      {/* Import/Export Manager */}
+      {showImportExportManager && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white dark:bg-gray-800 rounded-lg p-8">Cargando...</div></div>}>
+          <ImportExportManager 
+            defaultType="pagos"
+            onClose={() => setShowImportExportManager(false)}
+          />
+        </Suspense>
       )}
 
       {/* Toast Container */}

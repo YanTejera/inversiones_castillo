@@ -23,13 +23,15 @@ import {
 } from 'lucide-react';
 import { proveedorService } from '../services/proveedorService';
 import { useWindowSize } from '../hooks/useWindowSize';
+import ProveedorContabilidad from './proveedor/ProveedorContabilidad';
+import ProveedorMotocicletas from './proveedor/ProveedorMotocicletas';
 
 interface Proveedor {
   id?: number;
   nombre: string;
   nombre_comercial?: string;
   tipo_proveedor: 'distribuidor' | 'importador' | 'mayorista' | 'fabricante' | 'particular';
-  ruc?: string;
+  rnc?: string;
   cedula?: string;
   registro_mercantil?: string;
   telefono?: string;
@@ -131,7 +133,7 @@ const ProveedorDetail: React.FC = () => {
   const [estadisticas, setEstadisticas] = useState<ProveedorEstadisticas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'info' | 'stats' | 'motocicletas'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'stats' | 'motocicletas' | 'contabilidad'>('info');
 
   useEffect(() => {
     if (id) {
@@ -227,7 +229,8 @@ const ProveedorDetail: React.FC = () => {
   const tabs = [
     { id: 'info', label: 'Información', icon: Building },
     { id: 'stats', label: 'Estadísticas', icon: TrendingUp },
-    { id: 'motocicletas', label: 'Motocicletas', icon: Bike }
+    { id: 'motocicletas', label: 'Motocicletas', icon: Bike },
+    { id: 'contabilidad', label: 'Contabilidad', icon: CreditCard }
   ];
 
   return (
@@ -378,8 +381,8 @@ const ProveedorDetail: React.FC = () => {
                   <div className="flex items-center">
                     <FileText className="h-5 w-5 text-gray-400 mr-3" />
                     <div>
-                      <p className="text-sm font-medium text-gray-500">RUC</p>
-                      <p className="text-sm text-gray-900">{proveedor.ruc || 'No especificado'}</p>
+                      <p className="text-sm font-medium text-gray-500">RNC</p>
+                      <p className="text-sm text-gray-900">{proveedor.rnc || 'No especificado'}</p>
                     </div>
                   </div>
 
@@ -661,16 +664,16 @@ const ProveedorDetail: React.FC = () => {
           )}
 
           {/* Motocicletas Tab */}
-          {activeTab === 'motocicletas' && (
-            <div>
-              <div className="text-center py-8">
-                <Bike className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Lista de Motocicletas</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  La vista detallada de motocicletas por proveedor estará disponible próximamente.
-                </p>
-              </div>
-            </div>
+          {activeTab === 'motocicletas' && proveedor && (
+            <ProveedorMotocicletas 
+              proveedorId={proveedor.id!} 
+              proveedorNombre={proveedor.nombre_completo || proveedor.nombre}
+            />
+          )}
+
+          {/* Contabilidad Tab */}
+          {activeTab === 'contabilidad' && proveedor && (
+            <ProveedorContabilidad proveedorId={proveedor.id!} />
           )}
         </div>
       </div>

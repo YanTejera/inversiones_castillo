@@ -58,6 +58,43 @@
     <meta name="twitter:title" content="Inversiones C&C - Sistema de Gestión" />
     <meta name="twitter:description" content="Sistema de gestión para concesionario de motocicletas" />
     <meta name="twitter:image" content="/logo.png" />
+    <!-- Script para evitar flash de contenido en modo oscuro -->
+    <script>
+      (function() {
+        // Verificar si hay usuario logueado y sus preferencias
+        const userStr = localStorage.getItem('user');
+        const darkModeLS = localStorage.getItem('darkMode');
+        let isDark = false;
+        
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            // Si el usuario tiene preferencia de tema definida, usarla
+            if (user.tema_oscuro !== undefined && user.tema_oscuro !== null) {
+              isDark = user.tema_oscuro;
+            } else {
+              // Si no tiene preferencia, usar localStorage o sistema
+              isDark = darkModeLS === 'true' ||
+                (!darkModeLS && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            }
+          } catch (error) {
+            // Si hay error al parsear usuario, usar fallback
+            isDark = darkModeLS === 'true' ||
+              (!darkModeLS && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          }
+        } else {
+          // Sin usuario logueado, usar localStorage o preferencia del sistema
+          isDark = darkModeLS === 'true' ||
+            (!darkModeLS && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        }
+        
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

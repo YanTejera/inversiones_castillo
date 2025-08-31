@@ -6,6 +6,16 @@ export default defineConfig({
   plugins: [react()],
   publicDir: 'public',
   base: '/',
+  server: {
+    historyApiFallback: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  },
   build: {
     rollupOptions: {
       output: {

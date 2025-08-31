@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { 
   Plus, 
   Search, 
@@ -12,8 +12,10 @@ import {
   Clock,
   XCircle,
   FileText,
-  X
+  X,
+  Database
 } from 'lucide-react';
+const ImportExportManager = lazy(() => import('../components/dataManagement/ImportExportManager'));
 import { ventaService } from '../services/ventaService';
 import NewVentaForm, { type VentaFormData } from '../components/NewVentaForm';
 import CancelarVentaModal from '../components/CancelarVentaModal';
@@ -37,6 +39,7 @@ const Ventas: React.FC = () => {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showImportExportManager, setShowImportExportManager] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   
   // Advanced search setup
@@ -391,18 +394,27 @@ const Ventas: React.FC = () => {
       <div className="mb-8 animate-fade-in-up">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Gestión de Ventas</h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de Ventas</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
               Administra todas las ventas de motocicletas
             </p>
           </div>
-          <button
-            onClick={openCreateModal}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nueva Venta
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowImportExportManager(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 btn-press micro-glow flex items-center gap-2"
+            >
+              <Database className="h-4 w-4" />
+              Importar/Exportar
+            </button>
+            <button
+              onClick={openCreateModal}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva Venta
+            </button>
+          </div>
         </div>
       </div>
 
@@ -483,14 +495,14 @@ const Ventas: React.FC = () => {
         /* Grid View */
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 staggered-fade-in">
           {ventas.map((venta) => (
-          <div key={venta.id} className="bg-white rounded-lg shadow-md border-3 border-slate-300 p-6 card-hover animate-fade-in-up">
+          <div key={venta.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 card-hover animate-fade-in-up">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                   Venta #{venta.id}
                 </h3>
-                <div className="flex items-center text-sm text-slate-500 mt-1">
+                <div className="flex items-center text-sm text-slate-500 dark:text-gray-400 mt-1">
                   <Calendar className="h-4 w-4 mr-1" />
                   {formatDate(venta.fecha_venta)}
                 </div>
@@ -567,10 +579,10 @@ const Ventas: React.FC = () => {
                   Motocicleta Vendida
                 </h4>
                 {venta.detalles.map((detalle, index) => (
-                  <div key={index} className="bg-slate-50 border-3 border-slate-300 rounded-lg p-3 mb-2">
+                  <div key={index} className="bg-slate-50 dark:bg-gray-900 border-3 border-slate-300 rounded-lg p-3 mb-2">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-slate-900">
+                        <div className="font-medium text-slate-900 dark:text-white">
                           {detalle.producto_info?.marca} {detalle.producto_info?.modelo} {detalle.producto_info?.ano}
                         </div>
                         {detalle.producto_info?.color && (
@@ -614,7 +626,7 @@ const Ventas: React.FC = () => {
                   {venta.documentos_generados.slice(0, 3).map((doc, index) => (
                     <div key={index} className="flex items-center justify-between text-sm">
                       <span className="text-slate-700 truncate">{doc.nombre || doc.tipo}</span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-500 dark:text-gray-400">
                         {doc.fecha_creacion ? formatDate(doc.fecha_creacion) : 'Generado'}
                       </span>
                     </div>
@@ -688,53 +700,53 @@ const Ventas: React.FC = () => {
         </div>
       ) : (
         /* List View */
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-slate-50 border-3 border-slate-300">
+              <thead className="bg-slate-50 dark:bg-gray-900 border-3 border-slate-300">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Venta
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Monto Total
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Tipo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Cancelación
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Productos
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-gray-400 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
                 {ventas.map((venta) => (
-                  <tr key={venta.id} className="hover:bg-slate-50 border-3 border-slate-300">
+                  <tr key={venta.id} className="hover:bg-slate-50 dark:hover:bg-gray-700 dark:bg-gray-900 border-3 border-slate-300">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-slate-900">
+                        <div className="text-sm font-medium text-slate-900 dark:text-white">
                           Venta #{venta.id}
                         </div>
-                        <div className="text-xs text-slate-500 flex items-center">
+                        <div className="text-xs text-slate-500 dark:text-gray-400 flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
                           {formatDate(venta.fecha_venta)}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-slate-900">
+                      <div className="text-sm text-slate-900 dark:text-white">
                         {venta.cliente_info ? 
                           `${venta.cliente_info.nombre} ${venta.cliente_info.apellido}` : 
                           'Cliente no disponible'
@@ -756,7 +768,7 @@ const Ventas: React.FC = () => {
                         {venta.tipo_venta_display}
                       </span>
                       {venta.tipo_venta === 'financiado' && (
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-500 dark:text-gray-400">
                           {venta.cuotas} cuotas
                         </div>
                       )}
@@ -774,7 +786,7 @@ const Ventas: React.FC = () => {
                             {venta.motivo_cancelacion_display}
                           </div>
                           {venta.fecha_cancelacion && (
-                            <div className="text-slate-500">
+                            <div className="text-slate-500 dark:text-gray-400">
                               {formatDate(venta.fecha_cancelacion)}
                             </div>
                           )}
@@ -783,7 +795,7 @@ const Ventas: React.FC = () => {
                         <span className="text-gray-400 text-xs">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
                       {venta.detalles?.length || 0} producto(s)
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -828,8 +840,8 @@ const Ventas: React.FC = () => {
       {ventas.length === 0 && !loading && (
         <div className="text-center py-12">
           <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-slate-900">No hay ventas</h3>
-          <p className="mt-1 text-sm text-slate-500">
+          <h3 className="mt-2 text-sm font-medium text-slate-900 dark:text-white">No hay ventas</h3>
+          <p className="mt-1 text-sm text-slate-500 dark:text-gray-400">
             {searchTerm || hasActiveFilters ? 'No se encontraron ventas con esos filtros.' : 'Comienza creando tu primera venta.'}
           </p>
           {!searchTerm && !hasActiveFilters && (
@@ -853,7 +865,7 @@ const Ventas: React.FC = () => {
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-gray-300 rounded-md hover:bg-slate-50 border-3 border-slate-300 disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium text-slate-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-slate-50 dark:hover:bg-gray-700 dark:bg-gray-900 border-3 border-slate-300 disabled:opacity-50"
             >
               Anterior
             </button>
@@ -868,7 +880,7 @@ const Ventas: React.FC = () => {
                   className={`px-3 py-2 text-sm font-medium rounded-md ${
                     currentPage === page
                       ? 'bg-blue-600 text-white'
-                      : 'text-slate-500 bg-white border border-gray-300 hover:bg-slate-50 border-3 border-slate-300'
+                      : 'text-slate-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 dark:bg-gray-900 border-3 border-slate-300'
                   }`}
                 >
                   {page}
@@ -879,7 +891,7 @@ const Ventas: React.FC = () => {
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-2 text-sm font-medium text-slate-500 bg-white border border-gray-300 rounded-md hover:bg-slate-50 border-3 border-slate-300 disabled:opacity-50"
+              className="px-3 py-2 text-sm font-medium text-slate-500 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-slate-50 dark:hover:bg-gray-700 dark:bg-gray-900 border-3 border-slate-300 disabled:opacity-50"
             >
               Siguiente
             </button>
@@ -887,6 +899,16 @@ const Ventas: React.FC = () => {
         </div>
       )}
         </>
+      )}
+
+      {/* Import/Export Manager */}
+      {showImportExportManager && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white dark:bg-gray-800 rounded-lg p-8">Cargando...</div></div>}>
+          <ImportExportManager 
+            defaultType="ventas"
+            onClose={() => setShowImportExportManager(false)}
+          />
+        </Suspense>
       )}
 
       {/* Toast Container */}

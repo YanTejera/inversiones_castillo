@@ -155,8 +155,8 @@ const Reportes: React.FC = () => {
       <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Sistema de Reportes</h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sistema de Reportes</h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Genera reportes detallados de ventas, inventario, cobranza y estados financieros
             </p>
           </div>
@@ -167,15 +167,15 @@ const Reportes: React.FC = () => {
                 type="date"
                 value={dateRange.startDate}
                 onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
                 placeholder="Fecha inicio"
               />
-              <span className="text-gray-500">-</span>
+              <span className="text-gray-500 dark:text-gray-400">-</span>
               <input
                 type="date"
                 value={dateRange.endDate}
                 onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
                 placeholder="Fecha fin"
               />
             </div>
@@ -186,7 +186,7 @@ const Reportes: React.FC = () => {
       {/* Report Type Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {reportTypes.map((report) => (
-          <div key={report.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <div key={report.id} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
             <div className="p-6">
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -195,8 +195,8 @@ const Reportes: React.FC = () => {
                     {report.icon}
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{report.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{report.description}</p>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{report.title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{report.description}</p>
                   </div>
                 </div>
               </div>
@@ -225,7 +225,7 @@ const Reportes: React.FC = () => {
                 </button>
                 <button
                   onClick={() => handleExportPDF(report.id)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center text-sm"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:bg-gray-900 transition-colors flex items-center text-sm"
                   title="Exportar PDF"
                 >
                   <Download className="h-4 w-4" />
@@ -238,15 +238,15 @@ const Reportes: React.FC = () => {
 
       {/* Selected Report Content */}
       {selectedReport && (
-        <div className="bg-white rounded-lg shadow-md">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
           <div className="p-6 border-b">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {reportTypes.find(r => r.id === selectedReport)?.title}
               </h3>
               <div className="flex items-center space-x-3">
                 {dateRange.startDate && dateRange.endDate && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {formatDate(dateRange.startDate)} - {formatDate(dateRange.endDate)}
                   </span>
                 )}
@@ -265,14 +265,14 @@ const Reportes: React.FC = () => {
             {loading && (
               <div className="text-center py-12">
                 <Loader className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-                <p className="text-gray-500">Generando reporte...</p>
+                <p className="text-gray-500 dark:text-gray-400">Generando reporte...</p>
               </div>
             )}
 
             {error && (
               <div className="text-center py-12">
                 <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">Error al generar reporte</h4>
+                <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Error al generar reporte</h4>
                 <p className="text-red-500">{error}</p>
               </div>
             )}
@@ -303,7 +303,7 @@ const Reportes: React.FC = () => {
                     <h5 className="font-semibold mb-3">Top Productos Vendidos</h5>
                     <div className="space-y-2">
                       {reportData.top_productos.slice(0, 5).map((producto: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900 rounded">
                           <span className="font-medium">{producto.moto__marca} {producto.moto__modelo}</span>
                           <div className="text-right">
                             <div className="font-semibold">{producto.total_vendidos} unidades</div>
@@ -371,13 +371,13 @@ const Reportes: React.FC = () => {
                   <div>
                     <h5 className="font-semibold mb-3">Cuentas por Cobrar</h5>
                     <div className="overflow-x-auto">
-                      <table className="min-w-full bg-white border border-gray-200">
-                        <thead className="bg-gray-50">
+                      <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
                           <tr>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Cliente</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Fecha Venta</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Saldo</th>
-                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">Estado</th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Cliente</th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Fecha Venta</th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Saldo</th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-400">Estado</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -408,8 +408,8 @@ const Reportes: React.FC = () => {
             {!loading && !error && reportData && selectedReport === 'financieros' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white border border-gray-200 p-6 rounded-lg">
-                    <h5 className="font-semibold mb-4 text-gray-900">Resumen de Ventas</h5>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-lg">
+                    <h5 className="font-semibold mb-4 text-gray-900 dark:text-white">Resumen de Ventas</h5>
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span>Ventas Brutas:</span>
@@ -422,8 +422,8 @@ const Reportes: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="bg-white border border-gray-200 p-6 rounded-lg">
-                    <h5 className="font-semibold mb-4 text-gray-900">Resumen Financiero</h5>
+                  <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-lg">
+                    <h5 className="font-semibold mb-4 text-gray-900 dark:text-white">Resumen Financiero</h5>
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span>Efectivo Recaudado:</span>
@@ -446,7 +446,7 @@ const Reportes: React.FC = () => {
                     <h5 className="font-semibold mb-3">Ingresos por Método de Pago</h5>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {reportData.pagos_por_metodo.map((metodo: any, index: number) => (
-                        <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                        <div key={index} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                           <div className="font-medium capitalize">{metodo.tipo_pago}</div>
                           <div className="text-xl font-bold text-green-600">{reporteService.formatCurrency(metodo.total)}</div>
                           <div className="text-sm text-gray-600">{metodo.cantidad} transacciones</div>
@@ -461,8 +461,8 @@ const Reportes: React.FC = () => {
             {!loading && !error && !reportData && selectedReport && (
               <div className="text-center py-12">
                 <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">No hay datos disponibles</h4>
-                <p className="text-gray-500">No se encontraron datos para el período seleccionado</p>
+                <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No hay datos disponibles</h4>
+                <p className="text-gray-500 dark:text-gray-400">No se encontraron datos para el período seleccionado</p>
               </div>
             )}
           </div>
@@ -472,56 +472,56 @@ const Reportes: React.FC = () => {
       {/* Quick Stats */}
       {!selectedReport && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <ShoppingCart className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Ventas Este Mes</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Ventas Este Mes</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {quickStats ? reporteService.formatCurrency(quickStats.ventasMes) : '--'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
                 <Package className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Valor Inventario</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Valor Inventario</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {quickStats ? reporteService.formatCurrency(quickStats.valorInventario) : '--'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <div className="p-2 bg-orange-100 rounded-lg">
                 <CreditCard className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Cuentas por Cobrar</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Cuentas por Cobrar</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {quickStats ? reporteService.formatCurrency(quickStats.cuentasPorCobrar) : '--'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-md">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <DollarSign className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Ganancia Mensual</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Ganancia Mensual</p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {quickStats ? reporteService.formatCurrency(quickStats.gananciaMensual) : '--'}
                 </p>
               </div>

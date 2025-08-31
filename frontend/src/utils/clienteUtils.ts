@@ -33,7 +33,7 @@ export interface Cliente {
   compras_historicas?: number;
   pagos_a_tiempo?: number;
   total_pagos?: number;
-  cliente_desde?: string;
+  fecha_registro?: string;
   // Fiador y documentos
   fiador?: Fiador;
   documentos?: Documento[];
@@ -176,28 +176,52 @@ export const getEstadoPagoInfo = (cliente: Cliente): EstadoPagoInfo => {
 };
 
 export const calcularSistemaCredito = (cliente: Cliente): SistemaCredito => {
+  // INDICADOR DE VERSIÓN - Si ves este mensaje en consola, los cambios están aplicados
+  console.log('🔧 clienteUtils v2.0 - Fixed phantom loyalty levels');
   const pagosATiempo = cliente.pagos_a_tiempo || 0;
   const totalPagos = cliente.total_pagos || 0;
   const comprasHistoricas = cliente.compras_historicas || 0;
+  
+  // Si no hay historial real de pagos, compras o antigüedad, asignar nivel inicial
+  if (totalPagos === 0 && comprasHistoricas === 0 && !cliente.fecha_registro) {
+    return {
+      score: 100, // Score inicial mínimo para nuevos clientes
+      nivel: 'bronce',
+      puntos: 10,
+      beneficios: getBeneficios('bronce'),
+      historial_pagos: {
+        total: 0,
+        puntuales: 0,
+        tardios: 0,
+        porcentaje_puntualidad: 0
+      }
+    };
+  }
   
   // Calcular porcentaje de puntualidad
   const porcentajePuntualidad = totalPagos > 0 ? (pagosATiempo / totalPagos) * 100 : 0;
   
   // Calcular score base (0-1000)
-  let score = 0;
+  let score = 100; // Score base mínimo
   
   // Puntualidad de pagos (60% del score)
-  score += porcentajePuntualidad * 6;
+  if (totalPagos > 0) {
+    score += porcentajePuntualidad * 6;
+  }
   
   // Historial de compras (25% del score)
-  score += Math.min(comprasHistoricas * 10, 250);
+  if (comprasHistoricas > 0) {
+    score += Math.min(comprasHistoricas * 10, 250);
+  }
   
   // Antigüedad como cliente (15% del score)
-  if (cliente.cliente_desde) {
-    const fechaRegistro = new Date(cliente.cliente_desde);
+  if (cliente.fecha_registro) {
+    const fechaRegistro = new Date(cliente.fecha_registro);
     const hoy = new Date();
     const mesesComoCliente = (hoy.getTime() - fechaRegistro.getTime()) / (1000 * 60 * 60 * 24 * 30);
-    score += Math.min(mesesComoCliente * 5, 150);
+    if (mesesComoCliente > 0) {
+      score += Math.min(mesesComoCliente * 5, 150);
+    }
   }
   
   // Determinar nivel basado en score

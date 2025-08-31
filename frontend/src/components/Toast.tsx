@@ -20,27 +20,27 @@ interface ToastConfig {
 const toastConfigs: Record<ToastType, ToastConfig> = {
   success: {
     icon: CheckCircle,
-    bgColor: 'bg-green-50',
-    textColor: 'text-green-800',
-    iconColor: 'text-green-400'
+    bgColor: 'bg-green-50 dark:bg-green-900/20',
+    textColor: 'text-green-800 dark:text-green-200',
+    iconColor: 'text-green-400 dark:text-green-400'
   },
   error: {
     icon: XCircle,
-    bgColor: 'bg-red-50',
-    textColor: 'text-red-800',
-    iconColor: 'text-red-400'
+    bgColor: 'bg-red-50 dark:bg-red-900/20',
+    textColor: 'text-red-800 dark:text-red-200',
+    iconColor: 'text-red-400 dark:text-red-400'
   },
   warning: {
     icon: AlertTriangle,
-    bgColor: 'bg-yellow-50',
-    textColor: 'text-yellow-800',
-    iconColor: 'text-yellow-400'
+    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+    textColor: 'text-yellow-800 dark:text-yellow-200',
+    iconColor: 'text-yellow-400 dark:text-yellow-400'
   },
   info: {
     icon: Info,
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-800',
-    iconColor: 'text-blue-400'
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    textColor: 'text-blue-800 dark:text-blue-200',
+    iconColor: 'text-blue-400 dark:text-blue-400'
   }
 };
 

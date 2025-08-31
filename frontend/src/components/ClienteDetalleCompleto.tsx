@@ -57,6 +57,8 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
   onUpdate,
   onVentaRapida
 }) => {
+  // INDICADOR DE VERSIÓN - Si ves este mensaje en consola, los cambios están aplicados
+  console.log('🔧 ClienteDetalleCompleto v2.0 - Phantom data fixes applied');
   const [activeTab, setActiveTab] = useState<'info' | 'pagos' | 'compras' | 'documentos' | 'fiador' | 'credito'>('info');
   const [editingPhoto, setEditingPhoto] = useState(false);
   const [modalState, setModalState] = useState<ModalState>({ type: 'none', isOpen: false });
@@ -67,6 +69,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
   const [pagosReales, setPagosReales] = useState<any[]>([]);
   const [loadingPagos, setLoadingPagos] = useState(false);
   const [pagoACancelar, setPagoACancelar] = useState<any>(null);
+  const [documentRefreshKey, setDocumentRefreshKey] = useState(0);
   const [showCancelarModal, setShowCancelarModal] = useState(false);
   const [showVentaForm, setShowVentaForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,41 +176,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
         console.log('No se pudieron cargar ventas del API:', apiError);
       }
       
-      // Si no hay ventas reales pero el cliente tiene datos que indican deuda, crear venta de ejemplo
-      if (ventasConSaldo.length === 0 && (
-        cliente.deuda_total > 0 || 
-        cliente.estado_pago === 'atrasado' ||
-        cliente.nombre_completo?.toLowerCase().includes('juan')
-      )) {
-        // Crear venta de ejemplo para demostración
-        const ventaEjemplo = {
-          id: 999, // ID ficticio para no conflictos
-          cliente: cliente.id,
-          cliente_info: {
-            id: cliente.id,
-            nombre: cliente.nombre,
-            apellido: cliente.apellido,
-            cedula: cliente.cedula,
-            nombre_completo: cliente.nombre_completo
-          },
-          usuario: 1,
-          usuario_info: { id: 1, username: 'admin', email: 'admin@example.com', first_name: 'Admin', last_name: 'User' },
-          fecha_venta: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(), // 6 meses atrás
-          tipo_venta: 'financiado',
-          tipo_venta_display: 'Financiado',
-          monto_total: 8500000,
-          monto_inicial: 1500000,
-          cuotas: 24,
-          tasa_interes: 1.5,
-          pago_mensual: 380000,
-          monto_total_con_intereses: 9120000,
-          estado: 'activa',
-          estado_display: 'Activa',
-          detalles: [],
-          saldo_pendiente: cliente.deuda_total || 5100000
-        };
-        ventasConSaldo = [ventaEjemplo as any];
-      }
+      // No crear ventas ficticias - solo mostrar ventas reales del API
       
       setVentasReales(ventasConSaldo);
     } catch (error) {
@@ -423,17 +392,57 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
     showModal('documento', 'Subir Documentos', 'Seleccione los documentos que desea subir');
   };
 
-  const procesarSubidaDocumento = () => {
+  const procesarSubidaDocumento = async () => {
+    if (!formData.tipo_documento) {
+      showInfoModal('Por favor seleccione el tipo de documento.');
+      return;
+    }
+
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-    input.multiple = true;
-    input.onchange = (event) => {
+    input.onchange = async (event) => {
       const files = (event.target as HTMLInputElement).files;
       if (files && files.length > 0) {
-        const fileNames = Array.from(files).map(f => f.name).join(', ');
-        closeModal();
-        showInfoModal(`Documentos seleccionados: ${fileNames}\n\nEn una implementación completa, estos se subirían al servidor.`);
+        try {
+          const archivo = files[0]; // Solo tomamos el primer archivo por ahora
+          
+          // Importar el servicio
+          const { documentoService } = await import('../services/documentoService');
+          
+          // Preparar datos del documento
+          const documentoData = {
+            cliente: cliente.id,
+            propietario: formData.propietario || 'cliente',
+            tipo_documento: formData.tipo_documento,
+            descripcion: formData.descripcion || ''
+          };
+          
+          // Subir el documento
+          console.log('📄 Subiendo documento con datos:', documentoData);
+          await documentoService.createDocumento(documentoData, archivo);
+          
+          closeModal();
+          showSuccessModal(`Documento "${archivo.name}" subido exitosamente.`);
+          
+          // Recargar datos reales del cliente desde el servidor
+          try {
+            const { clienteService } = await import('../services/clienteService');
+            const clienteActualizado = await clienteService.getCliente(cliente.id);
+            console.log('🔄 Cliente actualizado con documentos:', clienteActualizado.documentos?.length || 0);
+            onUpdate(clienteActualizado);
+            // Force refresh of the documents display
+            setDocumentRefreshKey(prev => prev + 1);
+          } catch (error) {
+            console.error('Error recargando cliente:', error);
+            // Si no puede recargar, al menos mostrar que se subió
+            showInfoModal('Documento subido. Cierre y vuelva a abrir el detalle para ver los cambios.');
+          }
+          
+        } catch (error) {
+          console.error('Error subiendo documento:', error);
+          showInfoModal('Error al subir el documento. Por favor, inténtelo de nuevo.');
+        }
       }
     };
     input.click();
@@ -502,32 +511,6 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
 
   const comprasCliente = convertirVentasACompras(todasVentasCliente);
 
-  const pagosEjemplo: PagoCliente[] = [
-    {
-      id: 1,
-      compra_id: 1,
-      numero_cuota: 8,
-      fecha_pago: '2024-08-15',
-      monto_pagado: 380000,
-      metodo_pago: 'Transferencia',
-      referencia: 'TRF-001',
-      fue_puntual: true,
-      factura_url: '/facturas/pago-001.pdf'
-    },
-    {
-      id: 2,
-      compra_id: 1,
-      numero_cuota: 7,
-      fecha_pago: '2024-07-20',
-      monto_pagado: 380000,
-      metodo_pago: 'Efectivo',
-      fue_puntual: false,
-      dias_atraso: 5,
-      mora_aplicada: 15000,
-      factura_url: '/facturas/pago-002.pdf'
-    }
-  ];
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-6xl w-full h-[90vh] flex flex-col">
@@ -572,7 +555,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   {sistemaCredito.nivel.toUpperCase()} - {sistemaCredito.score} pts
                 </span>
                 <span className="text-sm text-slate-500">
-                  Cliente desde {cliente.cliente_desde ? formatDate(cliente.cliente_desde) : 'N/A'}
+                  Cliente desde {cliente.fecha_registro ? formatDate(cliente.fecha_registro) : 'N/A'}
                 </span>
               </div>
             </div>
@@ -1029,7 +1012,7 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div key={documentRefreshKey} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Foto de perfil como documento */}
                 {cliente.foto_perfil && (
                   <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -1058,33 +1041,41 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                   </div>
                 )}
                 
-                {/* Documentos regulares */}
-                {[
-                  { nombre: 'Cédula de Ciudadanía', fecha: '2024-01-15', tipo: 'PDF' },
-                  { nombre: 'Comprobante de Ingresos', fecha: '2024-01-10', tipo: 'PDF' },
-                  { nombre: 'Referencias Comerciales', fecha: '2024-01-08', tipo: 'PDF' }
-                ].map((doc, index) => (
-                  <div key={index} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                {/* Documentos regulares del cliente */}
+                {cliente.documentos?.length > 0 ? cliente.documentos.map((doc) => (
+                  <div key={doc.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center">
                         <FileText className="h-8 w-8 text-blue-600 mr-3" />
                         <div>
-                          <h4 className="font-medium text-slate-900">{doc.nombre}</h4>
-                          <p className="text-sm text-slate-700">{formatDate(doc.fecha)}</p>
-                          <span className="text-xs text-slate-500">{doc.tipo}</span>
+                          <h4 className="font-medium text-slate-900">{doc.tipo_documento_display || doc.descripcion}</h4>
+                          <p className="text-sm text-slate-700">{formatDate(doc.fecha_creacion)}</p>
+                          <span className="text-xs text-slate-500">Propietario: {doc.propietario_display}</span>
                         </div>
                       </div>
                       <div className="flex space-x-1">
-                        <button className="p-1 text-blue-600 hover:bg-blue-50 rounded">
-                          <Download className="h-4 w-4" />
-                        </button>
+                        {doc.archivo && (
+                          <button 
+                            onClick={() => window.open(doc.archivo, '_blank')}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Descargar documento"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        )}
                         <button className="p-1 text-red-600 hover:bg-red-50 rounded">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="col-span-full text-center py-8 text-slate-500">
+                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p>No hay documentos subidos para este cliente.</p>
+                    <p className="text-sm">Use el botón "Subir Documento" para agregar archivos.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1338,7 +1329,44 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     <Upload className="h-6 w-6 text-blue-600 mr-3" />
                     <h3 className="text-lg font-semibold text-slate-900">{modalState.title}</h3>
                   </div>
-                  <p className="text-slate-700 mb-6">{modalState.message}</p>
+                  <p className="text-slate-700 mb-4">{modalState.message}</p>
+                  
+                  {/* Formulario de documento */}
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Tipo de Documento *
+                      </label>
+                      <select
+                        value={formData.tipo_documento || ''}
+                        onChange={(e) => setFormData({...formData, tipo_documento: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                      >
+                        <option value="">Seleccione tipo de documento</option>
+                        <option value="cedula">Cédula</option>
+                        <option value="pasaporte">Pasaporte</option>
+                        <option value="licencia_conducir">Licencia de Conducir</option>
+                        <option value="prueba_direccion">Prueba de Dirección</option>
+                      </select>
+                    </div>
+                    
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Propietario
+                      </label>
+                      <select
+                        value={formData.propietario || 'cliente'}
+                        onChange={(e) => setFormData({...formData, propietario: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="cliente">Cliente</option>
+                        <option value="fiador">Fiador</option>
+                      </select>
+                    </div>
+                  </div>
+                  
                   <div className="flex space-x-3">
                     <button
                       onClick={closeModal}
@@ -1349,8 +1377,9 @@ const ClienteDetalleCompleto: React.FC<ClienteDetalleCompletoProps> = ({
                     <button
                       onClick={procesarSubidaDocumento}
                       className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                      disabled={!formData.tipo_documento}
                     >
-                      Seleccionar Archivos
+                      Subir Archivo
                     </button>
                   </div>
                 </div>

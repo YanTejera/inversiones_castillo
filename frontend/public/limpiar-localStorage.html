@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🧹 Limpiar Datos Fantasma de localStorage</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        button { 
+            background: #dc3545; 
+            color: white; 
+            padding: 15px 30px; 
+            border: none; 
+            border-radius: 5px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin: 10px 5px;
+        }
+        button:hover { 
+            background: #c82333; 
+        }
+        .success { 
+            background: #28a745; 
+        }
+        .success:hover { 
+            background: #218838; 
+        }
+        .info { 
+            background: #e9ecef; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        .warning { 
+            background: #fff3cd; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpieza de Datos Fantasma</h1>
+        
+        <div class="warning">
+            <h3>⚠️ PROBLEMA IDENTIFICADO</h3>
+            <p>Los datos fantasma (cuotas, niveles de lealtad, documentos) están guardados en <strong>localStorage</strong> del navegador. Aunque el código ya fue corregido, estos datos persisten hasta que se eliminen manualmente.</p>
+        </div>
+
+        <div class="info">
+            <h3>📋 ¿Qué se va a limpiar?</h3>
+            <ul>
+                <li>Datos fake de clientes (cuotas fantasma, niveles de lealtad, etc.)</li>
+                <li>Información falsa almacenada en localStorage</li>
+                <li>Cachés de datos temporales</li>
+            </ul>
+        </div>
+
+        <h3>🔧 Acciones de Limpieza:</h3>
+        
+        <button onclick="limpiarDatosClientes()">
+            🧹 Limpiar Datos Fantasma de Clientes
+        </button>
+        
+        <button onclick="limpiarTodoLocalStorage()">
+            💣 Limpiar TODO el localStorage
+        </button>
+        
+        <button onclick="mostrarDatos()" class="success">
+            📊 Ver Datos Actuales en localStorage
+        </button>
+
+        <div id="resultado"></div>
+        <div id="datos"></div>
+
+        <div class="info">
+            <h3>✅ Después de limpiar:</h3>
+            <ol>
+                <li>Recarga la página de la aplicación (F5)</li>
+                <li>Los clientes mostrarán solo datos reales del API</li>
+                <li>No más cuotas fantasma, ni niveles de lealtad falsos</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function limpiarDatosClientes() {
+            let eliminados = 0;
+            
+            // Buscar todas las claves que empiecen con "cliente_"
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('cliente_')) {
+                    localStorage.removeItem(key);
+                    eliminados++;
+                }
+            });
+            
+            document.getElementById('resultado').innerHTML = 
+                `<div class="info">✅ <strong>Limpieza completada!</strong><br>Se eliminaron ${eliminados} registros de datos fantasma de clientes.</div>`;
+        }
+        
+        function limpiarTodoLocalStorage() {
+            const itemCount = localStorage.length;
+            localStorage.clear();
+            
+            document.getElementById('resultado').innerHTML = 
+                `<div class="info">✅ <strong>localStorage completamente limpio!</strong><br>Se eliminaron ${itemCount} elementos en total.</div>`;
+        }
+        
+        function mostrarDatos() {
+            const datos = [];
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('cliente_')) {
+                    const data = JSON.parse(localStorage.getItem(key) || '{}');
+                    datos.push(`<strong>${key}:</strong> cuota_actual: ${data.cuota_actual}, nivel_lealtad: ${data.nivel_lealtad}`);
+                }
+            });
+            
+            if (datos.length === 0) {
+                document.getElementById('datos').innerHTML = 
+                    `<div class="info">✅ <strong>¡Perfecto!</strong> No hay datos fantasma de clientes en localStorage.</div>`;
+            } else {
+                document.getElementById('datos').innerHTML = 
+                    `<div class="warning"><h4>⚠️ Datos fantasma encontrados:</h4><ul><li>${datos.join('</li><li>')}</li></ul></div>`;
+            }
+        }
+        
+        // Mostrar datos al cargar
+        mostrarDatos();
+    </script>
+</body>
+</html>

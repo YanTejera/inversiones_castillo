@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { PermisosProvider } from './contexts/PermisosContext';
 import { NotificationProvider } from './hooks/useNotificationsSimple';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
@@ -19,12 +21,19 @@ import CobrosPendientes from './pages/CobrosPendientes';
 import Documentos from './pages/Documentos';
 import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
+import RestockManager from './pages/RestockManager';
+import Inventario from './pages/Inventario';
+import Servicios from './pages/Servicios';
+import Analytics from './pages/Analytics';
+import Finanzas from './pages/Finanzas';
 
 function App() {
   return (
     <AuthProvider>
-      <NotificationProvider>
-        <Router>
+      <PermisosProvider>
+        <ThemeProvider>
+          <NotificationProvider>
+          <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route
@@ -50,12 +59,19 @@ function App() {
               <Route path="cobros" element={<CobrosPendientes />} />
               <Route path="documentos" element={<Documentos />} />
               <Route path="reportes" element={<Reportes />} />
+              <Route path="restock" element={<RestockManager />} />
+              <Route path="inventario" element={<Inventario />} />
+              <Route path="servicios" element={<Servicios />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="finanzas" element={<Finanzas />} />
               <Route path="configuracion" element={<Configuracion />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-        </Router>
-      </NotificationProvider>
+          </Router>
+          </NotificationProvider>
+        </ThemeProvider>
+      </PermisosProvider>
     </AuthProvider>
   );
 }

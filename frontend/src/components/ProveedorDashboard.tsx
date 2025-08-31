@@ -294,8 +294,8 @@ const ProveedorDashboard: React.FC = () => {
     return (
       <div className="text-center py-12">
         <AlertTriangle className="mx-auto h-12 w-12 text-red-500" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Error</h3>
-        <p className="mt-1 text-sm text-gray-500">{error || 'No se pudieron cargar los datos'}</p>
+        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Error</h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{error || 'No se pudieron cargar los datos'}</p>
         <button
           onClick={loadDashboardData}
           className="mt-6 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
@@ -311,13 +311,13 @@ const ProveedorDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard de Proveedores</h1>
-          <p className="text-gray-600 mt-1">Visión general del rendimiento y estadísticas de proveedores</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard de Proveedores</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Visión general del rendimiento y estadísticas de proveedores</p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
           <Link
             to="/proveedores"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50"
           >
             <Eye className="h-4 w-4 mr-2" />
             Ver Todos
@@ -332,7 +332,7 @@ const ProveedorDashboard: React.FC = () => {
           <button
             onClick={refreshData}
             disabled={refreshing}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 disabled:opacity-50"
           >
             <Activity className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
             Actualizar
@@ -363,8 +363,8 @@ const ProveedorDashboard: React.FC = () => {
                   <CheckCircle className="h-5 w-5 text-blue-500 mr-3" />
                 )}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">{alerta.titulo}</h4>
-                  <p className="text-sm text-gray-600">{alerta.mensaje}</p>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white">{alerta.titulo}</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{alerta.mensaje}</p>
                 </div>
               </div>
             </div>
@@ -374,25 +374,25 @@ const ProveedorDashboard: React.FC = () => {
 
       {/* KPIs principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center">
             <Building className="h-8 w-8 text-blue-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.kpis.total_proveedores}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardData.kpis.total_proveedores}</p>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-xs text-gray-600">Proveedores registrados</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Proveedores registrados</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center">
             <CheckCircle className="h-8 w-8 text-green-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Activos</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.kpis.proveedores_activos}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Activos</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardData.kpis.proveedores_activos}</p>
             </div>
           </div>
           <div className="mt-4">
@@ -402,38 +402,38 @@ const ProveedorDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center">
             <Package className="h-8 w-8 text-purple-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Motocicletas</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.kpis.total_motocicletas}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Motocicletas</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardData.kpis.total_motocicletas}</p>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-xs text-gray-600">Inventario total</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Inventario total</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center">
             <Target className="h-8 w-8 text-orange-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Promedio</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.kpis.promedio_motocicletas}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Promedio</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardData.kpis.promedio_motocicletas}</p>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-xs text-gray-600">Motos por proveedor</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Motos por proveedor</p>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center">
             <TrendingUp className="h-8 w-8 text-indigo-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Crecimiento</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.kpis.crecimiento_mensual}%</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Crecimiento</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardData.kpis.crecimiento_mensual}%</p>
             </div>
           </div>
           <div className="mt-4">
@@ -441,16 +441,16 @@ const ProveedorDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center">
             <Globe className="h-8 w-8 text-teal-500" />
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Países</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.distribucion_geografica.length}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Países</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboardData.distribucion_geografica.length}</p>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-xs text-gray-600">Cobertura global</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Cobertura global</p>
           </div>
         </div>
       </div>
@@ -458,9 +458,9 @@ const ProveedorDashboard: React.FC = () => {
       {/* Charts principales */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Distribución por tipos */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Distribución por Tipo</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Distribución por Tipo</h3>
             <PieChartIcon className="h-5 w-5 text-gray-400" />
           </div>
           <div className="h-64">
@@ -500,9 +500,9 @@ const ProveedorDashboard: React.FC = () => {
         </div>
 
         {/* Top proveedores */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Top Proveedores</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Top Proveedores</h3>
             <BarChart3 className="h-5 w-5 text-gray-400" />
           </div>
           <div className="h-64">
@@ -527,9 +527,9 @@ const ProveedorDashboard: React.FC = () => {
         </div>
 
         {/* Tendencia de actividad */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Tendencia de Actividad</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Tendencia de Actividad</h3>
             <Activity className="h-5 w-5 text-gray-400" />
           </div>
           <div className="h-64">
@@ -566,9 +566,9 @@ const ProveedorDashboard: React.FC = () => {
         </div>
 
         {/* Métricas de rendimiento */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Métricas de Rendimiento</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Métricas de Rendimiento</h3>
             <Zap className="h-5 w-5 text-gray-400" />
           </div>
           <div className="h-64">
@@ -599,9 +599,9 @@ const ProveedorDashboard: React.FC = () => {
       </div>
 
       {/* Distribución geográfica */}
-      <div className="bg-white p-6 rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Distribución Geográfica</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Distribución Geográfica</h3>
           <Map className="h-5 w-5 text-gray-400" />
         </div>
         <div className="h-64">
@@ -627,50 +627,50 @@ const ProveedorDashboard: React.FC = () => {
       </div>
 
       {/* Acciones rápidas */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Acciones Rápidas</h3>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Acciones Rápidas</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link
             to="/proveedores/nuevo"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Plus className="h-8 w-8 text-blue-500 mr-3" />
             <div>
-              <p className="font-medium text-gray-900">Nuevo Proveedor</p>
-              <p className="text-sm text-gray-500">Registrar proveedor</p>
+              <p className="font-medium text-gray-900 dark:text-white">Nuevo Proveedor</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Registrar proveedor</p>
             </div>
           </Link>
           
           <Link
             to="/proveedores"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Users className="h-8 w-8 text-green-500 mr-3" />
             <div>
-              <p className="font-medium text-gray-900">Ver Proveedores</p>
-              <p className="text-sm text-gray-500">Lista completa</p>
+              <p className="font-medium text-gray-900 dark:text-white">Ver Proveedores</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Lista completa</p>
             </div>
           </Link>
           
           <Link
             to="/reportes/proveedores"
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <BarChart3 className="h-8 w-8 text-purple-500 mr-3" />
             <div>
-              <p className="font-medium text-gray-900">Reportes</p>
-              <p className="text-sm text-gray-500">Análisis detallado</p>
+              <p className="font-medium text-gray-900 dark:text-white">Reportes</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Análisis detallado</p>
             </div>
           </Link>
           
           <button
             onClick={refreshData}
-            className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Activity className="h-8 w-8 text-orange-500 mr-3" />
             <div>
-              <p className="font-medium text-gray-900">Actualizar</p>
-              <p className="text-sm text-gray-500">Refrescar datos</p>
+              <p className="font-medium text-gray-900 dark:text-white">Actualizar</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Refrescar datos</p>
             </div>
           </button>
         </div>

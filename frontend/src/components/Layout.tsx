@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { usePermisos } from '../contexts/PermisosContext';
 import NotificationCenter from './notificaciones/NotificationCenter';
 import MobileNavigation from './MobileNavigation';
+import DarkModeToggle from './DarkModeToggle';
 import {
   Menu,
   X,
@@ -18,11 +20,17 @@ import {
   Settings,
   Building,
   Bell,
+  Shield,
+  Package,
+  Wrench,
+  BarChart3,
+  DollarSign,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { tienePermiso, esMaster } = usePermisos();
   const location = useLocation();
 
   const navigation = [
@@ -43,6 +51,12 @@ const Layout: React.FC = () => {
       href: '/proveedores',
       icon: Building,
       current: location.pathname.startsWith('/proveedores'),
+    },
+    {
+      name: 'Re-stock',
+      href: '/restock',
+      icon: ShoppingCart,
+      current: location.pathname.startsWith('/restock'),
     },
     {
       name: 'Clientes',
@@ -81,6 +95,30 @@ const Layout: React.FC = () => {
       current: location.pathname.startsWith('/reportes'),
     },
     {
+      name: 'Inventario',
+      href: '/inventario',
+      icon: Package,
+      current: location.pathname.startsWith('/inventario'),
+    },
+    {
+      name: 'Servicios',
+      href: '/servicios',
+      icon: Wrench,
+      current: location.pathname.startsWith('/servicios'),
+    },
+    {
+      name: 'Analytics',
+      href: '/analytics',
+      icon: BarChart3,
+      current: location.pathname.startsWith('/analytics'),
+    },
+    {
+      name: 'Finanzas',
+      href: '/finanzas',
+      icon: DollarSign,
+      current: location.pathname.startsWith('/finanzas'),
+    },
+    {
       name: 'Configuración',
       href: '/configuracion',
       icon: Settings,
@@ -93,15 +131,15 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
+    <div className="h-screen flex overflow-hidden bg-gray-100 dark:bg-gray-900">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 sm:w-72 bg-gray-800 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:w-64`}>
-        <div className="flex items-center justify-between h-16 bg-gray-900 px-4">
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 sm:w-72 bg-gray-800 dark:bg-gray-950 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 lg:w-64`}>
+        <div className="flex items-center justify-between h-16 bg-gray-900 dark:bg-black px-4">
           <div className="flex items-center min-w-0">
             <img 
               src="/logo.png" 
               alt="Inversiones C&C Logo" 
-              className="h-8 w-8 flex-shrink-0 rounded-full bg-white p-1 object-contain" 
+              className="h-8 w-8 flex-shrink-0 rounded-full bg-white dark:bg-gray-800 p-1 object-contain" 
             />
             <span className="ml-2 text-white text-base sm:text-lg font-semibold truncate">Inversiones C&C</span>
           </div>
@@ -159,10 +197,10 @@ const Layout: React.FC = () => {
       {/* Main content */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top bar - Mobile */}
-        <header className="bg-white shadow-sm border-b border-gray-200 lg:hidden iphone-header-fix">
+        <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 lg:hidden iphone-header-fix">
           <div className="flex items-center justify-between px-4">
             <button
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-6 w-6" />
@@ -173,18 +211,19 @@ const Layout: React.FC = () => {
                 alt="Inversiones C&C Logo" 
                 className="h-6 w-6 mr-2 flex-shrink-0 object-contain" 
               />
-              <span className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+              <span className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate">
                 Inversiones C&C
               </span>
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center gap-2">
+              <DarkModeToggle size="sm" />
               <NotificationCenter />
             </div>
           </div>
         </header>
 
         {/* Top bar - Desktop */}
-        <header className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
+        <header className="hidden lg:block bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center">
               <img 
@@ -192,14 +231,15 @@ const Layout: React.FC = () => {
                 alt="Inversiones C&C Logo" 
                 className="h-8 w-8 mr-3 flex-shrink-0 object-contain" 
               />
-              <span className="text-lg font-semibold text-gray-900">
+              <span className="text-lg font-semibold text-gray-900 dark:text-white">
                 Sistema de Gestión - Inversiones C&C
               </span>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-300">
                 Bienvenido, {user?.first_name} {user?.last_name}
               </div>
+              <DarkModeToggle />
               <NotificationCenter />
             </div>
           </div>

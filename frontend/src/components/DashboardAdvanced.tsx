@@ -117,7 +117,7 @@ const DashboardAdvanced: React.FC = () => {
         {/* KPI Cards skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[...Array(4)].map((_, index) => (
-            <div key={index} className="bg-white rounded-lg p-6 shadow-sm border shimmer">
+            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-200 dark:border-gray-700 shimmer">
               <div className="flex items-center justify-between mb-4">
                 <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
                 <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
@@ -131,7 +131,7 @@ const DashboardAdvanced: React.FC = () => {
         {/* Charts grid skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(6)].map((_, index) => (
-            <div key={index} className="bg-white rounded-lg p-6 shadow-sm border shimmer">
+            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow border border-gray-200 dark:border-gray-700 shimmer">
               <div className="h-6 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
               <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
             </div>
@@ -159,8 +159,8 @@ const DashboardAdvanced: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard Inteligente</h1>
-          <p className="text-gray-600 text-sm sm:text-base">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard Inteligente</h1>
+          <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">
             Análisis completo y predicciones empresariales
           </p>
         </div>
@@ -173,8 +173,8 @@ const DashboardAdvanced: React.FC = () => {
                 onClick={() => setSelectedPeriod(period)}
                 className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                   selectedPeriod === period
-                    ? 'bg-white shadow-sm text-blue-600'
-                    : 'text-gray-600 hover:text-blue-600'
+                    ? 'bg-white dark:bg-gray-800 shadow border border-gray-200 dark:border-gray-700 text-blue-600'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-blue-600'
                 }`}
               >
                 {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -195,15 +195,15 @@ const DashboardAdvanced: React.FC = () => {
 
       {/* Métricas Principales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center min-w-0 flex-1">
               <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0">
                 <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
               </div>
               <div className="ml-3 sm:ml-4 min-w-0 flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-500">Ventas del Mes</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
+                <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">Ventas del Mes</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
                   {formatCurrency(data.metricas_principales.ventas_mes.total)}
                 </p>
               </div>
@@ -215,64 +215,64 @@ const DashboardAdvanced: React.FC = () => {
                   {formatPercentage(data.metricas_principales.ventas_mes.crecimiento_porcentual)}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">{data.metricas_principales.ventas_mes.count} ventas</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{data.metricas_principales.ventas_mes.count} ventas</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="p-3 bg-green-100 rounded-lg">
                 <TrendingUp className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Rentabilidad</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Rentabilidad</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {formatPercentage(data.metricas_principales.rentabilidad_mes)}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500">Margen bruto</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Margen bruto</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="p-3 bg-purple-100 rounded-lg">
                 <Target className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Conversión</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Conversión</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {formatPercentage(data.metricas_principales.conversion_rate)}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500">Efectividad</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Efectividad</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="p-3 bg-orange-100 rounded-lg">
                 <AlertTriangle className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Stock Crítico</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Stock Crítico</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {data.metricas_principales.stock_critico}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-500">Productos</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Productos</p>
             </div>
           </div>
         </div>
@@ -280,9 +280,9 @@ const DashboardAdvanced: React.FC = () => {
 
       {/* Alertas Inteligentes */}
       {data.alertas_inteligentes.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
               <Zap className="h-5 w-5 text-yellow-500 mr-2" />
               Alertas Inteligentes
             </h3>
@@ -296,9 +296,9 @@ const DashboardAdvanced: React.FC = () => {
                 <div className="flex items-start">
                   {getAlertIcon(alerta.tipo)}
                   <div className="ml-3 flex-1">
-                    <h4 className="text-sm font-medium text-gray-900">{alerta.titulo}</h4>
-                    <p className="text-sm text-gray-600 mt-1">{alerta.mensaje}</p>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">{alerta.titulo}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{alerta.mensaje}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                       <strong>Acción sugerida:</strong> {alerta.accion_sugerida}
                     </p>
                   </div>
@@ -316,9 +316,9 @@ const DashboardAdvanced: React.FC = () => {
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           
           {/* Gráfico de Ventas por Día */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Tendencia de Ventas</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Tendencia de Ventas</h3>
               <Link to="/reportes" className="text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium">
                 Ver detalles →
               </Link>
@@ -329,16 +329,16 @@ const DashboardAdvanced: React.FC = () => {
           </div>
 
           {/* Top Productos - Gráfico de Barras */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Top Productos Vendidos</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Top Productos Vendidos</h3>
             <div className="overflow-x-auto">
               <TopProductosChart data={data.analisis_ventas.top_productos.slice(0, 5)} height={280} />
             </div>
           </div>
 
           {/* Distribución Tipo de Venta */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Distribución de Ventas</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Distribución de Ventas</h3>
             <div className="overflow-x-auto">
               <DistribucionVentasChart data={data.analisis_ventas.distribucion_tipo_venta} height={280} />
             </div>
@@ -353,14 +353,14 @@ const DashboardAdvanced: React.FC = () => {
           <ResumenCobrosDashboard />
 
           {/* KPIs Operacionales - Radar Chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">KPIs Operacionales</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">KPIs Operacionales</h3>
             <KPIsRadarChart data={data.kpis_operacionales} height={280} />
           </div>
 
           {/* Salud Financiera */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Salud Financiera</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Salud Financiera</h3>
             <div className="space-y-4">
               <div className="p-3 bg-green-50 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -393,8 +393,8 @@ const DashboardAdvanced: React.FC = () => {
       </div>
 
       {/* Sección adicional de análisis financiero */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Análisis de Flujo de Caja</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Análisis de Flujo de Caja</h3>
         <FlujoCajaChart data={data.salud_financiera.flujo_caja} height={350} />
       </div>
 
@@ -402,30 +402,30 @@ const DashboardAdvanced: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Predicciones */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
             <Activity className="h-5 w-5 text-blue-500 mr-2" />
             Predicciones
           </h3>
           <div className="space-y-4">
             <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-              <p className="text-sm text-gray-600">Predicción Ventas Próximo Mes</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">Predicción Ventas Próximo Mes</p>
               <p className="text-2xl font-bold text-blue-600">
                 {formatCurrency(data.tendencias_predicciones.prediccion_ventas_mes)}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Basado en tendencias históricas y estacionalidad
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
-                <p className="text-sm text-gray-600">Mejor Mes</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Mejor Mes</p>
                 <p className="font-semibold text-green-600">
                   {data.tendencias_predicciones.estacionalidad.mejor_mes}
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-gray-600">Tendencia</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Tendencia</p>
                 <p className="font-semibold text-blue-600 capitalize">
                   {data.tendencias_predicciones.tendencia_clientes}
                 </p>
@@ -435,8 +435,8 @@ const DashboardAdvanced: React.FC = () => {
         </div>
 
         {/* Recomendaciones */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
             <Target className="h-5 w-5 text-green-500 mr-2" />
             Recomendaciones
           </h3>
@@ -448,8 +448,8 @@ const DashboardAdvanced: React.FC = () => {
                     <span className="text-green-600 text-xs font-bold">{index + 1}</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{rec.tipo}</p>
-                    <p className="text-sm text-gray-600 mt-1">{rec.descripcion}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{rec.tipo}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{rec.descripcion}</p>
                     <p className="text-xs text-green-600 mt-2 font-medium">
                       Impacto esperado: {rec.impacto_esperado}
                     </p>
@@ -462,7 +462,7 @@ const DashboardAdvanced: React.FC = () => {
       </div>
 
       {/* Footer con última actualización */}
-      <div className="text-center text-sm text-gray-500 py-4 border-t border-gray-200">
+      <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-center space-x-2">
           <Clock className="h-4 w-4" />
           <span>Última actualización: {lastUpdate.toLocaleString('es-CO')}</span>

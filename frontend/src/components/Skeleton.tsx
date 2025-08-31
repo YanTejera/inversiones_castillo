@@ -15,7 +15,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
   variant = 'rectangular',
   animation = 'pulse'
 }) => {
-  const baseClasses = 'bg-gray-200';
+  const baseClasses = 'bg-gray-200 dark:bg-gray-700';
   
   const variantClasses = {
     rectangular: 'rounded',
@@ -44,7 +44,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
 
 // Componentes de skeleton predefinidos para casos comunes
 export const SkeletonCard: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`bg-white rounded-lg shadow-md overflow-hidden ${className}`}>
+  <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border dark:border-gray-700 ${className}`}>
     <Skeleton height="12rem" className="w-full" />
     <div className="p-4 space-y-3">
       <Skeleton height="1.5rem" width="75%" />
@@ -58,7 +58,7 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className = '' 
 );
 
 export const SkeletonList: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`bg-white rounded-lg shadow-sm border p-4 ${className}`}>
+  <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700 p-4 ${className}`}>
     <div className="flex items-center space-x-4">
       <Skeleton variant="rectangular" width="4rem" height="4rem" />
       <div className="flex-1 space-y-2">
@@ -75,7 +75,7 @@ export const SkeletonList: React.FC<{ className?: string }> = ({ className = '' 
 );
 
 export const SkeletonStats: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`bg-blue-50 border border-blue-200 rounded-lg p-3 ${className}`}>
+  <div className={`bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 ${className}`}>
     <Skeleton height="0.75rem" width="40%" className="mb-1" />
     <Skeleton height="1.5rem" width="25%" />
   </div>
