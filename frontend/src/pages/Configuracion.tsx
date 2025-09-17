@@ -27,7 +27,8 @@ import {
   Minus,
   Search,
   Filter,
-  XCircle
+  XCircle,
+  MessageSquare
 } from 'lucide-react';
 import { usuarioService, type Usuario, type Rol, type EstadisticasUsuarios } from '../services/usuarioService';
 import { permisosService } from '../services/permisosService';
@@ -40,6 +41,7 @@ import { usePermisos } from '../contexts/PermisosContext';
 import { useTheme } from '../contexts/ThemeContext';
 import NotificacionesConfig from '../components/configuracion/NotificacionesConfig';
 import GestionPermisosRoles from '../components/GestionPermisosRoles';
+import ComunicacionesConfig from '../components/configuracion/ComunicacionesConfig';
 
 const Configuracion: React.FC = () => {
   const { tienePermiso: tienePermisoCtx, esMaster } = usePermisos();
@@ -370,11 +372,17 @@ const Configuracion: React.FC = () => {
       icon: BarChart3, 
       available: currentUser?.rol_info?.puede_ver_reportes || currentUser?.es_admin 
     },
-    { 
-      id: 'notificaciones', 
-      label: 'Notificaciones', 
-      icon: Bell, 
-      available: true 
+    {
+      id: 'comunicaciones',
+      label: 'Comunicaciones',
+      icon: MessageSquare,
+      available: currentUser?.rol_info?.puede_configurar_sistema || currentUser?.es_admin
+    },
+    {
+      id: 'notificaciones',
+      label: 'Notificaciones',
+      icon: Bell,
+      available: true
     },
   ].filter(tab => tab.available);
 
@@ -910,6 +918,13 @@ const Configuracion: React.FC = () => {
                   onSuccess={setSuccess}
                   onError={setError}
                 />
+              </div>
+            )}
+
+            {/* Comunicaciones */}
+            {activeTab === 'comunicaciones' && (currentUser?.rol_info?.puede_configurar_sistema || currentUser?.es_admin) && (
+              <div className="p-6">
+                <ComunicacionesConfig />
               </div>
             )}
 

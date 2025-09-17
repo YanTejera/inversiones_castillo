@@ -29,10 +29,13 @@ import Documentos from './pages/Documentos';
 import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
 import RestockManager from './pages/RestockManager';
-import Inventario from './pages/Inventario';
 import Servicios from './pages/Servicios';
 import Analytics from './pages/Analytics';
 import Finanzas from './pages/Finanzas';
+import Financiamiento from './pages/Financiamiento';
+import Comisiones from './pages/Comisiones';
+import Empleados from './pages/Empleados';
+import Comunicaciones from './pages/Comunicaciones';
 
 function App() {
   return (
@@ -74,10 +77,13 @@ function App() {
               <Route path="documentos" element={<Documentos />} />
               <Route path="reportes" element={<Reportes />} />
               <Route path="restock" element={<RestockManager />} />
-              <Route path="inventario" element={<Inventario />} />
               <Route path="servicios" element={<Servicios />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="finanzas" element={<Finanzas />} />
+              <Route path="financiamiento" element={<Financiamiento />} />
+              <Route path="comisiones" element={<Comisiones />} />
+              <Route path="empleados" element={<Empleados />} />
+              <Route path="comunicaciones" element={<Comunicaciones />} />
               <Route path="configuracion" element={<Configuracion />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

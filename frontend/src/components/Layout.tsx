@@ -24,6 +24,9 @@ import {
   Wrench,
   BarChart3,
   DollarSign,
+  Percent,
+  UserCheck,
+  MessageSquare,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -94,12 +97,6 @@ const Layout: React.FC = () => {
       current: location.pathname.startsWith('/reportes'),
     },
     {
-      name: 'Inventario',
-      href: '/inventario',
-      icon: Package,
-      current: location.pathname.startsWith('/inventario'),
-    },
-    {
       name: 'Servicios',
       href: '/servicios',
       icon: Wrench,
@@ -116,6 +113,30 @@ const Layout: React.FC = () => {
       href: '/finanzas',
       icon: DollarSign,
       current: location.pathname.startsWith('/finanzas'),
+    },
+    {
+      name: 'Financiamiento',
+      href: '/financiamiento',
+      icon: CreditCard,
+      current: location.pathname.startsWith('/financiamiento'),
+    },
+    {
+      name: 'Comisiones',
+      href: '/comisiones',
+      icon: Percent,
+      current: location.pathname.startsWith('/comisiones'),
+    },
+    {
+      name: 'Empleados',
+      href: '/empleados',
+      icon: UserCheck,
+      current: location.pathname.startsWith('/empleados'),
+    },
+    {
+      name: 'Comunicaciones',
+      href: '/comunicaciones',
+      icon: MessageSquare,
+      current: location.pathname.startsWith('/comunicaciones'),
     },
     {
       name: 'Configuración',
