@@ -25,7 +25,10 @@ import {
   Building,
   BarChart3,
   MapPin,
-  Database
+  Database,
+  ArrowUpDown,
+  Bell,
+  Calculator
 } from 'lucide-react';
 import { motoService } from '../services/motoService';
 import { motoModeloService } from '../services/motoModeloService';
@@ -38,6 +41,9 @@ const EspecificacionesTecnicas = lazy(() => import('../components/Especificacion
 const AdvancedInventoryAnalytics = lazy(() => import('../components/analytics/AdvancedInventoryAnalytics'));
 const LocationManager = lazy(() => import('../components/location/LocationManager'));
 const ImportExportManager = lazy(() => import('../components/dataManagement/ImportExportManager'));
+const InventoryMovements = lazy(() => import('../components/inventory/InventoryMovements'));
+const InventoryAlerts = lazy(() => import('../components/inventory/InventoryAlerts'));
+const FinancingCalculator = lazy(() => import('../components/financing/FinancingCalculator'));
 // import ResumenModelo from '../components/ResumenModelo';
 import ViewToggle from '../components/common/ViewToggle';
 import { SkeletonCard, SkeletonList, SkeletonStats } from '../components/Skeleton';
@@ -58,7 +64,7 @@ const Motocicletas: React.FC = () => {
   const { tienePermiso, esMaster } = usePermisos();
   const [motos, setMotos] = useState<Moto[]>([]);
   const [modelos, setModelos] = useState<MotoModelo[]>([]);
-  const [viewMode, setViewMode] = useState<'modelos' | 'individual' | 'analytics' | 'locations'>('modelos');
+  const [viewMode, setViewMode] = useState<'modelos' | 'individual' | 'analytics' | 'locations' | 'movements' | 'alerts' | 'financing'>('modelos');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showImportExportManager, setShowImportExportManager] = useState(false);
@@ -776,7 +782,7 @@ const Motocicletas: React.FC = () => {
               <span className="hidden sm:inline">Importar/Exportar</span>
               <span className="sm:hidden">Importar</span>
             </button>
-            {viewMode !== 'analytics' && viewMode !== 'locations' && (
+            {viewMode !== 'analytics' && viewMode !== 'locations' && viewMode !== 'movements' && viewMode !== 'alerts' && viewMode !== 'financing' && (
               <Link
                 to="/motos/nueva"
                 className="flex-1 sm:flex-initial bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 btn-press micro-glow flex items-center justify-center gap-2 text-sm font-medium"
@@ -845,12 +851,51 @@ const Motocicletas: React.FC = () => {
                 Ubicaciones
               </div>
             </button>
+            <button
+              onClick={() => setViewMode('movements')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                viewMode === 'movements'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center">
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                Movimientos
+              </div>
+            </button>
+            <button
+              onClick={() => setViewMode('alerts')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                viewMode === 'alerts'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center">
+                <Bell className="h-4 w-4 mr-2" />
+                Alertas
+              </div>
+            </button>
+            <button
+              onClick={() => setViewMode('financing')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                viewMode === 'financing'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 hover:border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center">
+                <Calculator className="h-4 w-4 mr-2" />
+                Financiamiento
+              </div>
+            </button>
           </nav>
         </div>
       </div>
 
       {/* Filtros y Controles */}
-      {viewMode !== 'analytics' && viewMode !== 'locations' && (
+      {viewMode !== 'analytics' && viewMode !== 'locations' && viewMode !== 'movements' && viewMode !== 'alerts' && viewMode !== 'financing' && (
         <>
         <div className="mb-6 space-y-4">
         {/* Statistics - Mobile vs Desktop Optimized */}
@@ -1595,6 +1640,69 @@ const Motocicletas: React.FC = () => {
             </div>
           }>
             <LocationManager />
+          </Suspense>
+        </div>
+      ) : viewMode === 'movements' ? (
+        /* Vista de Movimientos de Inventario */
+        <div className="movements-section">
+          <Suspense fallback={
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-3">
+                    {[...Array(8)].map((_, i) => (
+                      <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }>
+            <InventoryMovements />
+          </Suspense>
+        </div>
+      ) : viewMode === 'alerts' ? (
+        /* Vista de Alertas de Inventario */
+        <div className="alerts-section">
+          <Suspense fallback={
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-3">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="h-24 bg-gray-200 rounded"></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          }>
+            <InventoryAlerts />
+          </Suspense>
+        </div>
+      ) : viewMode === 'financing' ? (
+        /* Vista de Calculadora de Financiamiento */
+        <div className="financing-section">
+          <Suspense fallback={
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 w-48 bg-gray-200 rounded mb-4"></div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="h-20 bg-gray-200 rounded"></div>
+                      <div className="h-20 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="h-12 bg-gray-200 rounded"></div>
+                    <div className="h-32 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          }>
+            <FinancingCalculator />
           </Suspense>
         </div>
       ) : null}

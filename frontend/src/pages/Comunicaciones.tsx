@@ -35,6 +35,8 @@ import {
 import { useToast } from '../components/Toast';
 import CampanaManager from '../components/comunicaciones/CampanaManager';
 import PlantillasManager from '../components/comunicaciones/PlantillasManager';
+import CommunicationAnalytics from '../components/comunicaciones/CommunicationAnalytics';
+import { communicationAnalytics } from '../services/communicationAnalytics';
 
 interface Cliente {
   id: number;
@@ -79,7 +81,7 @@ interface Plantilla {
   id: number;
   nombre: string;
   tipo: 'Cobranza' | 'Marketing' | 'Recordatorio' | 'Promocional';
-  canal: 'WhatsApp' | 'Email' | 'SMS' | 'Telegram' | 'Todos';
+  canal: 'WhatsApp' | 'Email' | 'SMS' | 'Telegram' | 'Todos' | 'Universal';
   asunto?: string;
   contenido: string;
   variables: string[];
@@ -109,6 +111,7 @@ const Comunicaciones: React.FC = () => {
   const [showPlantillaModal, setShowPlantillaModal] = useState(false);
   const [selectedClientes, setSelectedClientes] = useState<number[]>([]);
   const [showMensajeModal, setShowMensajeModal] = useState(false);
+  const [showEnvioMasivoModal, setShowEnvioMasivoModal] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [canalSeleccionado, setCanalSeleccionado] = useState<'WhatsApp' | 'Email' | 'SMS' | 'Telegram'>('WhatsApp');
   const [mensajeTexto, setMensajeTexto] = useState('');
@@ -116,6 +119,14 @@ const Comunicaciones: React.FC = () => {
   const [asunto, setAsunto] = useState('');
   const [programarEnvio, setProgramarEnvio] = useState(false);
   const [fechaEnvio, setFechaEnvio] = useState('');
+
+  // Estados específicos para envío masivo
+  const [canalMasivo, setCanalMasivo] = useState<'WhatsApp' | 'Email' | 'SMS' | 'Telegram'>('WhatsApp');
+  const [plantillaMasiva, setPlantillaMasiva] = useState('');
+  const [mensajeMasivo, setMensajeMasivo] = useState('');
+  const [asuntoMasivo, setAsuntoMasivo] = useState('');
+  const [programarMasivo, setProgramarMasivo] = useState(false);
+  const [fechaMasiva, setFechaMasiva] = useState('');
 
   useEffect(() => {
     loadData();
@@ -247,6 +258,7 @@ const Comunicaciones: React.FC = () => {
           contenido: p.contenido,
           variables: p.variables || []
         }));
+        console.log('Plantillas cargadas desde localStorage:', plantillasSimples);
         setPlantillas(plantillasSimples);
         return;
       }
@@ -369,7 +381,8 @@ const Comunicaciones: React.FC = () => {
       return;
     }
     info(`Preparando envío masivo para ${selectedClientes.length} clientes`);
-    setShowCampanaModal(true);
+    resetMasivoModal();
+    setShowEnvioMasivoModal(true);
   };
 
   const handleLimpiarFiltros = () => {
@@ -405,17 +418,63 @@ const Comunicaciones: React.FC = () => {
     setFechaEnvio('');
   };
 
+  const resetMasivoModal = () => {
+    setMensajeMasivo('');
+    setPlantillaMasiva('');
+    setAsuntoMasivo('');
+    setProgramarMasivo(false);
+    setFechaMasiva('');
+  };
+
+  const handleSeleccionarPlantillaMasiva = (plantillaId: string) => {
+    const plantilla = plantillas.find(p => p.id.toString() === plantillaId);
+    if (plantilla) {
+      setMensajeMasivo(plantilla.contenido);
+      if (plantilla.asunto) {
+        setAsuntoMasivo(plantilla.asunto);
+      }
+    }
+  };
+
+  const getPlantillasMasivasFiltradas = () => {
+    const filtradas = plantillas.filter(plantilla => {
+      const coincideCanal = plantilla.canal === canalMasivo ||
+                           plantilla.canal === 'Todos' ||
+                           plantilla.canal === 'Universal';
+
+      const esCobranza = viewMode === 'deudores' && plantilla.tipo === 'Cobranza';
+
+      return coincideCanal || esCobranza;
+    });
+
+    return filtradas;
+  };
+
   const getPlantillasFiltradas = () => {
-    return plantillas.filter(plantilla =>
-      plantilla.canal === canalSeleccionado || plantilla.canal === 'Todos'
-    );
+    const filtradas = plantillas.filter(plantilla => {
+      // Filtro por canal: mostrar plantillas del canal seleccionado, 'Todos' o 'Universal'
+      const coincideCanal = plantilla.canal === canalSeleccionado ||
+                           plantilla.canal === 'Todos' ||
+                           plantilla.canal === 'Universal';
+
+      // Para la pestaña de cobranza, también mostrar plantillas de tipo 'Cobranza' independientemente del canal
+      const esCobranza = viewMode === 'deudores' && plantilla.tipo === 'Cobranza';
+
+      return coincideCanal || esCobranza;
+    });
+
+    console.log('Canal seleccionado:', canalSeleccionado);
+    console.log('Modo vista:', viewMode);
+    console.log('Todas las plantillas:', plantillas);
+    console.log('Plantillas filtradas:', filtradas);
+    return filtradas;
   };
 
   const renderDashboard = () => (
     <div className="space-y-6">
       {/* Métricas principales */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
@@ -471,7 +530,7 @@ const Comunicaciones: React.FC = () => {
       )}
 
       {/* Métricas de rendimiento */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border p-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
             <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
@@ -718,7 +777,18 @@ const Comunicaciones: React.FC = () => {
             <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 <th className="px-6 py-3 text-left">
-                  <input type="checkbox" className="rounded border-gray-300" />
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300"
+                    checked={selectedClientes.length === clientes.length && clientes.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedClientes(clientes.map(c => c.id));
+                      } else {
+                        setSelectedClientes([]);
+                      }
+                    }}
+                  />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Cliente
@@ -862,7 +932,7 @@ const Comunicaciones: React.FC = () => {
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center">
               <MessageSquare className="h-8 w-8 mr-3 text-blue-600" />
               Comunicaciones y Marketing
             </h1>
@@ -886,7 +956,7 @@ const Comunicaciones: React.FC = () => {
       {/* Tabs */}
       <div className="mb-6">
         <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex flex-wrap space-x-4 sm:space-x-8">
             <button
               onClick={() => setViewMode('dashboard')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -966,14 +1036,7 @@ const Comunicaciones: React.FC = () => {
       {viewMode === 'deudores' && renderDeudores()}
       {viewMode === 'campanas' && <CampanaManager />}
       {viewMode === 'plantillas' && <PlantillasManager />}
-      {viewMode === 'analytics' && (
-        <div className="text-center py-12">
-          <TrendingUp className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">
-            Analytics de comunicaciones en desarrollo...
-          </p>
-        </div>
-      )}
+      {viewMode === 'analytics' && <CommunicationAnalytics />}
 
       {/* Modal mejorado para enviar mensaje individual */}
       {showMensajeModal && clienteSeleccionado && createPortal(
@@ -1000,7 +1063,7 @@ const Comunicaciones: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {/* Información del cliente */}
               <div className="space-y-4">
                 <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
@@ -1160,7 +1223,7 @@ const Comunicaciones: React.FC = () => {
             </div>
 
             {/* Botones de acción */}
-            <div className="flex gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 onClick={() => {
                   if (!mensajeTexto.trim()) {
@@ -1171,6 +1234,58 @@ const Comunicaciones: React.FC = () => {
                     warning('Por favor escribe un asunto para el email');
                     return;
                   }
+
+                  // Generar ID único para el mensaje
+                  const mensajeId = `msg_${Date.now()}_${clienteSeleccionado.id}`;
+
+                  // Registrar evento de envío
+                  communicationAnalytics.trackEvent({
+                    tipo: 'envio',
+                    canal: canalSeleccionado,
+                    cliente_id: clienteSeleccionado.id,
+                    plantilla_id: plantillaSeleccionada ? parseInt(plantillaSeleccionada) : undefined,
+                    mensaje_id: mensajeId,
+                    contenido: mensajeTexto
+                  });
+
+                  // Simular entrega después de 2-5 segundos
+                  setTimeout(() => {
+                    if (Math.random() > 0.1) { // 90% de entrega exitosa
+                      communicationAnalytics.trackEvent({
+                        tipo: 'entrega',
+                        canal: canalSeleccionado,
+                        cliente_id: clienteSeleccionado.id,
+                        mensaje_id: mensajeId
+                      });
+
+                      // Simular lectura después de 10-60 segundos (60% probabilidad)
+                      if (Math.random() > 0.4) {
+                        setTimeout(() => {
+                          communicationAnalytics.trackEvent({
+                            tipo: 'lectura',
+                            canal: canalSeleccionado,
+                            cliente_id: clienteSeleccionado.id,
+                            mensaje_id: mensajeId,
+                            metadata: {
+                              tiempo_lectura: Math.floor(Math.random() * 120) + 10
+                            }
+                          });
+                        }, Math.random() * 50000 + 10000); // 10-60 segundos
+                      }
+                    } else {
+                      // Error de entrega
+                      communicationAnalytics.trackEvent({
+                        tipo: 'error',
+                        canal: canalSeleccionado,
+                        cliente_id: clienteSeleccionado.id,
+                        mensaje_id: mensajeId,
+                        metadata: {
+                          error_tipo: 'delivery_failed',
+                          error_mensaje: 'No se pudo entregar el mensaje'
+                        }
+                      });
+                    }
+                  }, Math.random() * 3000 + 2000); // 2-5 segundos
 
                   const tipoEnvio = programarEnvio ? 'programado' : 'inmediato';
                   success(`Mensaje de ${canalSeleccionado} ${tipoEnvio} para ${clienteSeleccionado.nombre}`);
@@ -1187,6 +1302,257 @@ const Comunicaciones: React.FC = () => {
                 onClick={() => {
                   setShowMensajeModal(false);
                   resetModal();
+                }}
+                className="flex-1 bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-300 py-3 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal de envío masivo */}
+      {showEnvioMasivoModal && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" style={{ zIndex: 10000 }}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <Users className="h-6 w-6 text-blue-600 mr-2" />
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Envío Masivo
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowEnvioMasivoModal(false);
+                  resetMasivoModal();
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+              {/* Información de la selección */}
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">Clientes Seleccionados</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Total seleccionados:</span>
+                      <span className="text-sm font-bold text-blue-600">{selectedClientes.length} clientes</span>
+                    </div>
+                    <div className="max-h-32 overflow-y-auto">
+                      {clientes.filter(c => selectedClientes.includes(c.id)).map(cliente => (
+                        <div key={cliente.id} className="text-xs text-gray-700 dark:text-gray-300 py-1">
+                          • {cliente.nombre} - {formatCurrency(cliente.deuda_total)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Configuración del envío */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Canal de Comunicación
+                    </label>
+                    <select
+                      value={canalMasivo}
+                      onChange={(e) => setCanalMasivo(e.target.value as any)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Email">Email</option>
+                      <option value="SMS">SMS</option>
+                      <option value="Telegram">Telegram</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Seleccionar Plantilla (Opcional)
+                    </label>
+                    <select
+                      value={plantillaMasiva}
+                      onChange={(e) => {
+                        setPlantillaMasiva(e.target.value);
+                        if (e.target.value) {
+                          handleSeleccionarPlantillaMasiva(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="">Mensaje personalizado</option>
+                      {getPlantillasMasivasFiltradas().map(plantilla => (
+                        <option key={plantilla.id} value={plantilla.id.toString()}>
+                          {plantilla.nombre} ({plantilla.tipo})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Opciones adicionales */}
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="programar-masivo"
+                        checked={programarMasivo}
+                        onChange={(e) => setProgramarMasivo(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <label htmlFor="programar-masivo" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        Programar envío
+                      </label>
+                    </div>
+
+                    {programarMasivo && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Fecha y hora de envío
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={fechaMasiva}
+                          onChange={(e) => setFechaMasiva(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Composición del mensaje */}
+              <div className="space-y-4">
+                {/* Asunto para email */}
+                {canalMasivo === 'Email' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Asunto del Email
+                    </label>
+                    <input
+                      type="text"
+                      value={asuntoMasivo}
+                      onChange={(e) => setAsuntoMasivo(e.target.value)}
+                      placeholder="Asunto del email..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                )}
+
+                {/* Contenido del mensaje */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Contenido del Mensaje
+                    </label>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {mensajeMasivo.length} caracteres
+                    </span>
+                  </div>
+                  <textarea
+                    value={mensajeMasivo}
+                    onChange={(e) => setMensajeMasivo(e.target.value)}
+                    placeholder={`Escribe tu mensaje de ${canalMasivo.toLowerCase()}...`}
+                    className="w-full h-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+                  />
+                </div>
+
+                {/* Variables disponibles */}
+                {plantillaMasiva && (
+                  <div className="bg-blue-50 dark:bg-blue-900 rounded-lg p-3">
+                    <h5 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                      Variables disponibles:
+                    </h5>
+                    <div className="flex flex-wrap gap-1">
+                      {['nombre', 'monto', 'dias_vencido', 'empresa'].map(variable => (
+                        <span key={variable} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200">
+                          {'{' + variable + '}'}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                      Las variables se reemplazarán automáticamente para cada cliente
+                    </p>
+                  </div>
+                )}
+
+                {/* Vista previa */}
+                {mensajeMasivo && (
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                    <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Vista Previa (primer cliente):
+                    </h5>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap border-l-4 border-blue-500 pl-3">
+                      {canalMasivo === 'Email' && asuntoMasivo && (
+                        <div className="font-medium mb-2">Asunto: {asuntoMasivo.replace(/{nombre}/g, clientes.find(c => selectedClientes.includes(c.id))?.nombre || 'Cliente')}</div>
+                      )}
+                      {mensajeMasivo
+                        .replace(/{nombre}/g, clientes.find(c => selectedClientes.includes(c.id))?.nombre || 'Cliente')
+                        .replace(/{monto}/g, formatCurrency(clientes.find(c => selectedClientes.includes(c.id))?.deuda_total || 0))
+                        .replace(/{dias_vencido}/g, (clientes.find(c => selectedClientes.includes(c.id))?.dias_vencido || 0).toString())
+                        .replace(/{empresa}/g, 'Inversiones C&C')
+                      }
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  if (!mensajeMasivo.trim()) {
+                    warning('Por favor escribe un mensaje antes de enviar');
+                    return;
+                  }
+                  if (canalMasivo === 'Email' && !asuntoMasivo.trim()) {
+                    warning('Por favor escribe un asunto para el email');
+                    return;
+                  }
+
+                  // Tracking de analytics para envío masivo
+                  selectedClientes.forEach(clienteId => {
+                    const cliente = clientes.find(c => c.id === clienteId);
+                    if (cliente) {
+                      communicationAnalytics.trackMessageSent({
+                        client_id: cliente.id,
+                        channel: canalMasivo.toLowerCase() as 'whatsapp' | 'email' | 'sms',
+                        template_id: plantillaMasiva?.id,
+                        template_name: plantillaMasiva?.nombre,
+                        message_type: 'bulk',
+                        content: mensajeMasivo,
+                        subject: canalMasivo === 'Email' ? asuntoMasivo : undefined,
+                        scheduled: programarMasivo,
+                        scheduled_date: programarMasivo ? fechaProgramada || undefined : undefined,
+                        client_segment: cliente.segmento
+                      });
+                    }
+                  });
+
+                  const tipoEnvio = programarMasivo ? 'programado' : 'inmediato';
+                  success(`Envío masivo ${tipoEnvio} para ${selectedClientes.length} clientes por ${canalMasivo}`);
+                  setShowEnvioMasivoModal(false);
+                  resetMasivoModal();
+                  setSelectedClientes([]); // Limpiar selección
+                }}
+                disabled={!mensajeMasivo.trim() || (canalMasivo === 'Email' && !asuntoMasivo.trim())}
+                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {programarMasivo ? 'Programar Envío Masivo' : 'Enviar Ahora'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowEnvioMasivoModal(false);
+                  resetMasivoModal();
                 }}
                 className="flex-1 bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-300 py-3 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
               >

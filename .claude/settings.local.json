@@ -23,7 +23,11 @@
       "Bash(source:*)",
       "Bash(sed:*)",
       "Bash(find:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(npm run lint:*)",
+      "Bash(set DJANGO_SETTINGS_MODULE=concesionario_app.settings)",
+      "Bash(del create_positions.py)",
+      "Read(//c/Users/yfto9/OneDrive/Documents/**)"
     ],
     "deny": [],
     "ask": [],

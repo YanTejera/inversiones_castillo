@@ -74,6 +74,8 @@ INSTALLED_APPS = [
     'pagos',
     'reportes',
     'notificaciones',
+    'financiamiento',  # Módulo de financiamiento y comisiones
+    'empleados',  # Módulo de gestión de empleados
 ]
 
 MIDDLEWARE = [
